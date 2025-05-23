@@ -27,10 +27,10 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
 
   return (
     <div className="p-4 space-y-6">
-      <Card className="bg-gray-800 border-green-700">
+      <Card className="border-primary">
         <CardHeader className="text-center">
-          <CardTitle className="text-white">Club Feed</CardTitle>
-          <CardDescription className="text-green-200">
+          <CardTitle className="text-foreground">Club Feed</CardTitle>
+          <CardDescription className="text-primary">
             Latest match results from {user.clubName}
           </CardDescription>
         </CardHeader>
@@ -46,43 +46,43 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
             const isTie = match.status === 'tied';
             
             return (
-              <Card key={match.id} className="bg-gray-800 border-green-700">
+              <Card key={match.id} className="border-primary">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
-                      <Trophy className="w-5 h-5 text-green-900" />
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center">
+                      <Trophy className="w-5 h-5 text-primary-foreground" />
                     </div>
                     
                     <div className="flex-1">
-                      <div className="text-white">
+                      <div className="text-foreground">
                         {isTie ? (
                           <p>
                             <span className="font-bold">{player1?.fullName}</span> and{' '}
                             <span className="font-bold">{player2?.fullName}</span> tied in{' '}
                             {match.format === 'match-play' ? 'Match Play' : 'Stroke Play'} at{' '}
-                            <span className="text-green-400">{match.course}</span>
+                            <span className="text-primary">{match.course}</span>
                           </p>
                         ) : (
                           <p>
-                            <span className="font-bold text-green-400">{winner?.fullName}</span> beat{' '}
+                            <span className="font-bold text-primary">{winner?.fullName}</span> beat{' '}
                             <span className="font-bold">{loser?.fullName}</span> in{' '}
                             {match.format === 'match-play' ? 'Match Play' : 'Stroke Play'} at{' '}
-                            <span className="text-green-400">{match.course}</span>
-                            {!isTie && <span className="text-yellow-400">, won {match.wagerAmount.toLocaleString()} credits</span>}
+                            <span className="text-primary">{match.course}</span>
+                            {!isTie && <span className="text-accent">, won {match.wagerAmount.toLocaleString()} credits</span>}
                           </p>
                         )}
                       </div>
                       
-                      <p className="text-gray-400 text-sm mt-1">
+                      <p className="text-muted-foreground text-sm mt-1">
                         {formatTimeAgo(match.createdAt)}
                       </p>
                       
                       <div className="flex items-center gap-4 mt-3">
-                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-400 p-2">
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive p-2">
                           <Heart className="w-4 h-4 mr-1" />
                           <span className="text-xs">12</span>
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-blue-400 p-2">
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary p-2">
                           <MessageCircle className="w-4 h-4 mr-1" />
                           <span className="text-xs">3</span>
                         </Button>
@@ -94,11 +94,11 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
             );
           })
         ) : (
-          <Card className="bg-gray-800 border-green-700">
+          <Card className="border-primary">
             <CardContent className="p-8 text-center">
-              <Trophy className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400">No matches completed yet.</p>
-              <p className="text-gray-500 text-sm mt-1">Be the first to finish a match!</p>
+              <Trophy className="w-12 h-12 text-muted/50 mx-auto mb-3" />
+              <p className="text-muted-foreground">No matches completed yet.</p>
+              <p className="text-muted/70 text-sm mt-1">Be the first to finish a match!</p>
             </CardContent>
           </Card>
         )}

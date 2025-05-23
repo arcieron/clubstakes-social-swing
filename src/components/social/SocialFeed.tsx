@@ -1,8 +1,7 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { mockMatches, mockUsers } from '@/lib/mockData';
-import { Heart, MessageCircle, Trophy, GolfClub } from 'lucide-react';
+import { Heart, MessageCircle, Trophy, Golf } from 'lucide-react';
 interface SocialFeedProps {
   user: any;
 }
@@ -22,7 +21,7 @@ export const SocialFeed = ({
       <Card className="border-primary">
         <CardHeader className="text-center bg-primary text-white">
           <div className="flex items-center justify-center gap-2">
-            <GolfClub className="h-5 w-5 text-accent" />
+            <Trophy className="h-5 w-5 text-accent" />
             <CardTitle className="text-white font-light">Club Feed</CardTitle>
           </div>
           <CardDescription className="text-primary-foreground/80">

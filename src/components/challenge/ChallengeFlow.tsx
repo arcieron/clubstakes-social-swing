@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,7 +78,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
                       <p className="text-gray-400 text-sm">Handicap: {member.handicap}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-accent font-bold">{member.credits.toLocaleString()}</p>
+                      <p className="text-primary font-bold">{member.credits.toLocaleString()}</p>
                       <p className="text-gray-400 text-sm">credits</p>
                     </div>
                   </div>

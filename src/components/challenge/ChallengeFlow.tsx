@@ -56,14 +56,14 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
     switch (step) {
       case 1:
         return (
-          <Card className="bg-gray-800 border-green-700">
-            <CardHeader>
-              <CardTitle className="text-white">Select Opponent</CardTitle>
-              <CardDescription className="text-green-200">
+          <Card className="border-primary/20 shadow-md">
+            <CardHeader className="bg-primary/10">
+              <CardTitle className="text-primary">Select Opponent</CardTitle>
+              <CardDescription>
                 Choose a club member to challenge
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               {clubMembers.map((member) => (
                 <button
                   key={member.id}
@@ -71,15 +71,15 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
                     setChallengeData({...challengeData, opponentId: member.id});
                     setStep(2);
                   }}
-                  className="w-full p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-colors"
+                  className="w-full p-4 bg-white hover:bg-primary/5 border border-gray-100 rounded-lg text-left transition-colors shadow-sm"
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-white font-medium">{member.fullName}</p>
+                      <p className="text-gray-800 font-medium">{member.fullName}</p>
                       <p className="text-gray-400 text-sm">Handicap: {member.handicap}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-green-400 font-bold">{member.credits.toLocaleString()}</p>
+                      <p className="text-accent font-bold">{member.credits.toLocaleString()}</p>
                       <p className="text-gray-400 text-sm">credits</p>
                     </div>
                   </div>
@@ -93,23 +93,23 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
         const selectedOpponent = mockUsers.find(u => u.id === challengeData.opponentId);
         
         return (
-          <Card className="bg-gray-800 border-green-700">
-            <CardHeader>
-              <CardTitle className="text-white">Match Details</CardTitle>
-              <CardDescription className="text-green-200">
+          <Card className="border-primary/20 shadow-md">
+            <CardHeader className="bg-primary/10">
+              <CardTitle className="text-primary">Match Details</CardTitle>
+              <CardDescription>
                 vs {selectedOpponent?.fullName}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pt-6">
               <div>
-                <Label className="text-green-200">Match Format</Label>
+                <Label>Match Format</Label>
                 <Select value={challengeData.format} onValueChange={(value) => 
                   setChallengeData({...challengeData, format: value})
                 }>
-                  <SelectTrigger className="bg-gray-700 border-green-600 text-white">
+                  <SelectTrigger className="bg-white border-gray-200">
                     <SelectValue placeholder="Select format" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-700 border-green-600">
+                  <SelectContent>
                     <SelectItem value="match-play">Match Play</SelectItem>
                     <SelectItem value="stroke-play">Stroke Play</SelectItem>
                   </SelectContent>
@@ -117,14 +117,14 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
               </div>
 
               <div>
-                <Label className="text-green-200">Course</Label>
+                <Label>Course</Label>
                 <Select value={challengeData.courseId} onValueChange={(value) => 
                   setChallengeData({...challengeData, courseId: value})
                 }>
-                  <SelectTrigger className="bg-gray-700 border-green-600 text-white">
+                  <SelectTrigger className="bg-white border-gray-200">
                     <SelectValue placeholder="Select course" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-700 border-green-600">
+                  <SelectContent>
                     {mockCourses.map((course) => (
                       <SelectItem key={course.id} value={course.id}>
                         {course.name} ({course.rating}/{course.slope})
@@ -135,7 +135,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
               </div>
 
               <div>
-                <Label className="text-green-200">Wager Amount</Label>
+                <Label>Wager Amount</Label>
                 <Input
                   type="number"
                   min="100"
@@ -143,18 +143,18 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
                   step="50"
                   value={challengeData.wagerAmount}
                   onChange={(e) => setChallengeData({...challengeData, wagerAmount: parseInt(e.target.value)})}
-                  className="bg-gray-700 border-green-600 text-white"
+                  className="bg-white border-gray-200"
                 />
                 <p className="text-xs text-gray-400 mt-1">Range: 100 - 1,000 credits</p>
               </div>
 
               <div>
-                <Label className="text-green-200">Match Date</Label>
+                <Label>Match Date</Label>
                 <Input
                   type="date"
                   value={challengeData.matchDate}
                   onChange={(e) => setChallengeData({...challengeData, matchDate: e.target.value})}
-                  className="bg-gray-700 border-green-600 text-white"
+                  className="bg-white border-gray-200"
                 />
               </div>
 
@@ -162,14 +162,14 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
                 <Button 
                   variant="outline" 
                   onClick={() => setStep(1)}
-                  className="flex-1 border-green-600 text-green-400 hover:bg-green-900/30"
+                  className="flex-1 border-primary text-primary hover:bg-primary/10"
                 >
                   Back
                 </Button>
                 <Button 
                   onClick={handleSubmit}
                   disabled={!challengeData.format || !challengeData.courseId || !challengeData.matchDate}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-green-500"
+                  className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
                 >
                   Send Challenge
                 </Button>
@@ -189,7 +189,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
         <Button
           variant="ghost"
           onClick={onClose}
-          className="text-green-400 hover:text-green-300 p-2"
+          className="text-primary hover:text-primary/80 p-2"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
           Back to Dashboard

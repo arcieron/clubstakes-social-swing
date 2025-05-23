@@ -62,38 +62,38 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-gray-800 border-green-700">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mb-4">
-            <span className="text-2xl">🏌️</span>
+      <Card className="w-full max-w-md border-gray-200 shadow-lg">
+        <CardHeader className="text-center pb-6">
+          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-4">
+            <span className="text-white text-2xl">🏌️</span>
           </div>
-          <CardTitle className="text-2xl font-bold text-white">ClubStakes</CardTitle>
-          <CardDescription className="text-green-200">
+          <CardTitle className="text-2xl font-bold text-gray-800">ClubStakes</CardTitle>
+          <CardDescription className="text-gray-500 mt-1">
             {isSignUp ? 'Join your golf club community' : 'Welcome back to the club'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email" className="text-green-200">Email</Label>
+              <Label htmlFor="email" className="text-gray-700">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="bg-gray-700 border-green-600 text-white"
+                className="bg-gray-50 border-gray-200"
                 required
               />
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-green-200">Password</Label>
+              <Label htmlFor="password" className="text-gray-700">Password</Label>
               <Input
                 id="password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
-                className="bg-gray-700 border-green-600 text-white"
+                className="bg-gray-50 border-gray-200"
                 required
               />
             </div>
@@ -101,35 +101,35 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
             {isSignUp && (
               <>
                 <div>
-                  <Label htmlFor="fullName" className="text-green-200">Full Name</Label>
+                  <Label htmlFor="fullName" className="text-gray-700">Full Name</Label>
                   <Input
                     id="fullName"
                     value={formData.fullName}
                     onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                    className="bg-gray-700 border-green-600 text-white"
+                    className="bg-gray-50 border-gray-200"
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="clubInviteCode" className="text-green-200">Club Invite Code</Label>
+                  <Label htmlFor="clubInviteCode" className="text-gray-700">Club Invite Code</Label>
                   <Input
                     id="clubInviteCode"
                     value={formData.clubInviteCode}
                     onChange={(e) => setFormData({...formData, clubInviteCode: e.target.value})}
-                    className="bg-gray-700 border-green-600 text-white"
+                    className="bg-gray-50 border-gray-200"
                     placeholder="e.g., RIVIERA2024"
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="ghinId" className="text-green-200">GHIN ID</Label>
+                  <Label htmlFor="ghinId" className="text-gray-700">GHIN ID</Label>
                   <Input
                     id="ghinId"
                     value={formData.ghinId}
                     onChange={(e) => setFormData({...formData, ghinId: e.target.value})}
-                    className="bg-gray-700 border-green-600 text-white"
+                    className="bg-gray-50 border-gray-200"
                     placeholder="12345678"
                     required
                   />
@@ -139,7 +139,7 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
 
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
+              className="w-full bg-primary hover:bg-primary/90 text-white"
             >
               {isSignUp ? 'Join Club' : 'Sign In'}
             </Button>
@@ -148,14 +148,14 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
           <div className="text-center">
             <button
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-green-400 hover:text-green-300 text-sm"
+              className="text-primary hover:text-primary/80 text-sm font-medium"
             >
               {isSignUp ? 'Already a member? Sign in' : 'Need an invite? Contact your club admin'}
             </button>
           </div>
 
           {!isSignUp && (
-            <div className="text-center text-xs text-green-300 mt-4">
+            <div className="text-center text-xs text-gray-500 mt-4">
               <p>Demo: Use any email to login</p>
               <p>Or try: admin@riviera.com (Admin)</p>
             </div>

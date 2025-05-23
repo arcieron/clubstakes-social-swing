@@ -35,58 +35,60 @@ export const AdminPanel = ({ user }: AdminPanelProps) => {
 
   return (
     <div className="p-4 space-y-6">
-      <Card className="bg-gray-800 border-green-700">
-        <CardHeader className="text-center">
-          <CardTitle className="text-white flex items-center justify-center gap-2">
-            <Settings className="w-6 h-6" />
-            Admin Panel
-          </CardTitle>
-          <CardDescription className="text-green-200">
-            Manage {userClub?.name}
-          </CardDescription>
-        </CardHeader>
+      <Card className="border-primary/10 overflow-hidden">
+        <div className="bg-gradient-to-r from-primary to-primary/90 p-6 text-white">
+          <div className="text-center">
+            <CardTitle className="text-white flex items-center justify-center gap-2 text-2xl font-light">
+              <Settings className="w-6 h-6" />
+              Admin Panel
+            </CardTitle>
+            <CardDescription className="text-primary-foreground/80 mt-1">
+              Manage {userClub?.name}
+            </CardDescription>
+          </div>
+        </div>
       </Card>
 
       {/* Club Stats */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-gray-800 border-green-700">
+        <Card className="border-gray-200">
           <CardContent className="p-4 text-center">
-            <Users className="w-8 h-8 text-green-400 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-white">{clubMembers.length}</p>
-            <p className="text-gray-400 text-sm">Members</p>
+            <Users className="w-8 h-8 text-primary mx-auto mb-2" />
+            <p className="text-2xl font-bold text-gray-800">{clubMembers.length}</p>
+            <p className="text-gray-500 text-sm">Members</p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800 border-green-700">
+        <Card className="border-gray-200">
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-white">
+            <p className="text-2xl font-bold text-gray-800">
               {clubMembers.reduce((sum, m) => sum + m.credits, 0).toLocaleString()}
             </p>
-            <p className="text-gray-400 text-sm">Total Credits</p>
+            <p className="text-gray-500 text-sm">Total Credits</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Invite Code Generator */}
-      <Card className="bg-gray-800 border-green-700">
+      <Card className="border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Generate Invite Code</CardTitle>
-          <CardDescription className="text-green-200">
+          <CardTitle className="text-gray-800 text-lg">Generate Invite Code</CardTitle>
+          <CardDescription className="text-gray-500">
             Create new invite codes for members
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label className="text-green-200">Current Code</Label>
+            <Label className="text-gray-700">Current Code</Label>
             <div className="flex gap-2">
               <Input
                 value={userClub?.inviteCode || 'RIVIERA2024'}
                 readOnly
-                className="bg-gray-700 border-green-600 text-white"
+                className="bg-gray-50 border-gray-200"
               />
               <Button
                 onClick={() => navigator.clipboard.writeText(userClub?.inviteCode || 'RIVIERA2024')}
                 variant="outline"
-                className="border-green-600 text-green-400"
+                className="border-gray-200 text-primary"
               >
                 Copy
               </Button>
@@ -95,17 +97,17 @@ export const AdminPanel = ({ user }: AdminPanelProps) => {
           
           {newInviteCode && (
             <div>
-              <Label className="text-green-200">New Code Generated</Label>
+              <Label className="text-gray-700">New Code Generated</Label>
               <div className="flex gap-2">
                 <Input
                   value={newInviteCode}
                   readOnly
-                  className="bg-gray-700 border-green-600 text-white"
+                  className="bg-gray-50 border-gray-200"
                 />
                 <Button
                   onClick={() => navigator.clipboard.writeText(newInviteCode)}
                   variant="outline"
-                  className="border-green-600 text-green-400"
+                  className="border-gray-200 text-primary"
                 >
                   Copy
                 </Button>
@@ -115,7 +117,7 @@ export const AdminPanel = ({ user }: AdminPanelProps) => {
           
           <Button 
             onClick={generateInviteCode}
-            className="w-full bg-gradient-to-r from-green-600 to-green-500"
+            className="w-full bg-primary text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
             Generate New Code
@@ -124,20 +126,20 @@ export const AdminPanel = ({ user }: AdminPanelProps) => {
       </Card>
 
       {/* Member List */}
-      <Card className="bg-gray-800 border-green-700">
+      <Card className="border-gray-200">
         <CardHeader>
-          <CardTitle className="text-white">Club Members</CardTitle>
+          <CardTitle className="text-gray-800 text-lg">Club Members</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {clubMembers.map((member) => (
-            <div key={member.id} className="flex justify-between items-center p-3 bg-gray-700 rounded-lg">
+            <div key={member.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
               <div>
-                <p className="text-white font-medium">{member.fullName}</p>
-                <p className="text-gray-400 text-sm">{member.email}</p>
+                <p className="text-gray-800 font-medium">{member.fullName}</p>
+                <p className="text-gray-500 text-sm">{member.email}</p>
               </div>
               <div className="text-right">
-                <p className="text-white font-bold">{member.credits.toLocaleString()}</p>
-                <p className="text-gray-400 text-sm">credits</p>
+                <p className="text-gray-800 font-bold">{member.credits.toLocaleString()}</p>
+                <p className="text-gray-500 text-sm">credits</p>
               </div>
             </div>
           ))}
@@ -145,10 +147,10 @@ export const AdminPanel = ({ user }: AdminPanelProps) => {
       </Card>
 
       {/* Season Reset */}
-      <Card className="bg-gray-800 border-red-700">
+      <Card className="border-red-200">
         <CardHeader>
-          <CardTitle className="text-white">Season Management</CardTitle>
-          <CardDescription className="text-red-200">
+          <CardTitle className="text-gray-800 text-lg">Season Management</CardTitle>
+          <CardDescription className="text-red-500">
             Reset all member credits to 10,000
           </CardDescription>
         </CardHeader>

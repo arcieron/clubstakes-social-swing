@@ -16,7 +16,7 @@ export const Navigation = ({ currentView, onViewChange, isAdmin }: NavigationPro
   ];
 
   return (
-    <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white border-t border-primary/20 shadow-md">
+    <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-200 shadow-md">
       <div className="flex justify-around py-3">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -28,8 +28,8 @@ export const Navigation = ({ currentView, onViewChange, isAdmin }: NavigationPro
               onClick={() => onViewChange(item.id)}
               className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
                 isActive 
-                  ? 'text-white bg-primary' 
-                  : 'text-gray-600 hover:text-primary'
+                  ? 'text-white bg-primary shadow-sm' 
+                  : 'text-gray-500 hover:text-primary'
               }`}
             >
               <Icon className="w-5 h-5" />

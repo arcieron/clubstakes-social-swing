@@ -28,31 +28,33 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   return (
     <div className="p-4 space-y-6">
       {/* Credits Overview */}
-      <Card className="bg-gradient-to-r from-green-800 to-green-700 border-green-600">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl text-white">Your Credits</CardTitle>
-          <div className="text-4xl font-bold text-green-200 mt-2">
-            {formatCurrency(user.credits)}
+      <Card className="border-primary/10 overflow-hidden">
+        <div className="bg-gradient-to-r from-primary to-primary/90 p-6 text-white">
+          <div className="text-center">
+            <h2 className="text-2xl font-light">Your Credits</h2>
+            <div className="text-4xl font-bold mt-2">
+              {formatCurrency(user.credits)}
+            </div>
+            <p className="text-primary-foreground/80 text-sm mt-1">
+              Season Credits Available
+            </p>
           </div>
-          <CardDescription className="text-green-300">
-            Season Credits Available
-          </CardDescription>
-        </CardHeader>
+        </div>
       </Card>
 
       {/* Challenge CTA */}
       <Button 
         onClick={onChallenge}
-        className="w-full h-14 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-700 hover:to-yellow-600 text-lg font-semibold"
+        className="w-full h-14 bg-accent hover:bg-accent/90 text-accent-foreground text-lg font-semibold shadow-md"
       >
         🏌️ Challenge a Player
       </Button>
 
       {/* Recent Matches */}
-      <Card className="bg-gray-800 border-green-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
+      <Card className="border-gray-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-gray-800 flex items-center gap-2 text-lg">
+            <TrendingUp className="w-5 h-5 text-primary" />
             Recent Matches
           </CardTitle>
         </CardHeader>
@@ -66,18 +68,18 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
               const isTie = match.status === 'tied';
               
               return (
-                <div key={match.id} className="flex justify-between items-center p-3 bg-gray-700 rounded-lg">
+                <div key={match.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
                   <div>
-                    <p className="text-white font-medium">vs {opponent?.fullName}</p>
-                    <p className="text-gray-400 text-sm">{match.course}</p>
+                    <p className="text-gray-800 font-medium">vs {opponent?.fullName}</p>
+                    <p className="text-gray-500 text-sm">{match.course}</p>
                   </div>
                   <div className="text-right">
                     <p className={`font-bold ${
-                      isTie ? 'text-yellow-400' : userWon ? 'text-green-400' : 'text-red-400'
+                      isTie ? 'text-amber-500' : userWon ? 'text-primary' : 'text-red-500'
                     }`}>
                       {isTie ? 'TIE' : userWon ? 'WON' : 'LOST'}
                     </p>
-                    <p className="text-gray-300 text-sm">
+                    <p className="text-gray-700 text-sm">
                       {isTie ? '0' : userWon ? '+' : '-'}{formatCurrency(match.wagerAmount)}
                     </p>
                   </div>
@@ -85,40 +87,40 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
               );
             })
           ) : (
-            <p className="text-gray-400 text-center py-4">No matches yet. Challenge someone!</p>
+            <p className="text-gray-500 text-center py-4">No matches yet. Challenge someone!</p>
           )}
         </CardContent>
       </Card>
 
       {/* Club Leaderboard */}
-      <Card className="bg-gray-800 border-green-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Trophy className="w-5 h-5" />
+      <Card className="border-gray-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-gray-800 flex items-center gap-2 text-lg">
+            <Trophy className="w-5 h-5 text-primary" />
             Club Leaderboard
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {clubMembers.map((member, index) => (
-            <div key={member.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+            <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                  index === 0 ? 'bg-yellow-500 text-yellow-900' :
-                  index === 1 ? 'bg-gray-400 text-gray-900' :
-                  index === 2 ? 'bg-amber-600 text-amber-900' :
-                  'bg-gray-600 text-gray-200'
+                  index === 0 ? 'bg-accent text-accent-foreground' :
+                  index === 1 ? 'bg-gray-200 text-gray-700' :
+                  index === 2 ? 'bg-amber-700/80 text-white' :
+                  'bg-gray-100 text-gray-600'
                 }`}>
                   {index + 1}
                 </div>
                 <div>
-                  <p className={`font-medium ${member.id === user.id ? 'text-green-400' : 'text-white'}`}>
+                  <p className={`font-medium ${member.id === user.id ? 'text-primary' : 'text-gray-800'}`}>
                     {member.fullName} {member.id === user.id && '(You)'}
                   </p>
-                  <p className="text-gray-400 text-sm">HCP: {member.handicap}</p>
+                  <p className="text-gray-500 text-sm">HCP: {member.handicap}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-white font-bold">{formatCurrency(member.credits)}</p>
+                <p className="text-gray-800 font-bold">{formatCurrency(member.credits)}</p>
               </div>
             </div>
           ))}
@@ -127,16 +129,16 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-gray-800 border-green-700">
+        <Card className="border-gray-200">
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-white">{user.handicap}</p>
-            <p className="text-gray-400 text-sm">Handicap</p>
+            <p className="text-2xl font-bold text-gray-800">{user.handicap}</p>
+            <p className="text-gray-500 text-sm">Handicap</p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-800 border-green-700">
+        <Card className="border-gray-200">
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-white">{userMatches.length}</p>
-            <p className="text-gray-400 text-sm">Matches Played</p>
+            <p className="text-2xl font-bold text-gray-800">{userMatches.length}</p>
+            <p className="text-gray-500 text-sm">Matches Played</p>
           </CardContent>
         </Card>
       </div>

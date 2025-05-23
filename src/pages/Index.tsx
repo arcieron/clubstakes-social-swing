@@ -35,7 +35,7 @@ const Index = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900">
+      <div className="min-h-screen bg-gradient-to-br from-primary via-primary/90 to-primary">
         <AuthForm onLogin={handleLogin} />
       </div>
     );
@@ -61,20 +61,25 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-green-900">
-      <div className="max-w-md mx-auto bg-gray-900 min-h-screen relative">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-md mx-auto bg-white min-h-screen relative">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-700 to-green-600 p-4 text-white">
+        <div className="bg-white border-b border-gray-200 p-4 shadow-sm">
           <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold">ClubStakes</h1>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                <span className="text-white text-lg">🏌️</span>
+              </div>
+              <h1 className="text-xl font-bold text-gray-800">ClubStakes</h1>
+            </div>
             <button
               onClick={handleLogout}
-              className="text-green-200 hover:text-white text-sm"
+              className="text-gray-500 hover:text-primary text-sm font-medium"
             >
               Logout
             </button>
           </div>
-          <p className="text-green-200 text-sm mt-1">{currentUser.clubName}</p>
+          <p className="text-gray-500 text-sm mt-1 font-medium">{currentUser.clubName}</p>
         </div>
 
         {/* Main Content */}

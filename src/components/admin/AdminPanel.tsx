@@ -39,7 +39,7 @@ export const AdminPanel = ({ user }: AdminPanelProps) => {
         <div className="bg-gradient-to-r from-primary to-primary/90 p-6 text-white">
           <div className="text-center">
             <CardTitle className="text-white flex items-center justify-center gap-2 text-2xl font-light">
-              <Settings className="w-6 h-6" />
+              <Settings className="w-6 h-6 text-accent" />
               Admin Panel
             </CardTitle>
             <CardDescription className="text-primary-foreground/80 mt-1">

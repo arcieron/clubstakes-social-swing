@@ -28,9 +28,9 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
   return (
     <div className="p-4 space-y-6">
       <Card className="border-primary">
-        <CardHeader className="text-center">
-          <CardTitle className="text-foreground">Club Feed</CardTitle>
-          <CardDescription className="text-primary">
+        <CardHeader className="text-center bg-primary text-white">
+          <CardTitle className="text-white">Club Feed</CardTitle>
+          <CardDescription className="text-primary-foreground/80">
             Latest match results from {user.clubName}
           </CardDescription>
         </CardHeader>

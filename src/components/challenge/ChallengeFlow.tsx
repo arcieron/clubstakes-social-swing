@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { mockUsers, mockCourses, mockMatches } from '@/lib/mockData';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Search } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface ChallengeFlowProps {
@@ -15,6 +16,7 @@ interface ChallengeFlowProps {
 
 export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
   const [step, setStep] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
   const [challengeData, setChallengeData] = useState({
     opponentId: '',
     format: '',
@@ -24,6 +26,11 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
   });
 
   const clubMembers = mockUsers.filter(u => u.clubId === user.clubId && u.id !== user.id);
+  
+  const filteredMembers = clubMembers.filter(member =>
+    member.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.idNumber.toString().includes(searchTerm)
+  );
 
   const handleSubmit = () => {
     const opponent = mockUsers.find(u => u.id === challengeData.opponentId);
@@ -63,27 +70,48 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
-              {clubMembers.map((member) => (
-                <button
-                  key={member.id}
-                  onClick={() => {
-                    setChallengeData({...challengeData, opponentId: member.id});
-                    setStep(2);
-                  }}
-                  className="w-full p-4 bg-white hover:bg-primary/5 border border-gray-100 rounded-lg text-left transition-colors shadow-sm"
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-gray-800 font-medium">{member.fullName}</p>
-                      <p className="text-gray-400 text-sm">Handicap: {member.handicap}</p>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search by name or ID number..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-white border-gray-200"
+                />
+              </div>
+              
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {filteredMembers.map((member) => (
+                  <button
+                    key={member.id}
+                    onClick={() => {
+                      setChallengeData({...challengeData, opponentId: member.id});
+                      setStep(2);
+                    }}
+                    className="w-full p-4 bg-white hover:bg-primary/5 border border-gray-100 rounded-lg text-left transition-colors shadow-sm"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-gray-800 font-medium">{member.fullName}</p>
+                          <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">#{member.idNumber}</span>
+                        </div>
+                        <p className="text-gray-400 text-sm">Handicap: {member.handicap}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-primary font-bold">{member.credits.toLocaleString()}</p>
+                        <p className="text-gray-400 text-sm">credits</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-primary font-bold">{member.credits.toLocaleString()}</p>
-                      <p className="text-gray-400 text-sm">credits</p>
-                    </div>
+                  </button>
+                ))}
+                
+                {filteredMembers.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No members found matching "{searchTerm}"
                   </div>
-                </button>
-              ))}
+                )}
+              </div>
             </CardContent>
           </Card>
         );
@@ -96,7 +124,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
             <CardHeader className="bg-primary/10">
               <CardTitle className="text-primary">Match Details</CardTitle>
               <CardDescription>
-                vs {selectedOpponent?.fullName}
+                vs {selectedOpponent?.fullName} (#{selectedOpponent?.idNumber})
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">

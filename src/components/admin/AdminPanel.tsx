@@ -134,7 +134,10 @@ export const AdminPanel = ({ user }: AdminPanelProps) => {
           {clubMembers.map((member) => (
             <div key={member.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
               <div>
-                <p className="text-gray-800 font-medium">{member.fullName}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-gray-800 font-medium">{member.fullName}</p>
+                  <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">#{member.idNumber}</span>
+                </div>
                 <p className="text-gray-500 text-sm">{member.email}</p>
               </div>
               <div className="text-right">

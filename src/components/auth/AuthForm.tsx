@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,10 +31,20 @@ export const AuthForm = ({ onLogin }: AuthFormProps) => {
         return;
       }
 
+      // Generate next available ID number for the club
+      const clubMembers = mockUsers.filter(u => u.clubId === club.id);
+      const existingIds = clubMembers.map(u => u.idNumber);
+      const baseId = club.id === 'club1' ? 1000 : 2000; // Different base IDs for different clubs
+      let nextId = baseId + 1;
+      while (existingIds.includes(nextId)) {
+        nextId++;
+      }
+
       const newUser = {
         id: Date.now().toString(),
         email: formData.email,
         fullName: formData.fullName,
+        idNumber: nextId,
         clubId: club.id,
         clubName: club.name,
         ghinId: formData.ghinId,

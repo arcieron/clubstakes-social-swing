@@ -1,8 +1,10 @@
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockMatches, mockUsers } from '@/lib/mockData';
-import { Trophy, TrendingUp, Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { mockUsers, mockMatches } from '@/lib/mockData';
+import { Trophy, TrendingUp, Users, Sword } from 'lucide-react';
 
 interface DashboardProps {
   user: any;
@@ -10,138 +12,174 @@ interface DashboardProps {
 }
 
 export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
-  // Get user's recent matches
-  const userMatches = mockMatches
-    .filter(m => m.player1Id === user.id || m.player2Id === user.id)
+  // Get user's matches
+  const userMatches = mockMatches.filter(match => 
+    match.player1Id === user.id || match.player2Id === user.id
+  );
+  
+  const pendingMatches = userMatches.filter(match => match.status === 'pending');
+  const completedMatches = userMatches.filter(match => match.status === 'completed');
+  const wonMatches = completedMatches.filter(match => match.winnerId === user.id);
+
+  // Get recent activity
+  const recentMatches = userMatches
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
 
-  // Get club leaderboard
-  const clubMembers = mockUsers
-    .filter(u => u.clubId === user.clubId)
-    .sort((a, b) => b.credits - a.credits)
-    .slice(0, 5);
+  const getOpponentName = (match: any) => {
+    const opponentId = match.player1Id === user.id ? match.player2Id : match.player1Id;
+    const opponent = mockUsers.find(u => u.id === opponentId);
+    return opponent?.fullName || 'Unknown';
+  };
 
-  const formatCurrency = (amount: number) => {
-    return amount.toLocaleString();
+  const getMatchStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
     <div className="p-4 space-y-6">
-      {/* Credits Overview */}
-      <Card className="border-primary/10 overflow-hidden">
-        <div className="bg-gradient-to-r from-primary to-primary/90 p-6 text-white">
-          <div className="text-center">
-            <h2 className="text-2xl font-light">Your Credits</h2>
-            <div className="text-4xl font-bold mt-2">
-              {formatCurrency(user.credits)}
+      {/* Welcome Section */}
+      <div className="text-center py-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          Welcome back, {user.fullName}!
+        </h2>
+        <p className="text-gray-600 mb-4">Ready for your next match?</p>
+        <Button 
+          onClick={onChallenge}
+          className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-3 text-lg"
+        >
+          <Sword className="w-5 h-5 mr-2" />
+          Challenge
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="border-primary/20">
+          <CardContent className="p-4 text-center">
+            <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-full mx-auto mb-2">
+              <Trophy className="w-6 h-6 text-primary" />
             </div>
-            <p className="text-primary-foreground/80 text-sm mt-1">
-              Season Credits Available
-            </p>
-          </div>
-        </div>
-      </Card>
+            <p className="text-2xl font-bold text-primary">{wonMatches.length}</p>
+            <p className="text-sm text-gray-600">Wins</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-primary/20">
+          <CardContent className="p-4 text-center">
+            <div className="flex items-center justify-center w-12 h-12 bg-accent/10 rounded-full mx-auto mb-2">
+              <TrendingUp className="w-6 h-6 text-accent" />
+            </div>
+            <p className="text-2xl font-bold text-accent">{user.credits.toLocaleString()}</p>
+            <p className="text-sm text-gray-600">Credits</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Challenge CTA */}
-      <Button 
-        onClick={onChallenge}
-        className="w-full h-14 bg-accent hover:bg-accent/90 text-accent-foreground text-lg font-semibold shadow-md"
-      >
-        🏌️ Challenge a Player
-      </Button>
-
-      {/* Recent Matches */}
-      <Card className="border-gray-200">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-gray-800 flex items-center gap-2 text-lg">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            Recent Matches
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {userMatches.length > 0 ? (
-            userMatches.map((match) => {
-              const opponent = mockUsers.find(u => 
-                u.id === (match.player1Id === user.id ? match.player2Id : match.player1Id)
-              );
-              const userWon = match.winnerId === user.id;
-              const isTie = match.status === 'tied';
-              
-              return (
-                <div key={match.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+      {/* Pending Matches */}
+      {pendingMatches.length > 0 && (
+        <Card className="border-orange-200">
+          <CardHeader className="bg-orange-50">
+            <CardTitle className="text-orange-800 flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Pending Matches
+            </CardTitle>
+            <CardDescription className="text-orange-600">
+              Matches waiting for opponents to accept
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 space-y-3">
+            {pendingMatches.map((match) => (
+              <div key={match.id} className="p-3 bg-white border border-orange-100 rounded-lg">
+                <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-gray-800 font-medium">vs {opponent?.fullName}</p>
-                    <p className="text-gray-500 text-sm">{match.course}</p>
+                    <p className="font-medium text-gray-800">vs {getOpponentName(match)}</p>
+                    <p className="text-sm text-gray-500">{match.course}</p>
+                    <p className="text-sm text-gray-500">{match.format}</p>
                   </div>
                   <div className="text-right">
-                    <p className={`font-bold ${
-                      isTie ? 'text-amber-500' : userWon ? 'text-primary' : 'text-red-500'
-                    }`}>
-                      {isTie ? 'TIE' : userWon ? 'WON' : 'LOST'}
-                    </p>
-                    <p className="text-gray-700 text-sm">
-                      {isTie ? '0' : userWon ? '+' : '-'}{formatCurrency(match.wagerAmount)}
-                    </p>
+                    <p className="text-orange-600 font-bold">{match.wagerAmount} credits</p>
+                    <Badge className="bg-yellow-100 text-yellow-800 text-xs">Pending</Badge>
                   </div>
                 </div>
-              );
-            })
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Activity */}
+      <Card className="border-primary/20">
+        <CardHeader className="bg-primary/5">
+          <CardTitle className="text-primary">Recent Activity</CardTitle>
+          <CardDescription>Your latest matches and challenges</CardDescription>
+        </CardHeader>
+        <CardContent className="p-4">
+          {recentMatches.length > 0 ? (
+            <div className="space-y-3">
+              {recentMatches.map((match) => (
+                <div key={match.id} className="p-3 bg-white border border-gray-100 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-gray-800">vs {getOpponentName(match)}</p>
+                      <p className="text-sm text-gray-500">{match.course} • {match.format}</p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(match.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-primary font-bold">{match.wagerAmount} credits</p>
+                      <Badge className={`text-xs ${getMatchStatusColor(match.status)}`}>
+                        {match.status === 'completed' && match.winnerId === user.id ? 'Won' : 
+                         match.status === 'completed' ? 'Lost' : 'Pending'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">No matches yet. Challenge someone!</p>
+            <div className="text-center py-8 text-gray-500">
+              <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p>No recent activity</p>
+              <p className="text-sm">Challenge someone to get started!</p>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Club Leaderboard */}
+      {/* Quick Stats */}
       <Card className="border-gray-200">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-gray-800 flex items-center gap-2 text-lg">
-            <Trophy className="w-5 h-5 text-primary" />
-            Club Leaderboard
-          </CardTitle>
+        <CardHeader>
+          <CardTitle className="text-gray-700">Your Profile</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {clubMembers.map((member, index) => (
-            <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                  index === 0 ? 'bg-accent text-accent-foreground' :
-                  index === 1 ? 'bg-gray-200 text-gray-700' :
-                  index === 2 ? 'bg-amber-700/80 text-white' :
-                  'bg-gray-100 text-gray-600'
-                }`}>
-                  {index + 1}
-                </div>
-                <div>
-                  <p className={`font-medium ${member.id === user.id ? 'text-primary' : 'text-gray-800'}`}>
-                    {member.fullName} {member.id === user.id && '(You)'}
-                  </p>
-                  <p className="text-gray-500 text-sm">HCP: {member.handicap}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-gray-800 font-bold">{formatCurrency(member.credits)}</p>
-              </div>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-500">Handicap</p>
+              <p className="text-lg font-bold text-gray-800">{user.handicap}</p>
             </div>
-          ))}
+            <div>
+              <p className="text-sm text-gray-500">GHIN ID</p>
+              <p className="text-lg font-bold text-gray-800">{user.ghinId}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Total Matches</p>
+              <p className="text-lg font-bold text-gray-800">{userMatches.length}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Win Rate</p>
+              <p className="text-lg font-bold text-gray-800">
+                {userMatches.length > 0 ? Math.round((wonMatches.length / completedMatches.length) * 100) || 0 : 0}%
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="border-gray-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-gray-800">{user.handicap}</p>
-            <p className="text-gray-500 text-sm">Handicap</p>
-          </CardContent>
-        </Card>
-        <Card className="border-gray-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-gray-800">{userMatches.length}</p>
-            <p className="text-gray-500 text-sm">Matches Played</p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 };

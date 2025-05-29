@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { mockCourses } from '@/lib/mockData';
 
 interface ChallengeData {
@@ -13,6 +14,7 @@ interface ChallengeData {
   wagerAmount: number;
   matchDate: string;
   teamFormat: string;
+  postToFeed?: boolean;
 }
 
 interface GameDetailsStepProps {
@@ -128,6 +130,17 @@ export const GameDetailsStep = ({
           />
         </div>
 
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="postToFeed" 
+            checked={challengeData.postToFeed || false}
+            onCheckedChange={(checked) => updateChallengeData({ postToFeed: !!checked })}
+          />
+          <Label htmlFor="postToFeed" className="text-sm">
+            Post to club feed for others to join
+          </Label>
+        </div>
+
         <div className="flex gap-3">
           <Button 
             variant="outline" 
@@ -137,11 +150,11 @@ export const GameDetailsStep = ({
             Back
           </Button>
           <Button 
-            onClick={() => challengeData.teamFormat === 'teams' ? onNext() : onSubmit()}
+            onClick={() => challengeData.teamFormat === 'teams' && !challengeData.postToFeed ? onNext() : onSubmit()}
             disabled={!challengeData.format || !challengeData.courseId || !challengeData.matchDate}
             className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
           >
-            {challengeData.teamFormat === 'teams' ? 'Next: Teams' : 'Send Challenge'}
+            {challengeData.teamFormat === 'teams' && !challengeData.postToFeed ? 'Next: Teams' : 'Send Challenge'}
           </Button>
         </div>
       </CardContent>

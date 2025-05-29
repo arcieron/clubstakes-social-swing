@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,9 +15,10 @@ interface PlayerSelectionStepProps {
   selectedPlayers: Player[];
   onPlayersChange: (players: Player[]) => void;
   onNext: () => void;
+  allowEmpty?: boolean;
 }
 
-export const PlayerSelectionStep = ({ user, selectedPlayers, onPlayersChange, onNext }: PlayerSelectionStepProps) => {
+export const PlayerSelectionStep = ({ user, selectedPlayers, onPlayersChange, onNext, allowEmpty = false }: PlayerSelectionStepProps) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const clubMembers = mockUsers.filter(u => u.clubId === user.clubId && u.id !== user.id);
@@ -32,7 +32,7 @@ export const PlayerSelectionStep = ({ user, selectedPlayers, onPlayersChange, on
     const isSelected = selectedPlayers.some(p => p.id === playerId);
     if (isSelected) {
       onPlayersChange(selectedPlayers.filter(p => p.id !== playerId));
-    } else if (selectedPlayers.length < 7) { // Max 7 others + current user = 8 total
+    } else if (selectedPlayers.length < 7) {
       onPlayersChange([...selectedPlayers, { id: playerId }]);
     }
   };
@@ -42,7 +42,7 @@ export const PlayerSelectionStep = ({ user, selectedPlayers, onPlayersChange, on
       <CardHeader className="bg-primary/10">
         <CardTitle className="text-primary">Select Players</CardTitle>
         <CardDescription>
-          Choose 1-7 club members to challenge (2-8 players total)
+          Choose 0-7 club members to challenge (1-8 players total)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-6">
@@ -128,7 +128,7 @@ export const PlayerSelectionStep = ({ user, selectedPlayers, onPlayersChange, on
 
         <Button 
           onClick={onNext}
-          disabled={selectedPlayers.length === 0}
+          disabled={!allowEmpty && selectedPlayers.length === 0}
           className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
         >
           Next: Game Details

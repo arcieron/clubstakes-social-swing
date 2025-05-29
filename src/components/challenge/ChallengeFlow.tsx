@@ -25,15 +25,16 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
     format: '',
     courseId: '',
     wagerAmount: 500,
-    matchDate: new Date().toISOString().split('T')[0], // Auto-fill with current date
-    teamFormat: 'individual' // 'individual' or 'teams'
+    matchDate: new Date().toISOString().split('T')[0],
+    teamFormat: 'individual',
+    postToFeed: false
   });
 
   const handleSubmit = () => {
-    if (selectedPlayers.length === 0) {
+    if (!challengeData.postToFeed && selectedPlayers.length === 0) {
       toast({
         title: "No players selected",
-        description: "Please select at least one other player.",
+        description: "Please select at least one other player or post to feed.",
         variant: "destructive"
       });
       return;
@@ -41,37 +42,48 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
 
     const course = mockCourses.find(c => c.id === challengeData.courseId);
     
-    // Create match object compatible with existing mock data structure
+    // Create match object
     const newMatch = {
       id: Date.now().toString(),
       player1Id: user.id,
-      player2Id: selectedPlayers[0].id, // For compatibility, set first player as player2
-      players: [
+      player2Id: challengeData.postToFeed ? '' : selectedPlayers[0]?.id || '',
+      players: challengeData.postToFeed ? [
+        { id: user.id, team: challengeData.teamFormat === 'teams' ? 1 : undefined }
+      ] : [
         { id: user.id, team: challengeData.teamFormat === 'teams' ? 1 : undefined },
         ...selectedPlayers
       ],
       format: challengeData.format,
       course: course?.name || '',
       wagerAmount: challengeData.wagerAmount,
-      status: 'pending' as const,
+      status: challengeData.postToFeed ? 'open' as const : 'pending' as const,
       createdAt: new Date().toISOString(),
       matchDate: challengeData.matchDate,
       teamFormat: challengeData.teamFormat,
       winnerId: '',
-      completedAt: ''
+      completedAt: '',
+      maxPlayers: challengeData.postToFeed ? selectedPlayers.length + 1 : undefined,
+      isPublic: challengeData.postToFeed
     };
 
     mockMatches.push(newMatch);
     
-    const playerNames = selectedPlayers.map(p => {
-      const player = mockUsers.find(u => u.id === p.id);
-      return player?.fullName;
-    }).join(', ');
-    
-    toast({
-      title: "Challenge Sent!",
-      description: `${playerNames} ${selectedPlayers.length === 1 ? 'has' : 'have'} been challenged to a match.`
-    });
+    if (challengeData.postToFeed) {
+      toast({
+        title: "Challenge Posted!",
+        description: "Your challenge has been posted to the club feed for others to join."
+      });
+    } else {
+      const playerNames = selectedPlayers.map(p => {
+        const player = mockUsers.find(u => u.id === p.id);
+        return player?.fullName;
+      }).join(', ');
+      
+      toast({
+        title: "Challenge Sent!",
+        description: `${playerNames} ${selectedPlayers.length === 1 ? 'has' : 'have'} been challenged to a match.`
+      });
+    }
     
     onClose();
   };
@@ -85,6 +97,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
             selectedPlayers={selectedPlayers}
             onPlayersChange={setSelectedPlayers}
             onNext={() => setStep(2)}
+            allowEmpty={challengeData.postToFeed}
           />
         );
 

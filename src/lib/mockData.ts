@@ -120,50 +120,84 @@ export const mockMatches = [
     id: 'match1',
     player1Id: 'user1',
     player2Id: 'user2',
+    players: [
+      { id: 'user1' },
+      { id: 'user2' }
+    ],
     format: 'match-play',
     course: 'Riviera Country Club',
+    courseId: 'course1',
     wagerAmount: 500,
-    status: 'completed',
+    status: 'completed' as const,
     winnerId: 'user1',
     createdAt: '2024-01-20T10:00:00Z',
     completedAt: '2024-01-20T16:00:00Z',
-    matchDate: '2024-01-20'
+    matchDate: '2024-01-20',
+    teamFormat: 'individual',
+    maxPlayers: 2,
+    isPublic: false
   },
   {
     id: 'match2',
     player1Id: 'user3',
     player2Id: 'user4',
+    players: [
+      { id: 'user3' },
+      { id: 'user4' }
+    ],
     format: 'stroke-play',
     course: 'Torrey Pines Golf Course',
+    courseId: 'course4',
     wagerAmount: 750,
-    status: 'completed',
+    status: 'completed' as const,
     winnerId: 'user3',
     createdAt: '2024-01-22T09:00:00Z',
     completedAt: '2024-01-22T15:30:00Z',
-    matchDate: '2024-01-22'
+    matchDate: '2024-01-22',
+    teamFormat: 'individual',
+    maxPlayers: 2,
+    isPublic: false
   },
   {
     id: 'match3',
     player1Id: 'user2',
     player2Id: 'user3',
+    players: [
+      { id: 'user2' },
+      { id: 'user3' }
+    ],
     format: 'match-play',
     course: 'Riviera Country Club',
+    courseId: 'course1',
     wagerAmount: 300,
-    status: 'completed',
+    status: 'completed' as const,
     winnerId: 'user3',
     createdAt: '2024-01-25T11:00:00Z',
     completedAt: '2024-01-25T17:00:00Z',
-    matchDate: '2024-01-25'
+    matchDate: '2024-01-25',
+    teamFormat: 'individual',
+    maxPlayers: 2,
+    isPublic: false
   },
   {
     id: 'match4',
     player1Id: 'user1',
     player2Id: 'user4',
+    players: [
+      { id: 'user1' },
+      { id: 'user4' }
+    ],
     format: 'stroke-play',
     course: 'Pebble Beach Golf Links',
+    courseId: 'course2',
     wagerAmount: 1000,
-    status: 'pending',
+    status: 'pending' as const,
+    winnerId: '',
     createdAt: '2024-01-28T12:00:00Z',
-    matchDate: '2024-02-05'
+    completedAt: '',
+    matchDate: '2024-02-05',
+    teamFormat: 'individual',
+    maxPlayers: 2,
+    isPublic: false
   }
 ];

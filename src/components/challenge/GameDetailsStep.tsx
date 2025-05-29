@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,7 +13,7 @@ interface ChallengeData {
   wagerAmount: number;
   matchDate: string;
   teamFormat: string;
-  postToFeed?: boolean;
+  postToFeed: boolean;
 }
 
 interface GameDetailsStepProps {
@@ -133,7 +132,7 @@ export const GameDetailsStep = ({
         <div className="flex items-center space-x-2">
           <Checkbox 
             id="postToFeed" 
-            checked={challengeData.postToFeed || false}
+            checked={challengeData.postToFeed}
             onCheckedChange={(checked) => updateChallengeData({ postToFeed: !!checked })}
           />
           <Label htmlFor="postToFeed" className="text-sm">

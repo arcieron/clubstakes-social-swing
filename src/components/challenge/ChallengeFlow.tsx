@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { mockUsers, mockCourses, mockMatches } from '@/lib/mockData';
@@ -18,10 +17,19 @@ interface Player {
   team?: number;
 }
 
+interface ChallengeData {
+  format: string;
+  courseId: string;
+  wagerAmount: number;
+  matchDate: string;
+  teamFormat: string;
+  postToFeed: boolean;
+}
+
 export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
   const [step, setStep] = useState(1);
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
-  const [challengeData, setChallengeData] = useState({
+  const [challengeData, setChallengeData] = useState<ChallengeData>({
     format: '',
     courseId: '',
     wagerAmount: 500,
@@ -55,13 +63,14 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
       ],
       format: challengeData.format,
       course: course?.name || '',
+      courseId: challengeData.courseId,
       wagerAmount: challengeData.wagerAmount,
       status: challengeData.postToFeed ? 'open' as const : 'pending' as const,
       createdAt: new Date().toISOString(),
+      completedAt: '',
       matchDate: challengeData.matchDate,
       teamFormat: challengeData.teamFormat,
       winnerId: '',
-      completedAt: '',
       maxPlayers: challengeData.postToFeed ? selectedPlayers.length + 1 : undefined,
       isPublic: challengeData.postToFeed
     };

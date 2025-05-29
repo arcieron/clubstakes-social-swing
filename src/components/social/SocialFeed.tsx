@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { mockMatches, mockUsers, mockCourses } from '@/lib/mockData';
@@ -33,7 +32,7 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
 
   const handleJoinChallenge = (matchId: string) => {
     const match = mockMatches.find(m => m.id === matchId);
-    if (match) {
+    if (match && match.players) {
       // Add user to the match
       match.players.push({ id: user.id });
       match.status = 'pending' as const;
@@ -72,7 +71,7 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
           <div className="space-y-3">
             {openChallenges.map(challenge => {
               const creator = mockUsers.find(u => u.id === challenge.player1Id);
-              const course = mockCourses.find(c => c.id === challenge.courseId || c.name === challenge.course);
+              const course = mockCourses.find(c => c.id === (challenge.courseId || '') || c.name === challenge.course);
               const currentPlayers = challenge.players?.length || 1;
               const maxPlayers = challenge.maxPlayers || 8;
               

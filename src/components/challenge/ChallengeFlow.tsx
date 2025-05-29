@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,7 +27,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
     format: '',
     courseId: '',
     wagerAmount: 500,
-    matchDate: '',
+    matchDate: new Date().toISOString().split('T')[0], // Auto-fill with current date
     teamFormat: 'individual' // 'individual' or 'teams'
   });
 
@@ -74,8 +74,11 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
 
     const course = mockCourses.find(c => c.id === challengeData.courseId);
     
+    // Create match object compatible with existing mock data structure
     const newMatch = {
       id: Date.now().toString(),
+      player1Id: user.id,
+      player2Id: selectedPlayers[0].id, // For compatibility, set first player as player2
       players: [
         { id: user.id, team: challengeData.teamFormat === 'teams' ? 1 : undefined },
         ...selectedPlayers
@@ -83,17 +86,13 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
       format: challengeData.format,
       course: course?.name || '',
       wagerAmount: challengeData.wagerAmount,
-      status: 'pending',
+      status: 'pending' as const,
       createdAt: new Date().toISOString(),
       matchDate: challengeData.matchDate,
-      teamFormat: challengeData.teamFormat
+      teamFormat: challengeData.teamFormat,
+      winnerId: '',
+      completedAt: ''
     };
-
-    // For backward compatibility, still set player1Id and player2Id for 2-player matches
-    if (selectedPlayers.length === 1) {
-      (newMatch as any).player1Id = user.id;
-      (newMatch as any).player2Id = selectedPlayers[0].id;
-    }
 
     mockMatches.push(newMatch);
     

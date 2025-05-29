@@ -115,7 +115,56 @@ export const mockCourses = [
   }
 ];
 
-export const mockMatches = [
+interface MatchPlayer {
+  id: string;
+  team?: number;
+}
+
+interface BaseMatch {
+  id: string;
+  format: string;
+  course: string;
+  courseId: string;
+  wagerAmount: number;
+  createdAt: string;
+  matchDate: string;
+  teamFormat: string;
+  isPublic: boolean;
+}
+
+interface CompletedMatch extends BaseMatch {
+  player1Id: string;
+  player2Id: string;
+  players: MatchPlayer[];
+  status: 'completed' | 'tied';
+  winnerId: string;
+  completedAt: string;
+  maxPlayers?: number;
+}
+
+interface PendingMatch extends BaseMatch {
+  player1Id: string;
+  player2Id: string;
+  players: MatchPlayer[];
+  status: 'pending';
+  winnerId: '';
+  completedAt: '';
+  maxPlayers?: number;
+}
+
+interface OpenMatch extends BaseMatch {
+  player1Id: string;
+  player2Id: string;
+  players: MatchPlayer[];
+  status: 'open';
+  winnerId: '';
+  completedAt: '';
+  maxPlayers: number;
+}
+
+type Match = CompletedMatch | PendingMatch | OpenMatch;
+
+export const mockMatches: Match[] = [
   {
     id: 'match1',
     player1Id: 'user1',
@@ -128,7 +177,7 @@ export const mockMatches = [
     course: 'Riviera Country Club',
     courseId: 'course1',
     wagerAmount: 500,
-    status: 'completed' as const,
+    status: 'completed',
     winnerId: 'user1',
     createdAt: '2024-01-20T10:00:00Z',
     completedAt: '2024-01-20T16:00:00Z',
@@ -149,7 +198,7 @@ export const mockMatches = [
     course: 'Torrey Pines Golf Course',
     courseId: 'course4',
     wagerAmount: 750,
-    status: 'completed' as const,
+    status: 'completed',
     winnerId: 'user3',
     createdAt: '2024-01-22T09:00:00Z',
     completedAt: '2024-01-22T15:30:00Z',
@@ -170,7 +219,7 @@ export const mockMatches = [
     course: 'Riviera Country Club',
     courseId: 'course1',
     wagerAmount: 300,
-    status: 'completed' as const,
+    status: 'completed',
     winnerId: 'user3',
     createdAt: '2024-01-25T11:00:00Z',
     completedAt: '2024-01-25T17:00:00Z',
@@ -191,7 +240,7 @@ export const mockMatches = [
     course: 'Pebble Beach Golf Links',
     courseId: 'course2',
     wagerAmount: 1000,
-    status: 'pending' as const,
+    status: 'pending',
     winnerId: '',
     createdAt: '2024-01-28T12:00:00Z',
     completedAt: '',
@@ -199,5 +248,25 @@ export const mockMatches = [
     teamFormat: 'individual',
     maxPlayers: 2,
     isPublic: false
+  },
+  {
+    id: 'match5',
+    player1Id: 'user2',
+    player2Id: '',
+    players: [
+      { id: 'user2' }
+    ],
+    format: 'scramble',
+    course: 'Riviera Country Club',
+    courseId: 'course1',
+    wagerAmount: 400,
+    status: 'open',
+    winnerId: '',
+    createdAt: '2024-01-29T14:00:00Z',
+    completedAt: '',
+    matchDate: '2024-02-10',
+    teamFormat: 'teams',
+    maxPlayers: 4,
+    isPublic: true
   }
 ];

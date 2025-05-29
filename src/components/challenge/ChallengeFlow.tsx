@@ -50,7 +50,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
 
     const course = mockCourses.find(c => c.id === challengeData.courseId);
     
-    // Create match object
+    // Create match object with proper typing
     const newMatch = {
       id: Date.now().toString(),
       player1Id: user.id,
@@ -75,7 +75,8 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
       isPublic: challengeData.postToFeed
     };
 
-    mockMatches.push(newMatch);
+    // Type assertion to handle the union type properly
+    (mockMatches as any[]).push(newMatch);
     
     if (challengeData.postToFeed) {
       toast({

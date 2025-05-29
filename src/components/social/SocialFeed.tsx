@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { mockMatches, mockUsers, mockCourses } from '@/lib/mockData';
@@ -10,7 +11,7 @@ interface SocialFeedProps {
 
 export const SocialFeed = ({ user }: SocialFeedProps) => {
   const completedMatches = mockMatches.filter(m => 
-    m.status === 'completed' && 
+    (m.status === 'completed' || m.status === 'tied') && 
     (mockUsers.find(u => u.id === m.player1Id)?.clubId === user.clubId || 
      mockUsers.find(u => u.id === m.player2Id)?.clubId === user.clubId)
   ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -31,17 +32,26 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
   };
 
   const handleJoinChallenge = (matchId: string) => {
-    const match = mockMatches.find(m => m.id === matchId);
-    if (match && match.players) {
-      // Add user to the match
-      match.players.push({ id: user.id });
-      match.status = 'pending' as const;
-      match.player2Id = user.id; // For compatibility
-      
-      toast({
-        title: "Joined Challenge!",
-        description: `You've joined the ${match.format} challenge.`
-      });
+    const matchIndex = mockMatches.findIndex(m => m.id === matchId);
+    if (matchIndex !== -1) {
+      const match = mockMatches[matchIndex];
+      if (match.status === 'open' && match.players && match.maxPlayers) {
+        // Add user to the match
+        const updatedMatch = {
+          ...match,
+          players: [...match.players, { id: user.id }],
+          status: 'pending' as const,
+          player2Id: user.id // For compatibility
+        };
+        
+        // Replace the match in the array
+        (mockMatches as any[])[matchIndex] = updatedMatch;
+        
+        toast({
+          title: "Joined Challenge!",
+          description: `You've joined the ${match.format} challenge.`
+        });
+      }
     }
   };
   
@@ -70,8 +80,11 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
           </h3>
           <div className="space-y-3">
             {openChallenges.map(challenge => {
+              // Type guard to ensure we're working with an open challenge
+              if (challenge.status !== 'open') return null;
+              
               const creator = mockUsers.find(u => u.id === challenge.player1Id);
-              const course = mockCourses.find(c => c.id === (challenge.courseId || '') || c.name === challenge.course);
+              const course = mockCourses.find(c => c.id === challenge.courseId || c.name === challenge.course);
               const currentPlayers = challenge.players?.length || 1;
               const maxPlayers = challenge.maxPlayers || 8;
               

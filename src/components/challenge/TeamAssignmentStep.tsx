@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -104,7 +103,7 @@ export const TeamAssignmentStep = ({
     const players = getTeamPlayers(teamNumber);
     if (players.length === 0) return 0;
     const totalHandicap = players.reduce((sum, p) => {
-      if (p.id === user.id) return sum + (user.profile?.handicap || 0);
+      if (p.id === user.id) return sum + (user.handicap || 0);
       const playerData = playerProfiles.find(u => u.id === p.id);
       return sum + (playerData?.handicap || 0);
     }, 0);
@@ -165,8 +164,8 @@ export const TeamAssignmentStep = ({
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-primary" />
                         <div>
-                          <p className="font-medium text-primary">{user.profile?.full_name || user.email} (You)</p>
-                          <p className="text-xs text-gray-500">Handicap: {user.profile?.handicap || 0}</p>
+                          <p className="font-medium text-primary">{user.full_name || user.email} (You)</p>
+                          <p className="text-xs text-gray-500">Handicap: {user.handicap || 0}</p>
                         </div>
                       </div>
                       <div className="flex gap-1">

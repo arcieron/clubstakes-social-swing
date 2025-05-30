@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,17 +57,22 @@ export const PlayerSelectionStep = ({
   }, [user]);
 
   const fetchClubMembers = async () => {
-    if (!user?.profile?.club_id) {
+    // Try multiple ways to get club_id from user object
+    const userClubId = user?.club_id || user?.profile?.club_id;
+    
+    if (!userClubId) {
       console.log('No club_id found for user:', user);
       setLoading(false);
       return;
     }
 
+    console.log('Fetching club members for club_id:', userClubId);
+
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, id_number, handicap, credits, club_id')
-        .eq('club_id', user.profile.club_id)
+        .eq('club_id', userClubId)
         .neq('id', user.id);
 
       if (error) {
@@ -146,7 +150,7 @@ export const PlayerSelectionStep = ({
           
           <div className="flex flex-wrap gap-2">
             <Badge className="bg-primary text-white">
-              {user.profile?.full_name || user.email} (You)
+              {user.full_name || user.email} (You)
               {challengeData.teamFormat === 'teams' && ' - Team 1'}
             </Badge>
             {selectedPlayers.map((player, index) => {

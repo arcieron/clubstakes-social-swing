@@ -1,3 +1,4 @@
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -155,7 +156,7 @@ export const SelectedPlayersDisplay = ({
                 className="w-full mt-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2"
               >
                 <Plus size={14} />
-                Add Open Spot to {teamName}
+                Add Open Spot
               </Button>
             )}
           </div>
@@ -269,7 +270,7 @@ export const SelectedPlayersDisplay = ({
           className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2"
         >
           <Plus size={16} />
-          Add Open Spot for Club Members
+          Add Open Spot
         </Button>
       )}
     </div>

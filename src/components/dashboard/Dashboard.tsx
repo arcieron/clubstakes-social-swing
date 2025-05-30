@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
@@ -105,15 +104,10 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
         <DashboardHeader profile={profile} />
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="active">Active Matches</TabsTrigger>
             <TabsTrigger value="history">Match History</TabsTrigger>
-            {profile?.is_admin && <TabsTrigger value="admin">Admin</TabsTrigger>}
-            <TabsTrigger value="dev">
-              <TestTube className="w-4 h-4 mr-1" />
-              Dev Tools
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -130,16 +124,6 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
 
           <TabsContent value="history" className="space-y-6">
             <MatchHistoryCard matchHistory={matchHistory} />
-          </TabsContent>
-
-          {profile?.is_admin && (
-            <TabsContent value="admin" className="space-y-6">
-              <AdminPanel user={profile} />
-            </TabsContent>
-          )}
-
-          <TabsContent value="dev" className="space-y-6">
-            <MockAccountCreator />
           </TabsContent>
         </Tabs>
       </div>

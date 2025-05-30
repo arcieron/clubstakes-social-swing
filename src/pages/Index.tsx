@@ -6,6 +6,7 @@ import { ChallengeFlow } from '@/components/challenge/ChallengeFlow';
 import { Leaderboard } from '@/components/leaderboard/Leaderboard';
 import { SocialFeed } from '@/components/social/SocialFeed';
 import { AdminPanel } from '@/components/admin/AdminPanel';
+import { MockAccountCreator } from '@/components/dev/MockAccountCreator';
 import { Navigation } from '@/components/layout/Navigation';
 import { useState } from 'react';
 
@@ -44,7 +45,12 @@ const Index = () => {
       case 'feed':
         return <SocialFeed user={profile} />;
       case 'admin':
-        return <AdminPanel user={profile} />;
+        return (
+          <div className="p-4 space-y-6">
+            <AdminPanel user={profile} />
+            <MockAccountCreator />
+          </div>
+        );
       default:
         return <Dashboard user={profile} onChallenge={() => setShowChallenge(true)} />;
     }

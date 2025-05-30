@@ -12,7 +12,7 @@ export const Navigation = ({ currentView, onViewChange, isAdmin }: NavigationPro
     { id: 'dashboard', label: 'Home', icon: Home },
     { id: 'leaderboard', label: 'Rankings', icon: Trophy },
     { id: 'feed', label: 'Feed', icon: Users },
-    ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Settings }] : [])
+    { id: 'admin', label: 'Admin', icon: Settings }
   ];
 
   return (

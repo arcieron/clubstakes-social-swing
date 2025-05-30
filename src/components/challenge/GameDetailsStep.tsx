@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 import { mockCourses } from '@/lib/mockData';
 
 interface ChallengeData {
@@ -99,18 +100,26 @@ export const GameDetailsStep = ({
           />
         </div>
 
-        <div>
+        <div className="space-y-3">
           <Label>Wager Amount</Label>
-          <Input
-            type="number"
-            min="100"
-            max="1000"
-            step="50"
-            value={challengeData.wagerAmount}
-            onChange={(e) => updateChallengeData({ wagerAmount: parseInt(e.target.value) })}
-            className="bg-white border-gray-200"
-          />
-          <p className="text-xs text-gray-400 mt-1">Range: 100 - 1,000 credits</p>
+          <div className="space-y-4">
+            <Slider
+              value={[challengeData.wagerAmount]}
+              onValueChange={(value) => updateChallengeData({ wagerAmount: value[0] })}
+              min={100}
+              max={1500}
+              step={50}
+              className="w-full"
+            />
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-500">100 credits</span>
+              <div className="text-center">
+                <span className="text-2xl font-bold text-primary">{challengeData.wagerAmount}</span>
+                <span className="text-accent font-semibold ml-1">credits</span>
+              </div>
+              <span className="text-sm text-gray-500">1,500 credits</span>
+            </div>
+          </div>
         </div>
 
         <div>

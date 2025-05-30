@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
@@ -144,12 +145,16 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
           <TabsContent value="active" className="space-y-6">
             <ActiveMatchesList 
               activeMatches={activeMatches} 
-              onMatchSelect={setSelectedMatchId} 
+              onMatchSelect={setSelectedMatchId}
+              onChallenge={onChallenge}
             />
           </TabsContent>
 
           <TabsContent value="history" className="space-y-6">
-            <MatchHistoryCard matchHistory={matchHistory} />
+            <MatchHistoryCard 
+              matchHistory={matchHistory}
+              onChallenge={onChallenge}
+            />
           </TabsContent>
         </Tabs>
       </div>

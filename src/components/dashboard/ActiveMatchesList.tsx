@@ -7,9 +7,10 @@ import { Clock, Calendar, DollarSign, Users } from 'lucide-react';
 interface ActiveMatchesListProps {
   activeMatches: any[];
   onMatchSelect: (matchId: string) => void;
+  onChallenge: () => void;
 }
 
-export const ActiveMatchesList = ({ activeMatches, onMatchSelect }: ActiveMatchesListProps) => {
+export const ActiveMatchesList = ({ activeMatches, onMatchSelect, onChallenge }: ActiveMatchesListProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -68,7 +69,10 @@ export const ActiveMatchesList = ({ activeMatches, onMatchSelect }: ActiveMatche
             </div>
             <h3 className="text-lg font-medium text-gray-600 mb-2">No Active Matches</h3>
             <p className="text-gray-500 mb-4">You don't have any matches in progress right now.</p>
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button 
+              className="bg-primary hover:bg-primary/90"
+              onClick={onChallenge}
+            >
               Start New Match
             </Button>
           </CardContent>

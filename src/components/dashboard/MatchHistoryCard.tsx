@@ -6,9 +6,10 @@ import { Award, Calendar, Eye } from 'lucide-react';
 
 interface MatchHistoryCardProps {
   matchHistory: any[];
+  onChallenge: () => void;
 }
 
-export const MatchHistoryCard = ({ matchHistory }: MatchHistoryCardProps) => {
+export const MatchHistoryCard = ({ matchHistory, onChallenge }: MatchHistoryCardProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -64,7 +65,10 @@ export const MatchHistoryCard = ({ matchHistory }: MatchHistoryCardProps) => {
               </div>
               <h3 className="text-lg font-medium text-gray-600 mb-2">No Match History</h3>
               <p className="text-gray-500 mb-4">You haven't completed any matches yet.</p>
-              <Button className="bg-primary hover:bg-primary/90">
+              <Button 
+                className="bg-primary hover:bg-primary/90"
+                onClick={onChallenge}
+              >
                 Play Your First Match
               </Button>
             </div>

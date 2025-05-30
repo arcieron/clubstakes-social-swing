@@ -23,19 +23,25 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-export const Dashboard = () => {
-  const { user, profile, loading } = useAuth();
+interface DashboardProps {
+  user: any;
+  onChallenge: () => void;
+}
+
+export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
+  const { user: authUser, profile, loading } = useAuth();
   const [activeMatches, setActiveMatches] = useState<any[]>([]);
   const [matchHistory, setMatchHistory] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchActiveMatches = async () => {
-      if (user) {
+      if (authUser) {
         const { data: matches, error } = await supabase
           .from('matches')
           .select('*')
-          .contains('players', [{ id: user.id }])
+          .contains('players', [{ id: authUser.id }])
           .eq('status', 'pending');
 
         if (error) {
@@ -47,13 +53,13 @@ export const Dashboard = () => {
     };
 
     const fetchMatchHistory = async () => {
-      if (user) {
+      if (authUser) {
         const { data: history, error } = await supabase
           .from('matches')
           .select('*')
-          .contains('players', [{ id: user.id }])
-          .in('status', ['completed', 'tied'])
-          .order('completedAt', { ascending: false })
+          .contains('players', [{ id: authUser.id }])
+          .eq('status', 'completed')
+          .order('completed_at', { ascending: false })
           .limit(5);
 
         if (error) {
@@ -79,7 +85,7 @@ export const Dashboard = () => {
     fetchActiveMatches();
     fetchMatchHistory();
     fetchLeaderboard();
-  }, [user]);
+  }, [authUser]);
 
   if (loading) {
     return (
@@ -89,6 +95,16 @@ export const Dashboard = () => {
           <p className="text-gray-600">Loading dashboard...</p>
         </div>
       </div>
+    );
+  }
+
+  // If a match is selected, show the ActiveMatch component
+  if (selectedMatchId) {
+    return (
+      <ActiveMatch 
+        matchId={selectedMatchId} 
+        onBack={() => setSelectedMatchId(null)} 
+      />
     );
   }
 
@@ -202,7 +218,20 @@ export const Dashboard = () => {
             <div className="grid gap-6">
               {activeMatches.length > 0 ? (
                 activeMatches.map((match) => (
-                  <ActiveMatch key={match.id} match={match} />
+                  <Card key={match.id} className="border-gray-200 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedMatchId(match.id)}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-semibold text-gray-800">{match.format}</h3>
+                          <p className="text-sm text-gray-500">{new Date(match.match_date).toLocaleDateString()}</p>
+                          <p className="text-sm text-gray-600">{match.wager_amount} credits</p>
+                        </div>
+                        <Badge variant="outline" className="text-primary border-primary">
+                          {match.status}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))
               ) : (
                 <Card className="border-gray-200">
@@ -229,17 +258,14 @@ export const Dashboard = () => {
                       <div key={match.id} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="font-medium text-gray-800">{match.course}</p>
+                            <p className="font-medium text-gray-800">{match.format}</p>
                             <p className="text-sm text-gray-500">
-                              {new Date(match.matchDate).toLocaleDateString()} - {match.format}
+                              {new Date(match.match_date).toLocaleDateString()}
                             </p>
                           </div>
                           <div>
                             {match.status === 'completed' && (
-                              <Badge className="bg-green-100 text-green-800">Won</Badge>
-                            )}
-                            {match.status === 'tied' && (
-                              <Badge className="bg-gray-100 text-gray-800">Tied</Badge>
+                              <Badge className="bg-green-100 text-green-800">Completed</Badge>
                             )}
                           </div>
                         </div>

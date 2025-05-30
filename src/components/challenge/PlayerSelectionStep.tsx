@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +41,7 @@ export const PlayerSelectionStep = ({
   onSubmit 
 }: PlayerSelectionStepProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [openSpots, setOpenSpots] = useState(0);
+  const [openSpots, setOpenSpots] = useState<{[teamNumber: number]: number}>({});
   const { clubMembers, loading } = useClubMembers(user);
   
   const filteredMembers = clubMembers.filter(member =>
@@ -71,14 +70,23 @@ export const PlayerSelectionStep = ({
     );
   };
 
-  const handleAddOpenSpot = () => {
-    const totalSpots = selectedPlayers.length + 1 + openSpots;
-    if (totalSpots < 8) {
-      setOpenSpots(openSpots + 1);
+  const handleAddOpenSpot = (teamNumber?: number) => {
+    if (teamNumber && challengeData.teamFormat === 'teams') {
+      setOpenSpots(prev => ({
+        ...prev,
+        [teamNumber]: (prev[teamNumber] || 0) + 1
+      }));
+    } else {
+      // For individual format, add to team 1 or general
+      setOpenSpots(prev => ({
+        ...prev,
+        1: (prev[1] || 0) + 1
+      }));
     }
   };
 
-  const totalPlayers = selectedPlayers.length + 1 + openSpots;
+  const totalOpenSpots = Object.values(openSpots).reduce((sum, count) => sum + count, 0);
+  const totalPlayers = selectedPlayers.length + 1 + totalOpenSpots;
   const maxPlayers = 8;
   const canProceed = challengeData.postToFeed || selectedPlayers.length > 0;
 
@@ -142,7 +150,6 @@ export const PlayerSelectionStep = ({
                 isSelected={isSelected}
                 canSelect={canSelect}
                 onToggle={handlePlayerToggle}
-                showTeamSelection={challengeData.teamFormat === 'teams'}
               />
             );
           })}

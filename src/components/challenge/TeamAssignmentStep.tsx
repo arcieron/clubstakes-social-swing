@@ -2,9 +2,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Target } from 'lucide-react';
+import { Trophy, Target, Plus, Minus } from 'lucide-react';
 import { usePlayerProfiles } from '@/hooks/usePlayerProfiles';
-import { TeamCard } from './TeamCard';
+import { TeamSectionCard } from './TeamSectionCard';
 import { UnassignedPlayersSection } from './UnassignedPlayersSection';
 
 interface Player {
@@ -39,10 +39,11 @@ export const TeamAssignmentStep = ({
   onSubmit 
 }: TeamAssignmentStepProps) => {
   const [userTeam, setUserTeam] = useState(1);
+  const [numberOfTeams, setNumberOfTeams] = useState(2);
   const { playerProfiles } = usePlayerProfiles(selectedPlayers);
 
   const totalPlayers = selectedPlayers.length + 1;
-  const maxTeams = Math.min(Math.floor(totalPlayers / 2), 4);
+  const maxPossibleTeams = Math.min(totalPlayers, 6); // Maximum 6 teams
   
   const assignPlayerToTeam = (playerId: string, teamNumber: number) => {
     onPlayersChange(
@@ -50,38 +51,64 @@ export const TeamAssignmentStep = ({
     );
   };
 
+  const movePlayerToTeam = (playerId: string, newTeamNumber: number) => {
+    assignPlayerToTeam(playerId, newTeamNumber);
+  };
+
+  const addTeam = () => {
+    if (numberOfTeams < maxPossibleTeams) {
+      setNumberOfTeams(numberOfTeams + 1);
+    }
+  };
+
+  const removeTeam = () => {
+    if (numberOfTeams > 2) {
+      // Move any players from the last team to unassigned
+      const playersInLastTeam = selectedPlayers.filter(p => p.team === numberOfTeams);
+      playersInLastTeam.forEach(player => {
+        assignPlayerToTeam(player.id, 0); // 0 means unassigned
+      });
+      
+      // If user was in the last team, move them to team 1
+      if (userTeam === numberOfTeams) {
+        setUserTeam(1);
+      }
+      
+      setNumberOfTeams(numberOfTeams - 1);
+    }
+  };
+
   // Auto-balance teams
   const autoAssignTeams = () => {
     const updatedPlayers = selectedPlayers.map((player, index) => ({
       ...player,
-      team: (index % 2) + 1
+      team: (index % numberOfTeams) + 1
     }));
     onPlayersChange(updatedPlayers);
     setUserTeam(1);
   };
 
-  // Get players by team
+  // Get players by team (excluding the current user)
   const getTeamPlayers = (teamNumber: number) => {
-    const teamPlayers = selectedPlayers.filter(p => p.team === teamNumber);
-    if (teamNumber === userTeam) {
-      return [user, ...teamPlayers];
-    }
-    return teamPlayers;
+    return selectedPlayers.filter(p => p.team === teamNumber);
   };
 
-  // Calculate team handicap
+  // Calculate team handicap including user if they're on this team
   const getTeamHandicap = (teamNumber: number) => {
-    const players = getTeamPlayers(teamNumber);
-    if (players.length === 0) return 0;
-    const totalHandicap = players.reduce((sum, p) => {
+    const teamPlayers = getTeamPlayers(teamNumber);
+    const allPlayersInTeam = teamNumber === userTeam ? [user, ...teamPlayers] : teamPlayers;
+    
+    if (allPlayersInTeam.length === 0) return 0;
+    
+    const totalHandicap = allPlayersInTeam.reduce((sum, p) => {
       if (p.id === user.id) return sum + (user.handicap || 0);
       const playerData = playerProfiles.find(u => u.id === p.id);
       return sum + (playerData?.handicap || 0);
     }, 0);
-    return Math.round(totalHandicap / players.length);
+    return Math.round(totalHandicap / allPlayersInTeam.length);
   };
 
-  const unassignedPlayers = selectedPlayers.filter(p => !p.team);
+  const unassignedPlayers = selectedPlayers.filter(p => !p.team || p.team === 0);
 
   return (
     <Card className="border-primary/20 shadow-md">
@@ -91,50 +118,75 @@ export const TeamAssignmentStep = ({
           Assign Teams
         </CardTitle>
         <CardDescription>
-          Organize {totalPlayers} players into balanced teams
+          Organize {totalPlayers} players into {numberOfTeams} teams
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
-        {/* Auto-assign button */}
+        {/* Team controls */}
         <div className="flex justify-between items-center">
-          <p className="text-sm text-gray-600">Manually assign players or auto-balance teams</p>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={autoAssignTeams}
-            className="text-primary border-primary hover:bg-primary/10"
-          >
-            <Target className="w-4 h-4 mr-2" />
-            Auto Balance
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={autoAssignTeams}
+              className="text-primary border-primary hover:bg-primary/10"
+            >
+              <Target className="w-4 h-4 mr-2" />
+              Auto Balance
+            </Button>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={removeTeam}
+              disabled={numberOfTeams <= 2}
+              className="text-red-600 border-red-300 hover:bg-red-50"
+            >
+              <Minus className="w-4 h-4" />
+            </Button>
+            <span className="text-sm text-gray-600">{numberOfTeams} Teams</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addTeam}
+              disabled={numberOfTeams >= maxPossibleTeams}
+              className="text-green-600 border-green-300 hover:bg-green-50"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
-        {/* Teams */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2].slice(0, maxTeams).map(teamNumber => (
-            <TeamCard
+        {/* Team sections */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: numberOfTeams }, (_, i) => i + 1).map(teamNumber => (
+            <TeamSectionCard
               key={teamNumber}
               teamNumber={teamNumber}
-              maxTeams={maxTeams}
               user={user}
               userTeam={userTeam}
-              selectedPlayers={selectedPlayers}
-              playerProfiles={playerProfiles}
-              onAssignToTeam={assignPlayerToTeam}
               onUserTeamChange={setUserTeam}
+              teamPlayers={getTeamPlayers(teamNumber)}
+              playerProfiles={playerProfiles}
+              unassignedPlayers={unassignedPlayers}
+              onMovePlayerToTeam={movePlayerToTeam}
               getTeamHandicap={getTeamHandicap}
-              getTeamPlayers={getTeamPlayers}
+              totalTeams={numberOfTeams}
             />
           ))}
         </div>
 
         {/* Unassigned players */}
-        <UnassignedPlayersSection
-          unassignedPlayers={unassignedPlayers}
-          playerProfiles={playerProfiles}
-          maxTeams={maxTeams}
-          onAssignToTeam={assignPlayerToTeam}
-        />
+        {unassignedPlayers.length > 0 && (
+          <UnassignedPlayersSection
+            unassignedPlayers={unassignedPlayers}
+            playerProfiles={playerProfiles}
+            maxTeams={numberOfTeams}
+            onAssignToTeam={assignPlayerToTeam}
+          />
+        )}
 
         <div className="flex gap-3">
           <Button 

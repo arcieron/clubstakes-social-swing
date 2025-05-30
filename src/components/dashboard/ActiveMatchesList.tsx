@@ -1,7 +1,8 @@
 
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Clock, Calendar, DollarSign, Users } from 'lucide-react';
 
 interface ActiveMatchesListProps {
   activeMatches: any[];
@@ -10,34 +11,66 @@ interface ActiveMatchesListProps {
 
 export const ActiveMatchesList = ({ activeMatches, onMatchSelect }: ActiveMatchesListProps) => {
   return (
-    <div className="grid gap-6">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-800">Active Matches</h2>
+        <Badge variant="outline" className="text-primary border-primary">
+          {activeMatches.length} active
+        </Badge>
+      </div>
+
       {activeMatches.length > 0 ? (
-        activeMatches.map((match) => (
-          <Card 
-            key={match.id} 
-            className="border-gray-200 cursor-pointer hover:shadow-md transition-shadow" 
-            onClick={() => onMatchSelect(match.id)}
-          >
-            <CardContent className="p-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-semibold text-gray-800">{match.format}</h3>
-                  <p className="text-sm text-gray-500">{new Date(match.match_date).toLocaleDateString()}</p>
-                  <p className="text-sm text-gray-600">{match.wager_amount} credits</p>
+        <div className="grid gap-4">
+          {activeMatches.map((match) => (
+            <Card 
+              key={match.id} 
+              className="border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => onMatchSelect(match.id)}
+            >
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-gray-800">{match.format}</h3>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(match.match_date).toLocaleDateString()}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="w-4 h-4" />
+                        {match.wager_amount} credits
+                      </div>
+                    </div>
+                  </div>
+                  <Badge className="bg-orange-100 text-orange-800 border-orange-200">
+                    {match.status}
+                  </Badge>
                 </div>
-                <Badge variant="outline" className="text-primary border-primary">
-                  {match.status}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        ))
+                
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Users className="w-4 h-4" />
+                    <span>Waiting for players</span>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    View Match
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : (
-        <Card className="border-gray-200">
-          <CardContent className="p-8 text-center">
-            <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <Card className="border-gray-200 shadow-sm">
+          <CardContent className="p-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Clock className="w-8 h-8 text-gray-400" />
+            </div>
             <h3 className="text-lg font-medium text-gray-600 mb-2">No Active Matches</h3>
-            <p className="text-gray-500">You don't have any matches in progress right now.</p>
+            <p className="text-gray-500 mb-4">You don't have any matches in progress right now.</p>
+            <Button className="bg-primary hover:bg-primary/90">
+              Start New Match
+            </Button>
           </CardContent>
         </Card>
       )}

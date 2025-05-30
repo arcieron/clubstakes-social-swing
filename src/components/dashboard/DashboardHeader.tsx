@@ -5,9 +5,10 @@ import { Plus, Trophy } from 'lucide-react';
 
 interface DashboardHeaderProps {
   profile: any;
+  onChallenge: () => void;
 }
 
-export const DashboardHeader = ({ profile }: DashboardHeaderProps) => {
+export const DashboardHeader = ({ profile, onChallenge }: DashboardHeaderProps) => {
   return (
     <Card className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
       <div className="space-y-4 text-center">
@@ -28,7 +29,7 @@ export const DashboardHeader = ({ profile }: DashboardHeaderProps) => {
           <span className="text-sm text-gray-500">credits</span>
         </div>
         
-        <Button className="bg-primary hover:bg-primary/90">
+        <Button onClick={onChallenge} className="bg-primary hover:bg-primary/90">
           <Plus className="w-4 h-4 mr-2" />
           New Match
         </Button>

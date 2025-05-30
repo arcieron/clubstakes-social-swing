@@ -67,16 +67,17 @@ export const useMatches = (user: any) => {
     }
   };
 
-  const joinMatch = async (matchId: string) => {
+  const joinMatch = async (matchId: string, teamNumber?: number) => {
     try {
-      console.log('Joining match:', matchId);
+      console.log('Joining match:', matchId, 'with team:', teamNumber);
       
-      // Add user to match_players
+      // Add user to match_players with optional team assignment
       const { error } = await supabase
         .from('match_players')
         .insert({
           match_id: matchId,
-          player_id: user.id
+          player_id: user.id,
+          team_number: teamNumber || null
         });
 
       if (error) {

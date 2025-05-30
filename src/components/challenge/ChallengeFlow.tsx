@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { mockUsers, mockCourses } from '@/lib/mockData';
@@ -50,6 +51,19 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
       return;
     }
 
+    // For team format challenges, check if all players have teams assigned (except for feed posts)
+    if (challengeData.teamFormat === 'teams' && !challengeData.postToFeed) {
+      const unassignedPlayers = selectedPlayers.filter(p => !p.team);
+      if (unassignedPlayers.length > 0) {
+        toast({
+          title: "Team assignment required",
+          description: "Please assign all players to teams before sending the challenge.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     try {
       console.log('Creating match with data:', challengeData);
       console.log('Selected players:', selectedPlayers);
@@ -88,7 +102,13 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
       console.log('Match created successfully:', match);
 
       // Add creator to match_players with appropriate team assignment
-      const creatorTeamNumber = challengeData.teamFormat === 'teams' ? 1 : null;
+      let creatorTeamNumber = null;
+      if (challengeData.teamFormat === 'teams') {
+        // For direct challenges, creator is always team 1
+        // For feed posts, creator gets team 1 unless specified otherwise
+        creatorTeamNumber = 1;
+      }
+
       const { error: creatorError } = await supabase
         .from('match_players')
         .insert({
@@ -103,16 +123,16 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
 
       // Add selected players to match_players with proper team assignments
       if (selectedPlayers.length > 0) {
-        const playerInserts = selectedPlayers.map((player, index) => {
+        const playerInserts = selectedPlayers.map((player) => {
           let teamNumber = null;
           
           if (challengeData.teamFormat === 'teams') {
-            // If teams are assigned, use the assigned team
-            if (player.team) {
+            if (challengeData.postToFeed) {
+              // For feed posts, if no team is manually assigned, leave it null so they can join any team
+              teamNumber = player.team || null;
+            } else {
+              // For direct challenges, use the manually assigned team
               teamNumber = player.team;
-            } else if (challengeData.postToFeed) {
-              // For feed posts without specific team assignments, auto-assign alternating teams
-              teamNumber = (index % 2) + 1;
             }
           }
           

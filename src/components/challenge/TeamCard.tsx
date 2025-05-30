@@ -40,6 +40,11 @@ export const TeamCard = ({
 }: TeamCardProps) => {
   const teamPlayers = getTeamPlayers(teamNumber);
   
+  // Wrapper function to handle user team assignment
+  const handleUserTeamAssignment = (playerId: string, teamNumber: number) => {
+    onUserTeamChange(teamNumber);
+  };
+  
   return (
     <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 min-h-32">
       <div className="flex items-center justify-between mb-3">
@@ -63,7 +68,7 @@ export const TeamCard = ({
             player={{ id: user.id, team: userTeam }}
             playerProfiles={playerProfiles}
             maxTeams={maxTeams}
-            onAssignToTeam={onUserTeamChange}
+            onAssignToTeam={handleUserTeamAssignment}
             isUser={true}
             userName={user.full_name || user.email}
             userHandicap={user.handicap || 0}

@@ -104,21 +104,24 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
     switch (step) {
       case 1:
         return (
-          <PlayerSelectionStep
-            user={user}
-            selectedPlayers={selectedPlayers}
-            onPlayersChange={setSelectedPlayers}
+          <GameDetailsStep
+            selectedPlayersCount={selectedPlayers.length}
+            challengeData={challengeData}
+            onChallengeDataChange={setChallengeData}
+            onBack={onClose}
             onNext={() => setStep(2)}
-            allowEmpty={true} // Always allow empty selection since posting to feed is an option
+            onSubmit={handleSubmit}
+            isFirstStep={true}
           />
         );
 
       case 2:
         return (
-          <GameDetailsStep
-            selectedPlayersCount={selectedPlayers.length}
+          <PlayerSelectionStep
+            user={user}
+            selectedPlayers={selectedPlayers}
+            onPlayersChange={setSelectedPlayers}
             challengeData={challengeData}
-            onChallengeDataChange={setChallengeData}
             onBack={() => setStep(1)}
             onNext={() => setStep(3)}
             onSubmit={handleSubmit}
@@ -131,6 +134,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
             user={user}
             selectedPlayers={selectedPlayers}
             onPlayersChange={setSelectedPlayers}
+            challengeData={challengeData}
             onBack={() => setStep(2)}
             onSubmit={handleSubmit}
           />

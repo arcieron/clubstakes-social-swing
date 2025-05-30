@@ -24,6 +24,7 @@ interface GameDetailsStepProps {
   onBack: () => void;
   onNext: () => void;
   onSubmit: () => void;
+  isFirstStep?: boolean;
 }
 
 export const GameDetailsStep = ({ 
@@ -32,28 +33,22 @@ export const GameDetailsStep = ({
   onChallengeDataChange, 
   onBack, 
   onNext, 
-  onSubmit 
+  onSubmit,
+  isFirstStep = false
 }: GameDetailsStepProps) => {
-  const totalPlayers = selectedPlayersCount + 1;
-
   const updateChallengeData = (updates: Partial<ChallengeData>) => {
     onChallengeDataChange({ ...challengeData, ...updates });
   };
 
-  // Determine if we should show the next button or submit button
-  const shouldShowNext = challengeData.teamFormat === 'teams' && !challengeData.postToFeed && selectedPlayersCount > 0;
-  // Can submit if we have required fields and either posting to feed OR have players selected
-  const canSubmit = challengeData.format && challengeData.courseId && challengeData.matchDate && 
-    (challengeData.postToFeed || selectedPlayersCount > 0);
+  // Can proceed if we have required fields
+  const canProceed = challengeData.format && challengeData.courseId && challengeData.matchDate;
 
   return (
     <Card className="border-primary/20 shadow-md">
       <CardHeader className="bg-primary/10">
-        <CardTitle className="text-primary">Game Details</CardTitle>
+        <CardTitle className="text-primary">Game Setup</CardTitle>
         <CardDescription>
-          {challengeData.postToFeed 
-            ? "Posting to club feed" 
-            : `${totalPlayers} players selected`}
+          Configure your match details and format
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
@@ -76,26 +71,6 @@ export const GameDetailsStep = ({
           </Select>
         </div>
 
-        {(totalPlayers >= 4 || challengeData.postToFeed) && (
-          <div>
-            <Label>Format</Label>
-            <RadioGroup 
-              value={challengeData.teamFormat} 
-              onValueChange={(value) => updateChallengeData({ teamFormat: value })}
-              className="flex gap-6 mt-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="individual" id="individual" />
-                <Label htmlFor="individual">Individual</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="teams" id="teams" />
-                <Label htmlFor="teams">Teams</Label>
-              </div>
-            </RadioGroup>
-          </div>
-        )}
-
         <div>
           <Label>Course</Label>
           <Select value={challengeData.courseId} onValueChange={(value) => 
@@ -115,6 +90,16 @@ export const GameDetailsStep = ({
         </div>
 
         <div>
+          <Label>Match Date</Label>
+          <Input
+            type="date"
+            value={challengeData.matchDate}
+            onChange={(e) => updateChallengeData({ matchDate: e.target.value })}
+            className="bg-white border-gray-200"
+          />
+        </div>
+
+        <div>
           <Label>Wager Amount</Label>
           <Input
             type="number"
@@ -129,34 +114,44 @@ export const GameDetailsStep = ({
         </div>
 
         <div>
-          <Label>Match Date</Label>
-          <Input
-            type="date"
-            value={challengeData.matchDate}
-            onChange={(e) => updateChallengeData({ matchDate: e.target.value })}
-            className="bg-white border-gray-200"
-          />
+          <Label>Team Format</Label>
+          <RadioGroup 
+            value={challengeData.teamFormat} 
+            onValueChange={(value) => updateChallengeData({ teamFormat: value })}
+            className="flex gap-6 mt-2"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="individual" id="individual" />
+              <Label htmlFor="individual">Individual Play</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="teams" id="teams" />
+              <Label htmlFor="teams">Team Play</Label>
+            </div>
+          </RadioGroup>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Checkbox 
-            id="postToFeed" 
-            checked={challengeData.postToFeed}
-            onCheckedChange={(checked) => updateChallengeData({ postToFeed: !!checked })}
-          />
-          <Label htmlFor="postToFeed" className="text-sm">
-            Post to club feed for others to join
-          </Label>
-        </div>
-
-        {challengeData.postToFeed && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-800">
-              When you post to the club feed, other members can join your challenge. 
-              You can still select specific players above if you want to invite them directly.
-            </p>
+        <div className="border-t pt-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="postToFeed" 
+              checked={challengeData.postToFeed}
+              onCheckedChange={(checked) => updateChallengeData({ postToFeed: !!checked })}
+            />
+            <Label htmlFor="postToFeed" className="text-sm">
+              Post to club feed for others to join
+            </Label>
           </div>
-        )}
+          
+          {challengeData.postToFeed && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+              <p className="text-sm text-blue-800">
+                When you post to the club feed, other members can join your challenge. 
+                You can still invite specific players in the next step.
+              </p>
+            </div>
+          )}
+        </div>
 
         <div className="flex gap-3">
           <Button 
@@ -164,14 +159,14 @@ export const GameDetailsStep = ({
             onClick={onBack}
             className="flex-1 border-primary text-primary hover:bg-primary/10"
           >
-            Back
+            {isFirstStep ? 'Cancel' : 'Back'}
           </Button>
           <Button 
-            onClick={() => shouldShowNext ? onNext() : onSubmit()}
-            disabled={!canSubmit}
+            onClick={onNext}
+            disabled={!canProceed}
             className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
           >
-            {shouldShowNext ? 'Next: Teams' : (challengeData.postToFeed ? 'Post Challenge' : 'Send Challenge')}
+            Next: Select Players
           </Button>
         </div>
       </CardContent>

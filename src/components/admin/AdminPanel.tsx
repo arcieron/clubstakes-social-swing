@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Users, RotateCcw, Plus, Copy, Calendar, DollarSign } from 'lucide-react';
+import { Users, RotateCcw, Plus, Copy, Calendar, DollarSign, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -89,10 +89,19 @@ export const AdminPanel = ({ user }: AdminPanelProps) => {
   return (
     <div className="p-4 space-y-6">
       {/* Header matching rankings/feed tabs */}
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-gray-800">Admin Panel</h1>
-        <p className="text-gray-500">Managing {user.clubs?.name}</p>
-      </div>
+      <Card className="border-primary/10 overflow-hidden">
+        <div className="bg-gradient-to-r from-primary to-primary/90 p-6 text-white">
+          <div className="text-center">
+            <CardTitle className="text-white flex items-center justify-center gap-2 text-2xl font-light">
+              <Settings className="w-6 h-6 text-accent" />
+              Admin Panel
+            </CardTitle>
+            <CardDescription className="text-primary-foreground/80 mt-1">
+              Managing {user.clubs?.name}
+            </CardDescription>
+          </div>
+        </div>
+      </Card>
 
       {/* Stats tiles - horizontal layout like home page */}
       <div className="grid grid-cols-3 gap-4">

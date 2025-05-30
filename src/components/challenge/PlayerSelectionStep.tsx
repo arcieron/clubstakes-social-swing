@@ -94,25 +94,27 @@ export const PlayerSelectionStep = ({
       </Card>;
   }
   return <Card className="border-primary/20 shadow-md">
-      <CardHeader className="bg-primary/10">
+      <CardHeader className="bg-primary/10 pb-4">
         <CardTitle className="text-primary flex items-center gap-2">
           <Users className="w-5 h-5" />
           Select Players
         </CardTitle>
-        <CardDescription>
-          {challengeData.postToFeed ? (
-            <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4" />
-            </div>
-          ) : `Choose players to challenge directly (${totalPlayers}/${maxPlayers} players)`}
-        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4 pt-6">
-        <SelectedPlayersDisplay user={user} selectedPlayers={selectedPlayers} challengeData={challengeData} clubMembers={clubMembers} onPlayerRemove={playerId => handlePlayerToggle(playerId)} onPlayerTeamChange={handlePlayerTeamChange} onAddOpenSpot={handleAddOpenSpot} openSpots={openSpots} />
+      <CardContent className="space-y-3 pt-4">
+        <SelectedPlayersDisplay 
+          user={user} 
+          selectedPlayers={selectedPlayers} 
+          challengeData={challengeData} 
+          clubMembers={clubMembers} 
+          onPlayerRemove={playerId => handlePlayerToggle(playerId)} 
+          onPlayerTeamChange={handlePlayerTeamChange} 
+          onAddOpenSpot={handleAddOpenSpot} 
+          openSpots={openSpots} 
+        />
 
         <PlayerSearchInput searchTerm={searchTerm} onSearchChange={setSearchTerm} />
         
-        <div className="space-y-2 max-h-64 overflow-y-auto">
+        <div className="space-y-2 max-h-80 overflow-y-auto">
           {filteredMembers.map(member => {
           const isSelected = selectedPlayers.some(p => p.id === member.id);
           const canSelect = selectedPlayers.length < 7;
@@ -126,7 +128,7 @@ export const PlayerSelectionStep = ({
             </div>}
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 pt-2">
           <Button variant="outline" onClick={onBack} className="flex-1 border-primary text-primary hover:bg-primary/10">
             Back
           </Button>

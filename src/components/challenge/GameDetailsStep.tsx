@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -6,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
-import { mockCourses } from '@/lib/mockData';
+import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
 
 interface ChallengeData {
   format: string;
@@ -28,6 +30,13 @@ interface GameDetailsStepProps {
   isFirstStep?: boolean;
 }
 
+interface Course {
+  id: string;
+  name: string;
+  rating: number;
+  slope: number;
+}
+
 export const GameDetailsStep = ({ 
   selectedPlayersCount, 
   challengeData, 
@@ -37,6 +46,33 @@ export const GameDetailsStep = ({
   onSubmit,
   isFirstStep = false
 }: GameDetailsStepProps) => {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, name, rating, slope')
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching courses:', error);
+      } else {
+        console.log('Fetched courses:', data);
+        setCourses(data || []);
+      }
+    } catch (error) {
+      console.error('Error in fetchCourses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateChallengeData = (updates: Partial<ChallengeData>) => {
     onChallengeDataChange({ ...challengeData, ...updates });
   };
@@ -80,10 +116,10 @@ export const GameDetailsStep = ({
             updateChallengeData({ courseId: value })
           }>
             <SelectTrigger className="bg-white border-gray-200">
-              <SelectValue placeholder="Select course" />
+              <SelectValue placeholder={loading ? "Loading courses..." : "Select course"} />
             </SelectTrigger>
             <SelectContent>
-              {mockCourses.map((course) => (
+              {courses.map((course) => (
                 <SelectItem key={course.id} value={course.id}>
                   {course.name} ({course.rating}/{course.slope})
                 </SelectItem>

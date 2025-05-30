@@ -9,27 +9,29 @@ interface DashboardHeaderProps {
 
 export const DashboardHeader = ({ profile }: DashboardHeaderProps) => {
   return (
-    <Card className="bg-gradient-to-r from-primary/10 via-white to-accent/10 rounded-xl shadow-sm border border-gray-100 p-6">
-      <div className="flex justify-between items-center">
-        <div className="space-y-1">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-            Welcome back, {profile?.full_name}!
+    <Card className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="space-y-4 text-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">
+            {profile?.full_name}
           </h1>
-          <p className="text-gray-600 font-medium">{profile?.clubs?.name}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            ID: {profile?.id?.slice(0, 8)}...
+          </p>
         </div>
-        <div className="text-right space-y-2">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-primary" />
-            <div className="text-2xl font-bold text-primary">
-              {profile?.credits?.toLocaleString()}
-            </div>
-          </div>
-          <div className="text-sm text-gray-500">Available Credits</div>
-          <Button size="sm" className="bg-primary hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-1" />
-            New Match
-          </Button>
+        
+        <div className="flex items-center justify-center gap-2">
+          <Trophy className="w-5 h-5 text-primary" />
+          <span className="text-xl font-bold text-primary">
+            {profile?.credits?.toLocaleString() || 0}
+          </span>
+          <span className="text-sm text-gray-500">credits</span>
         </div>
+        
+        <Button className="bg-primary hover:bg-primary/90">
+          <Plus className="w-4 h-4 mr-2" />
+          New Match
+        </Button>
       </div>
     </Card>
   );

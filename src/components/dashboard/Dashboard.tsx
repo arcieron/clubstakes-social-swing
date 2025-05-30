@@ -1,282 +1,273 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Trophy, TrendingUp, Users, Sword, Play } from 'lucide-react';
-import { ActiveMatch } from '../match/ActiveMatch';
+import { AdminPanel } from '@/components/admin/AdminPanel';
+import { ActiveMatch } from '@/components/match/ActiveMatch';
+import { MockAccountCreator } from '@/components/dev/MockAccountCreator';
+import { 
+  Trophy, 
+  Users, 
+  Calendar, 
+  TrendingUp, 
+  Play,
+  UserCheck,
+  Clock,
+  Target,
+  Award,
+  Settings,
+  TestTube
+} from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
-interface DashboardProps {
-  user: any;
-  onChallenge: () => void;
-}
-
-export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
-  const [matches, setMatches] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
+export const Dashboard = () => {
+  const { user, profile, loading } = useAuth();
+  const [activeMatches, setActiveMatches] = useState<any[]>([]);
+  const [matchHistory, setMatchHistory] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchMatches();
-  }, [user.id]);
+    const fetchActiveMatches = async () => {
+      if (user) {
+        const { data: matches, error } = await supabase
+          .from('matches')
+          .select('*')
+          .contains('players', [{ id: user.id }])
+          .eq('status', 'pending');
 
-  const fetchMatches = async () => {
-    try {
-      // Fetch matches where user is creator or participant
-      const { data: createdMatches } = await supabase
-        .from('matches')
-        .select(`
-          *,
-          courses(name),
-          match_players(player_id, profiles(full_name))
-        `)
-        .eq('creator_id', user.id);
+        if (error) {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+        } else {
+          setActiveMatches(matches || []);
+        }
+      }
+    };
 
-      const { data: participantMatches } = await supabase
-        .from('match_players')
-        .select(`
-          matches(
-            *,
-            courses(name),
-            match_players(player_id, profiles(full_name))
-          )
-        `)
-        .eq('player_id', user.id);
+    const fetchMatchHistory = async () => {
+      if (user) {
+        const { data: history, error } = await supabase
+          .from('matches')
+          .select('*')
+          .contains('players', [{ id: user.id }])
+          .in('status', ['completed', 'tied'])
+          .order('completedAt', { ascending: false })
+          .limit(5);
 
-      const allMatches = [
-        ...(createdMatches || []),
-        ...(participantMatches?.map(p => p.matches) || [])
+        if (error) {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+        } else {
+          setMatchHistory(history || []);
+        }
+      }
+    };
+
+    const fetchLeaderboard = async () => {
+      // Mock leaderboard data (replace with actual data fetching)
+      const mockLeaderboard = [
+        { id: 'user1', name: 'John Smith', wins: 12, credits: 12500 },
+        { id: 'user2', name: 'Mike Johnson', wins: 8, credits: 9800 },
+        { id: 'user3', name: 'Sarah Davis', wins: 15, credits: 15200 },
+        { id: 'user4', name: 'Tom Wilson', wins: 5, credits: 8500 },
+        { id: 'user5', name: 'Robert Garcia', wins: 18, credits: 18900 }
       ];
+      setLeaderboard(mockLeaderboard);
+    };
 
-      // Remove duplicates
-      const uniqueMatches = allMatches.filter((match, index, self) => 
-        index === self.findIndex(m => m.id === match.id)
-      );
-
-      setMatches(uniqueMatches);
-    } catch (error) {
-      console.error('Error fetching matches:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // If viewing an active match, show the ActiveMatch component
-  if (activeMatchId) {
-    return (
-      <ActiveMatch 
-        matchId={activeMatchId} 
-        onBack={() => setActiveMatchId(null)} 
-      />
-    );
-  }
-
-  const pendingMatches = matches.filter(match => match.status === 'pending');
-  const activeMatches = matches.filter(match => match.status === 'in_progress');
-  const completedMatches = matches.filter(match => match.status === 'completed');
-  const wonMatches = completedMatches.filter(match => match.winner_id === user.id);
-
-  const getMatchStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'open': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+    fetchActiveMatches();
+    fetchMatchHistory();
+    fetchLeaderboard();
+  }, [user]);
 
   if (loading) {
     return (
-      <div className="p-4 text-center">
-        <p>Loading your dashboard...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Welcome Section */}
-      <div className="text-center py-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          Welcome back, {user.full_name}!
-        </h2>
-        <p className="text-gray-600 mb-4">Ready for your next match?</p>
-        <Button 
-          onClick={onChallenge}
-          className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-3 text-lg"
-        >
-          <Sword className="w-5 h-5 mr-2" />
-          Challenge
-        </Button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="border-primary/20">
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-full mx-auto mb-2">
-              <Trophy className="w-6 h-6 text-primary" />
-            </div>
-            <p className="text-2xl font-bold text-primary">{wonMatches.length}</p>
-            <p className="text-sm text-gray-600">Wins</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-primary/20">
-          <CardContent className="p-4 text-center">
-            <div className="flex items-center justify-center w-12 h-12 bg-accent/10 rounded-full mx-auto mb-2">
-              <TrendingUp className="w-6 h-6 text-accent" />
-            </div>
-            <p className="text-2xl font-bold text-accent">{user.credits?.toLocaleString()}</p>
-            <p className="text-sm text-gray-600">Credits</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Active Matches */}
-      {activeMatches.length > 0 && (
-        <Card className="border-blue-200">
-          <CardHeader className="bg-blue-50">
-            <CardTitle className="text-blue-800 flex items-center gap-2">
-              <Play className="w-5 h-5" />
-              Active Matches
-            </CardTitle>
-            <CardDescription className="text-blue-600">
-              Matches currently in progress
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 space-y-3">
-            {activeMatches.map((match) => (
-              <div key={match.id} className="p-3 bg-white border border-blue-100 rounded-lg">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-gray-800">{match.courses?.name || 'Course TBD'}</p>
-                    <p className="text-sm text-gray-500">{match.format}</p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(match.match_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right space-y-2">
-                    <p className="text-blue-600 font-bold">{match.wager_amount} credits</p>
-                    <Button 
-                      size="sm" 
-                      onClick={() => setActiveMatchId(match.id)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      <Play className="w-3 h-3 mr-1" />
-                      Enter
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Pending Matches */}
-      {pendingMatches.length > 0 && (
-        <Card className="border-orange-200">
-          <CardHeader className="bg-orange-50">
-            <CardTitle className="text-orange-800 flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Pending Matches
-            </CardTitle>
-            <CardDescription className="text-orange-600">
-              Matches waiting for opponents to accept
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 space-y-3">
-            {pendingMatches.map((match) => (
-              <div key={match.id} className="p-3 bg-white border border-orange-100 rounded-lg">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-gray-800">{match.courses?.name || 'Course TBD'}</p>
-                    <p className="text-sm text-gray-500">{match.format}</p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(match.match_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-orange-600 font-bold">{match.wager_amount} credits</p>
-                    <Badge className="bg-yellow-100 text-yellow-800 text-xs">Pending</Badge>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Recent Activity */}
-      <Card className="border-primary/20">
-        <CardHeader className="bg-primary/5">
-          <CardTitle className="text-primary">Recent Activity</CardTitle>
-          <CardDescription>Your latest matches and challenges</CardDescription>
-        </CardHeader>
-        <CardContent className="p-4">
-          {matches.length > 0 ? (
-            <div className="space-y-3">
-              {matches.slice(0, 3).map((match) => (
-                <div key={match.id} className="p-3 bg-white border border-gray-100 rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium text-gray-800">{match.courses?.name || 'Course TBD'}</p>
-                      <p className="text-sm text-gray-500">{match.format}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(match.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-primary font-bold">{match.wager_amount} credits</p>
-                      <Badge className={`text-xs ${getMatchStatusColor(match.status)}`}>
-                        {match.status === 'completed' && match.winner_id === user.id ? 'Won' : 
-                         match.status === 'completed' ? 'Lost' : match.status}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>No recent activity</p>
-              <p className="text-sm">Challenge someone to get started!</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Quick Stats */}
-      <Card className="border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-gray-700">Your Profile</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-2 gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-accent/5">
+      <div className="container mx-auto p-4 space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+          <div className="flex justify-between items-center">
             <div>
-              <p className="text-sm text-gray-500">Handicap</p>
-              <p className="text-lg font-bold text-gray-800">{user.handicap}</p>
+              <h1 className="text-3xl font-bold text-gray-800">Welcome back, {profile?.full_name}!</h1>
+              <p className="text-gray-600 mt-1">{profile?.clubs?.name}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">GHIN ID</p>
-              <p className="text-lg font-bold text-gray-800">{user.ghin_id || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total Matches</p>
-              <p className="text-lg font-bold text-gray-800">{matches.length}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Win Rate</p>
-              <p className="text-lg font-bold text-gray-800">
-                {completedMatches.length > 0 ? Math.round((wonMatches.length / completedMatches.length) * 100) : 0}%
-              </p>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-primary">{profile?.credits?.toLocaleString()}</div>
+              <div className="text-sm text-gray-500">Available Credits</div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="active">Active Matches</TabsTrigger>
+            <TabsTrigger value="history">Match History</TabsTrigger>
+            {profile?.is_admin && <TabsTrigger value="admin">Admin</TabsTrigger>}
+            <TabsTrigger value="dev">
+              <TestTube className="w-4 h-4 mr-1" />
+              Dev Tools
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Card className="border-gray-200">
+                <CardContent className="p-4 text-center">
+                  <Trophy className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-800">
+                    {leaderboard.length > 0 ? leaderboard[0].wins : 0}
+                  </p>
+                  <p className="text-gray-500 text-sm">Most Wins</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-gray-200">
+                <CardContent className="p-4 text-center">
+                  <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-800">{leaderboard.length}</p>
+                  <p className="text-gray-500 text-sm">Total Players</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-gray-200">
+                <CardContent className="p-4 text-center">
+                  <Calendar className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-800">32</p>
+                  <p className="text-gray-500 text-sm">Matches Played</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-gray-800">Leaderboard</CardTitle>
+                <CardDescription className="text-gray-500">Top players this season</CardDescription>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Rank
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Player
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Wins
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Credits
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {leaderboard.map((player, index) => (
+                        <tr key={player.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{index + 1}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{player.name}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{player.wins}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{player.credits.toLocaleString()}</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="active" className="space-y-6">
+            <div className="grid gap-6">
+              {activeMatches.length > 0 ? (
+                activeMatches.map((match) => (
+                  <ActiveMatch key={match.id} match={match} />
+                ))
+              ) : (
+                <Card className="border-gray-200">
+                  <CardContent className="p-8 text-center">
+                    <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-600 mb-2">No Active Matches</h3>
+                    <p className="text-gray-500">You don't have any matches in progress right now.</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-6">
+            <Card className="border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-gray-800">Match History</CardTitle>
+                <CardDescription className="text-gray-500">Your recent matches</CardDescription>
+              </CardHeader>
+              <CardContent className="p-4">
+                {matchHistory.length > 0 ? (
+                  <div className="space-y-4">
+                    {matchHistory.map((match) => (
+                      <div key={match.id} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium text-gray-800">{match.course}</p>
+                            <p className="text-sm text-gray-500">
+                              {new Date(match.matchDate).toLocaleDateString()} - {match.format}
+                            </p>
+                          </div>
+                          <div>
+                            {match.status === 'completed' && (
+                              <Badge className="bg-green-100 text-green-800">Won</Badge>
+                            )}
+                            {match.status === 'tied' && (
+                              <Badge className="bg-gray-100 text-gray-800">Tied</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center p-8">
+                    <Award className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-lg font-medium text-gray-600 mb-2">No Match History</p>
+                    <p className="text-gray-500">You haven't completed any matches yet.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {profile?.is_admin && (
+            <TabsContent value="admin" className="space-y-6">
+              <AdminPanel user={profile} />
+            </TabsContent>
+          )}
+
+          <TabsContent value="dev" className="space-y-6">
+            <MockAccountCreator />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };

@@ -42,10 +42,18 @@ export const TeamAssignmentStep = ({
   const [numberOfTeams, setNumberOfTeams] = useState(2);
   const { playerProfiles } = usePlayerProfiles(selectedPlayers);
 
+  console.log('TeamAssignmentStep rendering with:', {
+    userTeam,
+    numberOfTeams,
+    selectedPlayers: selectedPlayers.length,
+    challengeData
+  });
+
   const totalPlayers = selectedPlayers.length + 1;
   const maxPossibleTeams = Math.min(totalPlayers, 6); // Maximum 6 teams
   
   const assignPlayerToTeam = (playerId: string, teamNumber: number) => {
+    console.log('Assigning player', playerId, 'to team', teamNumber);
     onPlayersChange(
       selectedPlayers.map(p => p.id === playerId ? { ...p, team: teamNumber } : p)
     );
@@ -57,12 +65,14 @@ export const TeamAssignmentStep = ({
 
   const addTeam = () => {
     if (numberOfTeams < maxPossibleTeams) {
+      console.log('Adding team, new count:', numberOfTeams + 1);
       setNumberOfTeams(numberOfTeams + 1);
     }
   };
 
   const removeTeam = () => {
     if (numberOfTeams > 2) {
+      console.log('Removing team, new count:', numberOfTeams - 1);
       // Move any players from the last team to unassigned
       const playersInLastTeam = selectedPlayers.filter(p => p.team === numberOfTeams);
       playersInLastTeam.forEach(player => {
@@ -80,6 +90,7 @@ export const TeamAssignmentStep = ({
 
   // Auto-balance teams
   const autoAssignTeams = () => {
+    console.log('Auto-assigning teams');
     const updatedPlayers = selectedPlayers.map((player, index) => ({
       ...player,
       team: (index % numberOfTeams) + 1
@@ -109,6 +120,14 @@ export const TeamAssignmentStep = ({
   };
 
   const unassignedPlayers = selectedPlayers.filter(p => !p.team || p.team === 0);
+
+  console.log('Team assignment state:', {
+    unassignedPlayers: unassignedPlayers.length,
+    teamCounts: Array.from({ length: numberOfTeams }, (_, i) => ({
+      team: i + 1,
+      players: getTeamPlayers(i + 1).length + (userTeam === i + 1 ? 1 : 0)
+    }))
+  });
 
   return (
     <Card className="border-primary/20 shadow-md">

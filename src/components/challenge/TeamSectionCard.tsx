@@ -85,10 +85,10 @@ export const TeamSectionCard = ({
               <div className="flex items-center gap-2">
                 <Crown className="w-4 h-4 text-primary" />
                 <div>
-                  <p className="font-medium text-primary text-sm">
+                  <div className="font-medium text-primary text-sm">
                     {user.full_name || user.email} (You)
-                  </p>
-                  <p className="text-xs text-gray-500">Handicap: {user.handicap || 0}</p>
+                  </div>
+                  <div className="text-xs text-gray-500">Handicap: {user.handicap || 0}</div>
                 </div>
               </div>
             </div>
@@ -123,7 +123,7 @@ export const TeamSectionCard = ({
         {/* Add players from unassigned */}
         {unassignedPlayers.length > 0 && (
           <div className="pt-2 border-t border-gray-200">
-            <p className="text-xs text-gray-500 mb-2">Add players:</p>
+            <div className="text-xs text-gray-500 mb-2">Add players:</div>
             <div className="space-y-1">
               {unassignedPlayers.slice(0, 3).map(player => {
                 const playerData = playerProfiles.find(p => p.id === player.id);
@@ -141,9 +141,9 @@ export const TeamSectionCard = ({
                 );
               })}
               {unassignedPlayers.length > 3 && (
-                <p className="text-xs text-gray-400 text-center">
+                <div className="text-xs text-gray-400 text-center">
                   +{unassignedPlayers.length - 3} more...
-                </p>
+                </div>
               )}
             </div>
           </div>

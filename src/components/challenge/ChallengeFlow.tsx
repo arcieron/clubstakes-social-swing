@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { mockUsers, mockCourses } from '@/lib/mockData';
@@ -38,6 +37,13 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
     matchDate: new Date().toISOString().split('T')[0],
     teamFormat: 'individual',
     postToFeed: false
+  });
+
+  console.log('ChallengeFlow state:', {
+    step,
+    challengeData,
+    selectedPlayers: selectedPlayers.length,
+    needsTeamAssignment: challengeData.teamFormat === 'teams' && !challengeData.postToFeed && selectedPlayers.length > 0
   });
 
   const handleSubmit = async () => {
@@ -187,6 +193,8 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
   };
 
   const renderStep = () => {
+    console.log('Rendering step:', step);
+    
     switch (step) {
       case 1:
         return (
@@ -195,7 +203,10 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
             challengeData={challengeData}
             onChallengeDataChange={setChallengeData}
             onBack={onClose}
-            onNext={() => setStep(2)}
+            onNext={() => {
+              console.log('Moving from step 1 to step 2');
+              setStep(2);
+            }}
             onSubmit={handleSubmit}
             isFirstStep={true}
           />
@@ -208,20 +219,30 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
             selectedPlayers={selectedPlayers}
             onPlayersChange={setSelectedPlayers}
             challengeData={challengeData}
-            onBack={() => setStep(1)}
-            onNext={() => setStep(3)}
+            onBack={() => {
+              console.log('Moving from step 2 to step 1');
+              setStep(1);
+            }}
+            onNext={() => {
+              console.log('Moving from step 2 to step 3 (team assignment)');
+              setStep(3);
+            }}
             onSubmit={handleSubmit}
           />
         );
 
       case 3:
+        console.log('Rendering TeamAssignmentStep');
         return (
           <TeamAssignmentStep
             user={user}
             selectedPlayers={selectedPlayers}
             onPlayersChange={setSelectedPlayers}
             challengeData={challengeData}
-            onBack={() => setStep(2)}
+            onBack={() => {
+              console.log('Moving from step 3 to step 2');
+              setStep(2);
+            }}
             onSubmit={handleSubmit}
           />
         );
@@ -242,6 +263,10 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
           <ArrowLeft className="w-5 h-5 mr-2" />
           Back to Dashboard
         </Button>
+      </div>
+
+      <div className="mb-4 text-sm text-gray-500">
+        Step {step} of 3 | Team Format: {challengeData.teamFormat} | Players: {selectedPlayers.length}
       </div>
 
       {renderStep()}

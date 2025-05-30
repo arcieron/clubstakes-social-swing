@@ -73,6 +73,13 @@ export const PlayerSelectionStep = ({
   const needsTeamAssignment = challengeData.teamFormat === 'teams' && !challengeData.postToFeed && selectedPlayers.length > 0;
   const canProceed = challengeData.postToFeed || selectedPlayers.length > 0;
 
+  console.log('PlayerSelectionStep state:', {
+    challengeData,
+    selectedPlayers: selectedPlayers.length,
+    needsTeamAssignment,
+    canProceed
+  });
+
   if (loading) {
     return (
       <Card className="border-primary/20 shadow-md">
@@ -156,7 +163,16 @@ export const PlayerSelectionStep = ({
             Back
           </Button>
           <Button 
-            onClick={() => needsTeamAssignment ? onNext() : onSubmit()}
+            onClick={() => {
+              console.log('Button clicked, needsTeamAssignment:', needsTeamAssignment);
+              if (needsTeamAssignment) {
+                console.log('Going to team assignment step');
+                onNext();
+              } else {
+                console.log('Submitting directly');
+                onSubmit();
+              }
+            }}
             disabled={!canProceed}
             className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
           >

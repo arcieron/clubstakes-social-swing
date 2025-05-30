@@ -173,60 +173,61 @@ export const SelectedPlayersDisplay = ({
       
       {challengeData.teamFormat === 'teams' ? (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="space-y-3 mb-4">
+          {/* Team sections in a grid layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             {renderTeamSection(1, 'Team 1')}
             {renderTeamSection(2, 'Team 2')}
-            
-            {/* Unassigned players */}
-            {selectedPlayers.filter(p => !p.team).length > 0 && (
-              <Droppable droppableId="unassigned">
-                {(provided, snapshot) => (
-                  <div 
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={`border rounded-lg p-3 transition-colors ${
-                      snapshot.isDraggingOver ? 'bg-yellow-100 border-yellow-300' : 'bg-yellow-50'
-                    }`}
-                  >
-                    <h4 className="font-medium text-sm mb-2">Unassigned Players</h4>
-                    <div className="flex flex-wrap gap-2 min-h-[32px]">
-                      {selectedPlayers.filter(p => !p.team).map((player, index) => {
-                        const playerData = clubMembers.find(u => u.id === player.id);
-                        return (
-                          <Draggable key={player.id} draggableId={player.id} index={index}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`flex items-center gap-1 ${
-                                  snapshot.isDragging ? 'opacity-50' : ''
-                                }`}
-                              >
-                                <Badge 
-                                  variant="outline" 
-                                  className="cursor-move border-dashed border-yellow-400 text-yellow-700"
-                                >
-                                  {playerData?.full_name || 'Unknown Player'}
-                                </Badge>
-                                <button
-                                  onClick={() => onPlayerRemove(player.id)}
-                                  className="text-gray-500 hover:text-red-500 ml-1"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            )}
-                          </Draggable>
-                        );
-                      })}
-                      {provided.placeholder}
-                    </div>
-                  </div>
-                )}
-              </Droppable>
-            )}
           </div>
+          
+          {/* Unassigned players */}
+          {selectedPlayers.filter(p => !p.team).length > 0 && (
+            <Droppable droppableId="unassigned">
+              {(provided, snapshot) => (
+                <div 
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className={`border rounded-lg p-3 transition-colors ${
+                    snapshot.isDraggingOver ? 'bg-yellow-100 border-yellow-300' : 'bg-yellow-50'
+                  }`}
+                >
+                  <h4 className="font-medium text-sm mb-2">Unassigned Players</h4>
+                  <div className="flex flex-wrap gap-2 min-h-[32px]">
+                    {selectedPlayers.filter(p => !p.team).map((player, index) => {
+                      const playerData = clubMembers.find(u => u.id === player.id);
+                      return (
+                        <Draggable key={player.id} draggableId={player.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={`flex items-center gap-1 ${
+                                snapshot.isDragging ? 'opacity-50' : ''
+                              }`}
+                            >
+                              <Badge 
+                                variant="outline" 
+                                className="cursor-move border-dashed border-yellow-400 text-yellow-700"
+                              >
+                                {playerData?.full_name || 'Unknown Player'}
+                              </Badge>
+                              <button
+                                onClick={() => onPlayerRemove(player.id)}
+                                className="text-gray-500 hover:text-red-500 ml-1"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          )}
+                        </Draggable>
+                      );
+                    })}
+                    {provided.placeholder}
+                  </div>
+                </div>
+              )}
+            </Droppable>
+          )}
         </DragDropContext>
       ) : (
         <div className="flex flex-wrap gap-2 mb-4">

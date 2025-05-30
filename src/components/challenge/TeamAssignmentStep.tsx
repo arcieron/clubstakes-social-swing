@@ -1,9 +1,9 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { mockUsers } from '@/lib/mockData';
+import { supabase } from '@/integrations/supabase/client';
 import { Users, User, Trophy, Target } from 'lucide-react';
 
 interface Player {
@@ -18,6 +18,12 @@ interface ChallengeData {
   matchDate: string;
   teamFormat: string;
   postToFeed: boolean;
+}
+
+interface ProfileData {
+  id: string;
+  full_name: string;
+  handicap: number;
 }
 
 interface TeamAssignmentStepProps {
@@ -38,6 +44,32 @@ export const TeamAssignmentStep = ({
   onSubmit 
 }: TeamAssignmentStepProps) => {
   const [userTeam, setUserTeam] = useState(1);
+  const [playerProfiles, setPlayerProfiles] = useState<ProfileData[]>([]);
+
+  useEffect(() => {
+    fetchPlayerProfiles();
+  }, [selectedPlayers]);
+
+  const fetchPlayerProfiles = async () => {
+    if (selectedPlayers.length === 0) return;
+
+    const playerIds = selectedPlayers.map(p => p.id);
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, handicap')
+        .in('id', playerIds);
+
+      if (error) {
+        console.error('Error fetching player profiles:', error);
+      } else {
+        setPlayerProfiles(data || []);
+      }
+    } catch (error) {
+      console.error('Error in fetchPlayerProfiles:', error);
+    }
+  };
 
   const totalPlayers = selectedPlayers.length + 1;
   const maxTeams = Math.min(Math.floor(totalPlayers / 2), 4);
@@ -50,7 +82,6 @@ export const TeamAssignmentStep = ({
 
   // Auto-balance teams
   const autoAssignTeams = () => {
-    const playersPerTeam = Math.floor(totalPlayers / 2);
     const updatedPlayers = selectedPlayers.map((player, index) => ({
       ...player,
       team: (index % 2) + 1
@@ -73,8 +104,8 @@ export const TeamAssignmentStep = ({
     const players = getTeamPlayers(teamNumber);
     if (players.length === 0) return 0;
     const totalHandicap = players.reduce((sum, p) => {
-      if (p.id === user.id) return sum + user.handicap;
-      const playerData = mockUsers.find(u => u.id === p.id);
+      if (p.id === user.id) return sum + (user.profile?.handicap || 0);
+      const playerData = playerProfiles.find(u => u.id === p.id);
       return sum + (playerData?.handicap || 0);
     }, 0);
     return Math.round(totalHandicap / players.length);
@@ -134,8 +165,8 @@ export const TeamAssignmentStep = ({
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-primary" />
                         <div>
-                          <p className="font-medium text-primary">{user.fullName} (You)</p>
-                          <p className="text-xs text-gray-500">Handicap: {user.handicap}</p>
+                          <p className="font-medium text-primary">{user.profile?.full_name || user.email} (You)</p>
+                          <p className="text-xs text-gray-500">Handicap: {user.profile?.handicap || 0}</p>
                         </div>
                       </div>
                       <div className="flex gap-1">
@@ -159,15 +190,15 @@ export const TeamAssignmentStep = ({
                 {selectedPlayers
                   .filter(p => p.team === teamNumber)
                   .map(player => {
-                    const playerData = mockUsers.find(u => u.id === player.id);
+                    const playerData = playerProfiles.find(u => u.id === player.id);
                     return (
                       <div key={player.id} className="p-3 bg-gray-50 rounded-lg border">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <User className="w-4 h-4 text-gray-400" />
                             <div>
-                              <p className="font-medium text-gray-800">{playerData?.fullName}</p>
-                              <p className="text-xs text-gray-500">Handicap: {playerData?.handicap}</p>
+                              <p className="font-medium text-gray-800">{playerData?.full_name || 'Loading...'}</p>
+                              <p className="text-xs text-gray-500">Handicap: {playerData?.handicap || 0}</p>
                             </div>
                           </div>
                           <div className="flex gap-1">
@@ -201,15 +232,15 @@ export const TeamAssignmentStep = ({
             </h4>
             <div className="space-y-2">
               {unassignedPlayers.map(player => {
-                const playerData = mockUsers.find(u => u.id === player.id);
+                const playerData = playerProfiles.find(u => u.id === player.id);
                 return (
                   <div key={player.id} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-yellow-600" />
                         <div>
-                          <p className="font-medium text-gray-800">{playerData?.fullName}</p>
-                          <p className="text-xs text-gray-500">Handicap: {playerData?.handicap}</p>
+                          <p className="font-medium text-gray-800">{playerData?.full_name || 'Loading...'}</p>
+                          <p className="text-xs text-gray-500">Handicap: {playerData?.handicap || 0}</p>
                         </div>
                       </div>
                       <div className="flex gap-1">

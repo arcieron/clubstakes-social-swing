@@ -1,62 +1,52 @@
 
-import { useState, useEffect } from 'react';
-import { AuthForm } from '@/components/auth/AuthForm';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthPage } from '@/components/auth/AuthPage';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { ChallengeFlow } from '@/components/challenge/ChallengeFlow';
 import { Leaderboard } from '@/components/leaderboard/Leaderboard';
 import { SocialFeed } from '@/components/social/SocialFeed';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 import { Navigation } from '@/components/layout/Navigation';
-import { mockUsers, mockClubs } from '@/lib/mockData';
+import { useState } from 'react';
 
 const Index = () => {
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user, profile, loading, signOut } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
   const [showChallenge, setShowChallenge] = useState(false);
 
-  useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('clubstakes_user');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
-  }, []);
-
-  const handleLogin = (userData) => {
-    setCurrentUser(userData);
-    localStorage.setItem('clubstakes_user', JSON.stringify(userData));
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('clubstakes_user');
-    setCurrentView('dashboard');
-  };
-
-  if (!currentUser) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary via-primary/90 to-primary">
-        <AuthForm onLogin={handleLogin} />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-white text-lg">🏌️</span>
+          </div>
+          <p>Loading...</p>
+        </div>
       </div>
     );
   }
 
+  if (!user || !profile) {
+    return <AuthPage />;
+  }
+
   const renderView = () => {
     if (showChallenge) {
-      return <ChallengeFlow user={currentUser} onClose={() => setShowChallenge(false)} />;
+      return <ChallengeFlow user={profile} onClose={() => setShowChallenge(false)} />;
     }
 
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard user={currentUser} onChallenge={() => setShowChallenge(true)} />;
+        return <Dashboard user={profile} onChallenge={() => setShowChallenge(true)} />;
       case 'leaderboard':
-        return <Leaderboard user={currentUser} />;
+        return <Leaderboard user={profile} />;
       case 'feed':
-        return <SocialFeed user={currentUser} />;
+        return <SocialFeed user={profile} />;
       case 'admin':
-        return <AdminPanel user={currentUser} />;
+        return <AdminPanel user={profile} />;
       default:
-        return <Dashboard user={currentUser} onChallenge={() => setShowChallenge(true)} />;
+        return <Dashboard user={profile} onChallenge={() => setShowChallenge(true)} />;
     }
   };
 
@@ -73,13 +63,13 @@ const Index = () => {
               <h1 className="text-xl font-bold text-gray-800">ClubStakes</h1>
             </div>
             <button
-              onClick={handleLogout}
+              onClick={signOut}
               className="text-gray-500 hover:text-primary text-sm font-medium"
             >
               Logout
             </button>
           </div>
-          <p className="text-gray-500 text-sm mt-1 font-medium">{currentUser.clubName}</p>
+          <p className="text-gray-500 text-sm mt-1 font-medium">{profile.clubs?.name}</p>
         </div>
 
         {/* Main Content */}
@@ -91,7 +81,7 @@ const Index = () => {
         <Navigation 
           currentView={currentView} 
           onViewChange={setCurrentView}
-          isAdmin={currentUser.isAdmin}
+          isAdmin={profile.is_admin}
         />
       </div>
     </div>

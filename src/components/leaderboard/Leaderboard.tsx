@@ -1,6 +1,7 @@
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { mockUsers } from '@/lib/mockData';
+import { supabase } from '@/integrations/supabase/client';
 import { Trophy, Medal, Award } from 'lucide-react';
 
 interface LeaderboardProps {
@@ -8,9 +9,29 @@ interface LeaderboardProps {
 }
 
 export const Leaderboard = ({ user }: LeaderboardProps) => {
-  const clubMembers = mockUsers
-    .filter(u => u.clubId === user.clubId)
-    .sort((a, b) => b.credits - a.credits);
+  const [clubMembers, setClubMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchClubMembers();
+  }, [user.club_id]);
+
+  const fetchClubMembers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('club_id', user.club_id)
+        .order('credits', { ascending: false });
+
+      if (error) throw error;
+      setClubMembers(data || []);
+    } catch (error) {
+      console.error('Error fetching club members:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getBadge = (position: number, member: any) => {
     if (position === 0) return { icon: Trophy, color: 'text-accent', label: 'Top Dog' };
@@ -19,6 +40,14 @@ export const Leaderboard = ({ user }: LeaderboardProps) => {
     if (member.credits > 15000) return { icon: Award, color: 'text-primary', label: 'High Roller' };
     return null;
   };
+
+  if (loading) {
+    return (
+      <div className="p-4 text-center">
+        <p>Loading leaderboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-6">
@@ -30,7 +59,7 @@ export const Leaderboard = ({ user }: LeaderboardProps) => {
               Club Rankings
             </CardTitle>
             <CardDescription className="text-primary-foreground/80 mt-1">
-              Season leaderboard for {user.clubName}
+              Season leaderboard for {user.clubs?.name}
             </CardDescription>
           </div>
         </div>
@@ -63,7 +92,7 @@ export const Leaderboard = ({ user }: LeaderboardProps) => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className={`font-bold ${isCurrentUser ? 'text-primary' : 'text-gray-800'}`}>
-                          {member.fullName}
+                          {member.full_name}
                           {isCurrentUser && <span className="text-sm ml-1">(You)</span>}
                         </h3>
                         {badge && (

@@ -9,16 +9,266 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      clubs: {
+        Row: {
+          created_at: string
+          id: string
+          invite_code: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invite_code: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      courses: {
+        Row: {
+          club_id: string | null
+          created_at: string
+          id: string
+          name: string
+          rating: number
+          slope: number
+        }
+        Insert: {
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          rating: number
+          slope: number
+        }
+        Update: {
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          rating?: number
+          slope?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courses_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_players: {
+        Row: {
+          id: string
+          joined_at: string
+          match_id: string
+          player_id: string
+          team_number: number | null
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          match_id: string
+          player_id: string
+          team_number?: number | null
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          match_id?: string
+          player_id?: string
+          team_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_players_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_players_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          club_id: string
+          completed_at: string | null
+          course_id: string | null
+          created_at: string
+          creator_id: string
+          format: Database["public"]["Enums"]["match_format"]
+          id: string
+          is_public: boolean | null
+          match_date: string
+          max_players: number | null
+          status: Database["public"]["Enums"]["match_status"] | null
+          team_format: Database["public"]["Enums"]["team_format"] | null
+          updated_at: string
+          wager_amount: number
+          winner_id: string | null
+        }
+        Insert: {
+          club_id: string
+          completed_at?: string | null
+          course_id?: string | null
+          created_at?: string
+          creator_id: string
+          format: Database["public"]["Enums"]["match_format"]
+          id?: string
+          is_public?: boolean | null
+          match_date: string
+          max_players?: number | null
+          status?: Database["public"]["Enums"]["match_status"] | null
+          team_format?: Database["public"]["Enums"]["team_format"] | null
+          updated_at?: string
+          wager_amount: number
+          winner_id?: string | null
+        }
+        Update: {
+          club_id?: string
+          completed_at?: string | null
+          course_id?: string | null
+          created_at?: string
+          creator_id?: string
+          format?: Database["public"]["Enums"]["match_format"]
+          id?: string
+          is_public?: boolean | null
+          match_date?: string
+          max_players?: number | null
+          status?: Database["public"]["Enums"]["match_status"] | null
+          team_format?: Database["public"]["Enums"]["team_format"] | null
+          updated_at?: string
+          wager_amount?: number
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          club_id: string
+          credits: number | null
+          email: string
+          full_name: string
+          ghin_id: string | null
+          handicap: number | null
+          id: string
+          id_number: number
+          is_admin: boolean | null
+          joined_at: string
+          updated_at: string
+        }
+        Insert: {
+          club_id: string
+          credits?: number | null
+          email: string
+          full_name: string
+          ghin_id?: string | null
+          handicap?: number | null
+          id: string
+          id_number: number
+          is_admin?: boolean | null
+          joined_at?: string
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string
+          credits?: number | null
+          email?: string
+          full_name?: string
+          ghin_id?: string | null
+          handicap?: number | null
+          id?: string
+          id_number?: number
+          is_admin?: boolean | null
+          joined_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_club_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      is_user_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      match_format:
+        | "match-play"
+        | "stroke-play"
+        | "nassau"
+        | "scramble"
+        | "better-ball"
+        | "skins"
+      match_status:
+        | "pending"
+        | "open"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+      team_format: "individual" | "teams"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +383,23 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      match_format: [
+        "match-play",
+        "stroke-play",
+        "nassau",
+        "scramble",
+        "better-ball",
+        "skins",
+      ],
+      match_status: [
+        "pending",
+        "open",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
+      team_format: ["individual", "teams"],
+    },
   },
 } as const

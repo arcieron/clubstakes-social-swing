@@ -15,6 +15,7 @@ interface ChallengeData {
   matchDate: string;
   teamFormat: string;
   postToFeed: boolean;
+  skinsCarryover?: boolean;
 }
 
 interface GameDetailsStepProps {
@@ -42,6 +43,8 @@ export const GameDetailsStep = ({
 
   // Can proceed if we have required fields
   const canProceed = challengeData.format && challengeData.courseId && challengeData.matchDate;
+
+  const isSkinsGame = challengeData.format === 'skins';
 
   return (
     <Card className="border-primary/20 shadow-md">
@@ -100,7 +103,9 @@ export const GameDetailsStep = ({
         </div>
 
         <div className="space-y-3">
-          <Label>Wager Amount</Label>
+          <Label>
+            Wager Amount{isSkinsGame && <span className="text-sm text-gray-600 ml-1">(per hole)</span>}
+          </Label>
           <div className="space-y-4">
             <Slider
               value={[challengeData.wagerAmount]}
@@ -115,6 +120,21 @@ export const GameDetailsStep = ({
               <span className="text-accent font-semibold ml-1">credits</span>
             </div>
           </div>
+          
+          {isSkinsGame && (
+            <div className="border-t pt-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="skinsCarryover" 
+                  checked={challengeData.skinsCarryover || false}
+                  onCheckedChange={(checked) => updateChallengeData({ skinsCarryover: !!checked })}
+                />
+                <Label htmlFor="skinsCarryover" className="text-sm">
+                  Credits carry over to next hole for ties
+                </Label>
+              </div>
+            </div>
+          )}
         </div>
 
         <div>

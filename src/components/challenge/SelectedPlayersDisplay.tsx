@@ -2,6 +2,12 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Player {
   id: string;
@@ -28,6 +34,7 @@ interface SelectedPlayersDisplayProps {
   challengeData: ChallengeData;
   clubMembers: ProfileData[];
   onPlayerRemove: (playerId: string) => void;
+  onPlayerTeamChange?: (playerId: string, teamNumber: number) => void;
   onAddOpenSpot?: () => void;
   openSpots?: number;
 }
@@ -38,10 +45,21 @@ export const SelectedPlayersDisplay = ({
   challengeData, 
   clubMembers, 
   onPlayerRemove,
+  onPlayerTeamChange,
   onAddOpenSpot,
   openSpots = 0
 }: SelectedPlayersDisplayProps) => {
   const totalPlayers = selectedPlayers.length + 1 + openSpots;
+
+  const getTeamColor = (teamNumber: number) => {
+    const colors = {
+      1: 'bg-blue-500 text-white',
+      2: 'bg-red-500 text-white',
+      3: 'bg-green-500 text-white',
+      4: 'bg-purple-500 text-white',
+    };
+    return colors[teamNumber as keyof typeof colors] || 'bg-gray-500 text-white';
+  };
 
   return (
     <div className="bg-primary/5 p-4 rounded-lg">
@@ -51,25 +69,59 @@ export const SelectedPlayersDisplay = ({
       </div>
       
       <div className="flex flex-wrap gap-2 mb-4">
-        <Badge className="bg-primary text-white">
+        {/* Current user - always Team 1 for team format */}
+        <Badge className={challengeData.teamFormat === 'teams' ? getTeamColor(1) : 'bg-primary text-white'}>
           {user.full_name || user.email} (You)
           {challengeData.teamFormat === 'teams' && ' - Team 1'}
         </Badge>
-        {selectedPlayers.map((player, index) => {
+
+        {selectedPlayers.map((player) => {
           const playerData = clubMembers.find(u => u.id === player.id);
+          const teamDisplay = challengeData.teamFormat === 'teams' && player.team ? ` - Team ${player.team}` : '';
+          
           return (
-            <Badge key={player.id} variant="outline" className="flex items-center gap-1">
-              {playerData?.full_name || 'Unknown Player'}
-              {challengeData.teamFormat === 'teams' && ` - Team ${Math.floor(index / 2) + (index % 2 === 0 ? 1 : 2)}`}
+            <div key={player.id} className="flex items-center gap-1">
+              {challengeData.teamFormat === 'teams' && onPlayerTeamChange ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Badge 
+                      variant="outline" 
+                      className={`cursor-pointer hover:bg-gray-50 ${player.team ? getTeamColor(player.team) : 'border-dashed'}`}
+                    >
+                      {playerData?.full_name || 'Unknown Player'}{teamDisplay || ' - No Team'}
+                    </Badge>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-white border shadow-md">
+                    <DropdownMenuItem onClick={() => onPlayerTeamChange(player.id, 1)}>
+                      Team 1
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onPlayerTeamChange(player.id, 2)}>
+                      Team 2
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onPlayerTeamChange(player.id, 3)}>
+                      Team 3
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onPlayerTeamChange(player.id, 4)}>
+                      Team 4
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  {playerData?.full_name || 'Unknown Player'}{teamDisplay}
+                </Badge>
+              )}
               <button
                 onClick={() => onPlayerRemove(player.id)}
                 className="text-gray-500 hover:text-red-500 ml-1"
               >
                 ×
               </button>
-            </Badge>
+            </div>
           );
         })}
+
+        {/* Open spots */}
         {Array.from({ length: openSpots }, (_, index) => (
           <Badge key={`open-spot-${index}`} variant="outline" className="border-dashed border-blue-300 text-blue-600">
             Open Spot

@@ -50,13 +50,25 @@ export const PlayerSelectionStep = ({
     member.id_number.toString().includes(searchTerm)
   );
 
-  const handlePlayerToggle = (playerId: string) => {
+  const handlePlayerToggle = (playerId: string, teamNumber?: number) => {
     const isSelected = selectedPlayers.some(p => p.id === playerId);
     if (isSelected) {
       onPlayersChange(selectedPlayers.filter(p => p.id !== playerId));
     } else if (selectedPlayers.length < 7) {
-      onPlayersChange([...selectedPlayers, { id: playerId }]);
+      const newPlayer: Player = { id: playerId };
+      if (challengeData.teamFormat === 'teams' && teamNumber) {
+        newPlayer.team = teamNumber;
+      }
+      onPlayersChange([...selectedPlayers, newPlayer]);
     }
+  };
+
+  const handlePlayerTeamChange = (playerId: string, newTeamNumber: number) => {
+    onPlayersChange(
+      selectedPlayers.map(p => 
+        p.id === playerId ? { ...p, team: newTeamNumber } : p
+      )
+    );
   };
 
   const handleAddOpenSpot = () => {
@@ -67,18 +79,8 @@ export const PlayerSelectionStep = ({
   };
 
   const totalPlayers = selectedPlayers.length + 1 + openSpots;
-  const maxPlayers = challengeData.postToFeed ? 8 : 8;
-  
-  // Determine next action
-  const needsTeamAssignment = challengeData.teamFormat === 'teams' && !challengeData.postToFeed && selectedPlayers.length > 0;
+  const maxPlayers = 8;
   const canProceed = challengeData.postToFeed || selectedPlayers.length > 0;
-
-  console.log('PlayerSelectionStep state:', {
-    challengeData,
-    selectedPlayers: selectedPlayers.length,
-    needsTeamAssignment,
-    canProceed
-  });
 
   if (loading) {
     return (
@@ -117,7 +119,8 @@ export const PlayerSelectionStep = ({
           selectedPlayers={selectedPlayers}
           challengeData={challengeData}
           clubMembers={clubMembers}
-          onPlayerRemove={handlePlayerToggle}
+          onPlayerRemove={(playerId) => handlePlayerToggle(playerId)}
+          onPlayerTeamChange={handlePlayerTeamChange}
           onAddOpenSpot={handleAddOpenSpot}
           openSpots={openSpots}
         />
@@ -139,6 +142,7 @@ export const PlayerSelectionStep = ({
                 isSelected={isSelected}
                 canSelect={canSelect}
                 onToggle={handlePlayerToggle}
+                showTeamSelection={challengeData.teamFormat === 'teams'}
               />
             );
           })}
@@ -163,20 +167,11 @@ export const PlayerSelectionStep = ({
             Back
           </Button>
           <Button 
-            onClick={() => {
-              console.log('Button clicked, needsTeamAssignment:', needsTeamAssignment);
-              if (needsTeamAssignment) {
-                console.log('Going to team assignment step');
-                onNext();
-              } else {
-                console.log('Submitting directly');
-                onSubmit();
-              }
-            }}
+            onClick={onSubmit}
             disabled={!canProceed}
             className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
           >
-            {needsTeamAssignment ? 'Next: Assign Teams' : (challengeData.postToFeed ? 'Post Challenge' : 'Send Challenge')}
+            {challengeData.postToFeed ? 'Post Challenge' : 'Send Challenge'}
           </Button>
         </div>
       </CardContent>

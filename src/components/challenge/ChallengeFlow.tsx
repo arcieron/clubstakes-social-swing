@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { mockUsers, mockCourses } from '@/lib/mockData';
@@ -6,7 +7,6 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PlayerSelectionStep } from './PlayerSelectionStep';
 import { GameDetailsStep } from './GameDetailsStep';
-import { TeamAssignmentStep } from './TeamAssignmentStep';
 
 interface ChallengeFlowProps {
   user: any;
@@ -39,13 +39,6 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
     postToFeed: false
   });
 
-  console.log('ChallengeFlow state:', {
-    step,
-    challengeData,
-    selectedPlayers: selectedPlayers.length,
-    needsTeamAssignment: challengeData.teamFormat === 'teams' && !challengeData.postToFeed && selectedPlayers.length > 0
-  });
-
   const handleSubmit = async () => {
     // Allow submission if either posting to feed OR players are selected
     if (!challengeData.postToFeed && selectedPlayers.length === 0) {
@@ -57,34 +50,21 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
       return;
     }
 
-    // For team format challenges, check if all players have teams assigned (except for feed posts)
-    if (challengeData.teamFormat === 'teams' && !challengeData.postToFeed) {
-      const unassignedPlayers = selectedPlayers.filter(p => !p.team);
-      if (unassignedPlayers.length > 0) {
-        toast({
-          title: "Team assignment required",
-          description: "Please assign all players to teams before sending the challenge.",
-          variant: "destructive"
-        });
-        return;
-      }
-    }
-
     try {
       console.log('Creating match with data:', challengeData);
       console.log('Selected players:', selectedPlayers);
       console.log('User club_id:', user.club_id);
 
-      // Create the match in Supabase - use the exact field names from the database schema
+      // Create the match in Supabase
       const matchInsert = {
         creator_id: user.id,
         club_id: user.club_id,
-        format: challengeData.format as any, // Cast to match the enum type
+        format: challengeData.format as any,
         course_id: challengeData.courseId,
         wager_amount: challengeData.wagerAmount,
         match_date: challengeData.matchDate,
-        team_format: challengeData.teamFormat as any, // Cast to match the enum type
-        status: challengeData.postToFeed ? 'open' : 'pending' as any, // Cast to match the enum type
+        team_format: challengeData.teamFormat as any,
+        status: challengeData.postToFeed ? 'open' : 'pending' as any,
         is_public: challengeData.postToFeed,
         max_players: challengeData.postToFeed ? (selectedPlayers.length > 0 ? selectedPlayers.length + 1 : 8) : undefined
       };
@@ -107,11 +87,9 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
 
       console.log('Match created successfully:', match);
 
-      // Add creator to match_players with appropriate team assignment
+      // Add creator to match_players - always team 1 for team format
       let creatorTeamNumber = null;
       if (challengeData.teamFormat === 'teams') {
-        // For direct challenges, creator is always team 1
-        // For feed posts, creator gets team 1 unless specified otherwise
         creatorTeamNumber = 1;
       }
 
@@ -127,19 +105,14 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
         console.error('Error adding creator to match:', creatorError);
       }
 
-      // Add selected players to match_players with proper team assignments
+      // Add selected players to match_players with their assigned teams
       if (selectedPlayers.length > 0) {
         const playerInserts = selectedPlayers.map((player) => {
           let teamNumber = null;
           
           if (challengeData.teamFormat === 'teams') {
-            if (challengeData.postToFeed) {
-              // For feed posts, if no team is manually assigned, leave it null so they can join any team
-              teamNumber = player.team || null;
-            } else {
-              // For direct challenges, use the manually assigned team
-              teamNumber = player.team;
-            }
+            // Use the assigned team or default to team 2 if not assigned
+            teamNumber = player.team || 2;
           }
           
           return {
@@ -193,8 +166,6 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
   };
 
   const renderStep = () => {
-    console.log('Rendering step:', step);
-    
     switch (step) {
       case 1:
         return (
@@ -203,10 +174,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
             challengeData={challengeData}
             onChallengeDataChange={setChallengeData}
             onBack={onClose}
-            onNext={() => {
-              console.log('Moving from step 1 to step 2');
-              setStep(2);
-            }}
+            onNext={() => setStep(2)}
             onSubmit={handleSubmit}
             isFirstStep={true}
           />
@@ -219,30 +187,8 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
             selectedPlayers={selectedPlayers}
             onPlayersChange={setSelectedPlayers}
             challengeData={challengeData}
-            onBack={() => {
-              console.log('Moving from step 2 to step 1');
-              setStep(1);
-            }}
-            onNext={() => {
-              console.log('Moving from step 2 to step 3 (team assignment)');
-              setStep(3);
-            }}
-            onSubmit={handleSubmit}
-          />
-        );
-
-      case 3:
-        console.log('Rendering TeamAssignmentStep');
-        return (
-          <TeamAssignmentStep
-            user={user}
-            selectedPlayers={selectedPlayers}
-            onPlayersChange={setSelectedPlayers}
-            challengeData={challengeData}
-            onBack={() => {
-              console.log('Moving from step 3 to step 2');
-              setStep(2);
-            }}
+            onBack={() => setStep(1)}
+            onNext={() => setStep(3)}
             onSubmit={handleSubmit}
           />
         );
@@ -266,7 +212,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
       </div>
 
       <div className="mb-4 text-sm text-gray-500">
-        Step {step} of 3 | Team Format: {challengeData.teamFormat} | Players: {selectedPlayers.length}
+        Step {step} of 2 | Team Format: {challengeData.teamFormat} | Players: {selectedPlayers.length}
       </div>
 
       {renderStep()}

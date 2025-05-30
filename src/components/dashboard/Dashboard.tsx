@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { Trophy, TrendingUp, Users, Sword } from 'lucide-react';
+import { Trophy, TrendingUp, Users, Sword, Play } from 'lucide-react';
+import { ActiveMatch } from '../match/ActiveMatch';
 
 interface DashboardProps {
   user: any;
@@ -14,6 +14,7 @@ interface DashboardProps {
 export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMatches();
@@ -60,13 +61,25 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
     }
   };
 
+  // If viewing an active match, show the ActiveMatch component
+  if (activeMatchId) {
+    return (
+      <ActiveMatch 
+        matchId={activeMatchId} 
+        onBack={() => setActiveMatchId(null)} 
+      />
+    );
+  }
+
   const pendingMatches = matches.filter(match => match.status === 'pending');
+  const activeMatches = matches.filter(match => match.status === 'in_progress');
   const completedMatches = matches.filter(match => match.status === 'completed');
   const wonMatches = completedMatches.filter(match => match.winner_id === user.id);
 
   const getMatchStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
       case 'completed': return 'bg-green-100 text-green-800';
       case 'open': return 'bg-blue-100 text-blue-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -120,6 +133,47 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Active Matches */}
+      {activeMatches.length > 0 && (
+        <Card className="border-blue-200">
+          <CardHeader className="bg-blue-50">
+            <CardTitle className="text-blue-800 flex items-center gap-2">
+              <Play className="w-5 h-5" />
+              Active Matches
+            </CardTitle>
+            <CardDescription className="text-blue-600">
+              Matches currently in progress
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 space-y-3">
+            {activeMatches.map((match) => (
+              <div key={match.id} className="p-3 bg-white border border-blue-100 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium text-gray-800">{match.courses?.name || 'Course TBD'}</p>
+                    <p className="text-sm text-gray-500">{match.format}</p>
+                    <p className="text-sm text-gray-500">
+                      {new Date(match.match_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right space-y-2">
+                    <p className="text-blue-600 font-bold">{match.wager_amount} credits</p>
+                    <Button 
+                      size="sm" 
+                      onClick={() => setActiveMatchId(match.id)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Play className="w-3 h-3 mr-1" />
+                      Enter
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pending Matches */}
       {pendingMatches.length > 0 && (

@@ -42,6 +42,7 @@ export const PlayerSelectionStep = ({
   onSubmit 
 }: PlayerSelectionStepProps) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [openSpots, setOpenSpots] = useState(0);
   const { clubMembers, loading } = useClubMembers(user);
   
   const filteredMembers = clubMembers.filter(member =>
@@ -58,7 +59,14 @@ export const PlayerSelectionStep = ({
     }
   };
 
-  const totalPlayers = selectedPlayers.length + 1;
+  const handleAddOpenSpot = () => {
+    const totalSpots = selectedPlayers.length + 1 + openSpots;
+    if (totalSpots < 8) {
+      setOpenSpots(openSpots + 1);
+    }
+  };
+
+  const totalPlayers = selectedPlayers.length + 1 + openSpots;
   const maxPlayers = challengeData.postToFeed ? 8 : 8;
   
   // Determine next action
@@ -103,6 +111,8 @@ export const PlayerSelectionStep = ({
           challengeData={challengeData}
           clubMembers={clubMembers}
           onPlayerRemove={handlePlayerToggle}
+          onAddOpenSpot={handleAddOpenSpot}
+          openSpots={openSpots}
         />
 
         <PlayerSearchInput

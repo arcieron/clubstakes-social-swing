@@ -87,26 +87,41 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
 
       console.log('Match created successfully:', match);
 
-      // Add creator to match_players
+      // Add creator to match_players with appropriate team assignment
+      const creatorTeamNumber = challengeData.teamFormat === 'teams' ? 1 : null;
       const { error: creatorError } = await supabase
         .from('match_players')
         .insert({
           match_id: match.id,
           player_id: user.id,
-          team_number: challengeData.teamFormat === 'teams' ? 1 : null
+          team_number: creatorTeamNumber
         });
 
       if (creatorError) {
         console.error('Error adding creator to match:', creatorError);
       }
 
-      // Add selected players to match_players
+      // Add selected players to match_players with proper team assignments
       if (selectedPlayers.length > 0) {
-        const playerInserts = selectedPlayers.map(player => ({
-          match_id: match.id,
-          player_id: player.id,
-          team_number: player.team || null
-        }));
+        const playerInserts = selectedPlayers.map((player, index) => {
+          let teamNumber = null;
+          
+          if (challengeData.teamFormat === 'teams') {
+            // If teams are assigned, use the assigned team
+            if (player.team) {
+              teamNumber = player.team;
+            } else if (challengeData.postToFeed) {
+              // For feed posts without specific team assignments, auto-assign alternating teams
+              teamNumber = (index % 2) + 1;
+            }
+          }
+          
+          return {
+            match_id: match.id,
+            player_id: player.id,
+            team_number: teamNumber
+          };
+        });
 
         const { error: playersError } = await supabase
           .from('match_players')
@@ -114,6 +129,12 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
 
         if (playersError) {
           console.error('Error adding players to match:', playersError);
+          toast({
+            title: "Error adding players",
+            description: playersError.message,
+            variant: "destructive"
+          });
+          return;
         }
       }
 

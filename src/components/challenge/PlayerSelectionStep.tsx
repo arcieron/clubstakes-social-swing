@@ -100,10 +100,11 @@ export const PlayerSelectionStep = ({
           Select Players
         </CardTitle>
         <CardDescription>
-          {challengeData.postToFeed ? <div className="flex items-center gap-2">
+          {challengeData.postToFeed ? (
+            <div className="flex items-center gap-2">
               <Globe className="w-4 h-4" />
-              Posting to club feed - invite specific players or let others join
-            </div> : `Choose players to challenge directly (${totalPlayers}/${maxPlayers} players)`}
+            </div>
+          ) : `Choose players to challenge directly (${totalPlayers}/${maxPlayers} players)`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-6">

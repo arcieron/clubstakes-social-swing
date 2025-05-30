@@ -1,9 +1,9 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { mockUsers, mockCourses, mockMatches } from '@/lib/mockData';
+import { mockUsers, mockCourses } from '@/lib/mockData';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { PlayerSelectionStep } from './PlayerSelectionStep';
 import { GameDetailsStep } from './GameDetailsStep';
 import { TeamAssignmentStep } from './TeamAssignmentStep';
@@ -39,7 +39,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
     postToFeed: false
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Allow submission if either posting to feed OR players are selected
     if (!challengeData.postToFeed && selectedPlayers.length === 0) {
       toast({
@@ -50,54 +50,97 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
       return;
     }
 
-    const course = mockCourses.find(c => c.id === challengeData.courseId);
-    
-    // Create match object with proper typing
-    const newMatch = {
-      id: Date.now().toString(),
-      player1Id: user.id,
-      player2Id: challengeData.postToFeed ? '' : selectedPlayers[0]?.id || '',
-      players: challengeData.postToFeed ? [
-        { id: user.id, team: challengeData.teamFormat === 'teams' ? 1 : undefined }
-      ] : [
-        { id: user.id, team: challengeData.teamFormat === 'teams' ? 1 : undefined },
-        ...selectedPlayers
-      ],
-      format: challengeData.format,
-      course: course?.name || '',
-      courseId: challengeData.courseId,
-      wagerAmount: challengeData.wagerAmount,
-      status: challengeData.postToFeed ? 'open' as const : 'pending' as const,
-      createdAt: new Date().toISOString(),
-      completedAt: '',
-      matchDate: challengeData.matchDate,
-      teamFormat: challengeData.teamFormat,
-      winnerId: '',
-      maxPlayers: challengeData.postToFeed ? (selectedPlayers.length > 0 ? selectedPlayers.length + 1 : 8) : undefined,
-      isPublic: challengeData.postToFeed
-    };
+    try {
+      console.log('Creating match with data:', challengeData);
+      console.log('Selected players:', selectedPlayers);
+      console.log('User club_id:', user.club_id);
 
-    // Type assertion to handle the union type properly
-    (mockMatches as any[]).push(newMatch);
-    
-    if (challengeData.postToFeed) {
-      toast({
-        title: "Challenge Posted!",
-        description: "Your challenge has been posted to the club feed for others to join."
-      });
-    } else {
-      const playerNames = selectedPlayers.map(p => {
-        const player = mockUsers.find(u => u.id === p.id);
-        return player?.fullName;
-      }).join(', ');
+      // Create the match in Supabase
+      const { data: match, error: matchError } = await supabase
+        .from('matches')
+        .insert({
+          creator_id: user.id,
+          club_id: user.club_id,
+          format: challengeData.format,
+          course_id: challengeData.courseId,
+          wager_amount: challengeData.wagerAmount,
+          match_date: challengeData.matchDate,
+          team_format: challengeData.teamFormat,
+          status: challengeData.postToFeed ? 'open' : 'pending',
+          is_public: challengeData.postToFeed,
+          max_players: challengeData.postToFeed ? (selectedPlayers.length > 0 ? selectedPlayers.length + 1 : 8) : undefined
+        })
+        .select()
+        .single();
+
+      if (matchError) {
+        console.error('Error creating match:', matchError);
+        toast({
+          title: "Error creating challenge",
+          description: matchError.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Match created successfully:', match);
+
+      // Add creator to match_players
+      const { error: creatorError } = await supabase
+        .from('match_players')
+        .insert({
+          match_id: match.id,
+          player_id: user.id,
+          team_number: challengeData.teamFormat === 'teams' ? 1 : null
+        });
+
+      if (creatorError) {
+        console.error('Error adding creator to match:', creatorError);
+      }
+
+      // Add selected players to match_players
+      if (selectedPlayers.length > 0) {
+        const playerInserts = selectedPlayers.map(player => ({
+          match_id: match.id,
+          player_id: player.id,
+          team_number: player.team || null
+        }));
+
+        const { error: playersError } = await supabase
+          .from('match_players')
+          .insert(playerInserts);
+
+        if (playersError) {
+          console.error('Error adding players to match:', playersError);
+        }
+      }
+
+      if (challengeData.postToFeed) {
+        toast({
+          title: "Challenge Posted!",
+          description: "Your challenge has been posted to the club feed for others to join."
+        });
+      } else {
+        const playerNames = selectedPlayers.map(p => {
+          const player = mockUsers.find(u => u.id === p.id);
+          return player?.fullName;
+        }).join(', ');
+        
+        toast({
+          title: "Challenge Sent!",
+          description: `${playerNames} ${selectedPlayers.length === 1 ? 'has' : 'have'} been challenged to a match.`
+        });
+      }
       
+      onClose();
+    } catch (error) {
+      console.error('Unexpected error creating challenge:', error);
       toast({
-        title: "Challenge Sent!",
-        description: `${playerNames} ${selectedPlayers.length === 1 ? 'has' : 'have'} been challenged to a match.`
+        title: "Error",
+        description: "An unexpected error occurred while creating the challenge.",
+        variant: "destructive"
       });
     }
-    
-    onClose();
   };
 
   const renderStep = () => {

@@ -1,26 +1,37 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { mockMatches, mockUsers, mockCourses } from '@/lib/mockData';
 import { Heart, MessageCircle, Trophy, Users, Calendar, MapPin } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useMatches } from '@/hooks/useMatches';
 
 interface SocialFeedProps {
   user: any;
 }
 
 export const SocialFeed = ({ user }: SocialFeedProps) => {
-  const completedMatches = mockMatches.filter(m => 
-    (m.status === 'completed' || m.status === 'tied') && 
-    (mockUsers.find(u => u.id === m.player1Id)?.clubId === user.clubId || 
-     mockUsers.find(u => u.id === m.player2Id)?.clubId === user.clubId)
-  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const { matches, loading, joinMatch } = useMatches(user);
 
-  const openChallenges = mockMatches.filter(m => 
+  if (loading) {
+    return (
+      <div className="p-4">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-gray-500">Loading club feed...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const completedMatches = matches.filter(m => 
+    m.status === 'completed' || m.status === 'tied'
+  );
+
+  const openChallenges = matches.filter(m => 
     m.status === 'open' && 
-    mockUsers.find(u => u.id === m.player1Id)?.clubId === user.clubId &&
-    m.player1Id !== user.id
-  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    m.creator_id !== user.id &&
+    m.is_public
+  );
   
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -31,27 +42,31 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
     return `${Math.floor(diffInHours / 24)}d ago`;
   };
 
-  const handleJoinChallenge = (matchId: string) => {
-    const matchIndex = mockMatches.findIndex(m => m.id === matchId);
-    if (matchIndex !== -1) {
-      const match = mockMatches[matchIndex];
-      if (match.status === 'open' && match.players && match.maxPlayers) {
-        // Add user to the match
-        const updatedMatch = {
-          ...match,
-          players: [...match.players, { id: user.id }],
-          status: 'pending' as const,
-          player2Id: user.id // For compatibility
-        };
-        
-        // Replace the match in the array
-        (mockMatches as any[])[matchIndex] = updatedMatch;
-        
-        toast({
-          title: "Joined Challenge!",
-          description: `You've joined the ${match.format} challenge.`
-        });
-      }
+  const handleJoinChallenge = async (matchId: string) => {
+    const success = await joinMatch(matchId);
+    if (success) {
+      toast({
+        title: "Joined Challenge!",
+        description: "You've successfully joined the challenge."
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to join the challenge. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const formatGameType = (format: string) => {
+    switch (format) {
+      case 'match-play': return 'Match Play';
+      case 'stroke-play': return 'Stroke Play';
+      case 'nassau': return 'Nassau';
+      case 'scramble': return 'Scramble';
+      case 'better-ball': return 'Better Ball';
+      case 'skins': return 'Skins';
+      default: return format;
     }
   };
   
@@ -65,7 +80,7 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
               Club Feed
             </CardTitle>
             <CardDescription className="text-primary-foreground/80 mt-1">
-              Latest results from {user.clubName}
+              Latest results from {user.clubs?.name || 'your club'}
             </CardDescription>
           </div>
         </div>
@@ -80,13 +95,9 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
           </h3>
           <div className="space-y-3">
             {openChallenges.map(challenge => {
-              // Type guard to ensure we're working with an open challenge
-              if (challenge.status !== 'open') return null;
-              
-              const creator = mockUsers.find(u => u.id === challenge.player1Id);
-              const course = mockCourses.find(c => c.id === challenge.courseId || c.name === challenge.course);
-              const currentPlayers = challenge.players?.length || 1;
-              const maxPlayers = challenge.maxPlayers || 8;
+              const currentPlayers = challenge.match_players?.length || 1;
+              const maxPlayers = challenge.max_players || 8;
+              const isUserInMatch = challenge.match_players?.some(p => p.player_id === user.id);
               
               return (
                 <Card key={challenge.id} className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
@@ -94,17 +105,12 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h4 className="font-semibold text-gray-800">
-                          {challenge.format === 'match-play' ? 'Match Play' : 
-                           challenge.format === 'stroke-play' ? 'Stroke Play' :
-                           challenge.format === 'nassau' ? 'Nassau' :
-                           challenge.format === 'scramble' ? 'Scramble' :
-                           challenge.format === 'better-ball' ? 'Better Ball' :
-                           challenge.format === 'skins' ? 'Skins' : challenge.format}
+                          {formatGameType(challenge.format)}
                         </h4>
-                        <p className="text-sm text-gray-600">Created by {creator?.fullName}</p>
+                        <p className="text-sm text-gray-600">Created by {challenge.profiles?.full_name}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-accent">{challenge.wagerAmount.toLocaleString()}</p>
+                        <p className="font-bold text-accent">{challenge.wager_amount.toLocaleString()}</p>
                         <p className="text-xs text-gray-500">credits</p>
                       </div>
                     </div>
@@ -112,11 +118,11 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
                     <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                       <div className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
-                        {course?.name || challenge.course}
+                        {challenge.courses?.name || 'TBD'}
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        {new Date(challenge.matchDate).toLocaleDateString()}
+                        {new Date(challenge.match_date).toLocaleDateString()}
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="w-4 h-4" />
@@ -127,9 +133,10 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
                     <Button 
                       onClick={() => handleJoinChallenge(challenge.id)}
                       className="w-full bg-primary hover:bg-primary/90 text-white"
-                      disabled={currentPlayers >= maxPlayers}
+                      disabled={currentPlayers >= maxPlayers || isUserInMatch}
                     >
-                      {currentPlayers >= maxPlayers ? 'Challenge Full' : 'Join Challenge'}
+                      {isUserInMatch ? 'Already Joined' : 
+                       currentPlayers >= maxPlayers ? 'Challenge Full' : 'Join Challenge'}
                     </Button>
                   </CardContent>
                 </Card>
@@ -147,10 +154,6 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
         </h3>
         <div className="space-y-3">
           {completedMatches.length > 0 ? completedMatches.map(match => {
-            const player1 = mockUsers.find(u => u.id === match.player1Id);
-            const player2 = mockUsers.find(u => u.id === match.player2Id);
-            const winner = mockUsers.find(u => u.id === match.winnerId);
-            const loser = mockUsers.find(u => u.id === (match.winnerId === match.player1Id ? match.player2Id : match.player1Id));
             const isTie = match.status === 'tied';
             
             return (
@@ -163,26 +166,15 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
                     
                     <div className="flex-1">
                       <div className="text-gray-800">
-                        {isTie ? (
-                          <p>
-                            <span className="font-bold">{player1?.fullName}</span> and{' '}
-                            <span className="font-bold">{player2?.fullName}</span> tied in{' '}
-                            {match.format === 'match-play' ? 'Match Play' : 'Stroke Play'} at{' '}
-                            <span className="text-primary">{match.course}</span>
-                          </p>
-                        ) : (
-                          <p>
-                            <span className="font-bold text-primary">{winner?.fullName}</span> beat{' '}
-                            <span className="font-bold">{loser?.fullName}</span> in{' '}
-                            {match.format === 'match-play' ? 'Match Play' : 'Stroke Play'} at{' '}
-                            <span className="text-primary">{match.course}</span>
-                            {!isTie && <span className="text-accent">, won {match.wagerAmount.toLocaleString()} credits</span>}
-                          </p>
-                        )}
+                        <p>
+                          {formatGameType(match.format)} match at{' '}
+                          <span className="text-primary">{match.courses?.name || 'TBD'}</span>
+                          {!isTie && <span className="text-accent"> - {match.wager_amount.toLocaleString()} credits</span>}
+                        </p>
                       </div>
                       
                       <p className="text-gray-500 text-sm mt-1">
-                        {formatTimeAgo(match.createdAt)}
+                        {formatTimeAgo(match.created_at)}
                       </p>
                       
                       <div className="flex items-center gap-4 mt-3">

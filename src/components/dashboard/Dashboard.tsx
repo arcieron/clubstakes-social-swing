@@ -29,34 +29,42 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   useEffect(() => {
     const fetchActiveMatches = async () => {
       if (authUser) {
-        const { data: matches, error } = await supabase
-          .from('matches')
-          .select('*')
-          .contains('players', [{ id: authUser.id }])
-          .eq('status', 'pending');
+        const { data: matchPlayers, error } = await supabase
+          .from('match_players')
+          .select(`
+            match_id,
+            matches!inner(*)
+          `)
+          .eq('player_id', authUser.id)
+          .eq('matches.status', 'pending');
 
         if (error) {
           toast({ title: "Error", description: error.message, variant: "destructive" });
         } else {
-          setActiveMatches(matches || []);
+          const matches = matchPlayers?.map(mp => mp.matches) || [];
+          setActiveMatches(matches);
         }
       }
     };
 
     const fetchMatchHistory = async () => {
       if (authUser) {
-        const { data: history, error } = await supabase
-          .from('matches')
-          .select('*')
-          .contains('players', [{ id: authUser.id }])
-          .eq('status', 'completed')
-          .order('completed_at', { ascending: false })
+        const { data: matchPlayers, error } = await supabase
+          .from('match_players')
+          .select(`
+            match_id,
+            matches!inner(*)
+          `)
+          .eq('player_id', authUser.id)
+          .eq('matches.status', 'completed')
+          .order('matches(completed_at)', { ascending: false })
           .limit(5);
 
         if (error) {
           toast({ title: "Error", description: error.message, variant: "destructive" });
         } else {
-          setMatchHistory(history || []);
+          const matches = matchPlayers?.map(mp => mp.matches) || [];
+          setMatchHistory(matches);
         }
       }
     };

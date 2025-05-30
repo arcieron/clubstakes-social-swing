@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { mockUsers, mockCourses, mockMatches } from '@/lib/mockData';
@@ -39,6 +40,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
   });
 
   const handleSubmit = () => {
+    // Allow submission if either posting to feed OR players are selected
     if (!challengeData.postToFeed && selectedPlayers.length === 0) {
       toast({
         title: "No players selected",
@@ -71,7 +73,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
       matchDate: challengeData.matchDate,
       teamFormat: challengeData.teamFormat,
       winnerId: '',
-      maxPlayers: challengeData.postToFeed ? selectedPlayers.length + 1 : undefined,
+      maxPlayers: challengeData.postToFeed ? (selectedPlayers.length > 0 ? selectedPlayers.length + 1 : 8) : undefined,
       isPublic: challengeData.postToFeed
     };
 
@@ -107,7 +109,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
             selectedPlayers={selectedPlayers}
             onPlayersChange={setSelectedPlayers}
             onNext={() => setStep(2)}
-            allowEmpty={challengeData.postToFeed}
+            allowEmpty={true} // Always allow empty selection since posting to feed is an option
           />
         );
 

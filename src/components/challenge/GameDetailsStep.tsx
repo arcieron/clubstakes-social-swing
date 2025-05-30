@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -39,12 +40,20 @@ export const GameDetailsStep = ({
     onChallengeDataChange({ ...challengeData, ...updates });
   };
 
+  // Determine if we should show the next button or submit button
+  const shouldShowNext = challengeData.teamFormat === 'teams' && !challengeData.postToFeed && selectedPlayersCount > 0;
+  // Can submit if we have required fields and either posting to feed OR have players selected
+  const canSubmit = challengeData.format && challengeData.courseId && challengeData.matchDate && 
+    (challengeData.postToFeed || selectedPlayersCount > 0);
+
   return (
     <Card className="border-primary/20 shadow-md">
       <CardHeader className="bg-primary/10">
         <CardTitle className="text-primary">Game Details</CardTitle>
         <CardDescription>
-          {totalPlayers} players selected
+          {challengeData.postToFeed 
+            ? "Posting to club feed" 
+            : `${totalPlayers} players selected`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
@@ -67,7 +76,7 @@ export const GameDetailsStep = ({
           </Select>
         </div>
 
-        {totalPlayers >= 4 && (
+        {(totalPlayers >= 4 || challengeData.postToFeed) && (
           <div>
             <Label>Format</Label>
             <RadioGroup 
@@ -140,6 +149,15 @@ export const GameDetailsStep = ({
           </Label>
         </div>
 
+        {challengeData.postToFeed && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              When you post to the club feed, other members can join your challenge. 
+              You can still select specific players above if you want to invite them directly.
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-3">
           <Button 
             variant="outline" 
@@ -149,11 +167,11 @@ export const GameDetailsStep = ({
             Back
           </Button>
           <Button 
-            onClick={() => challengeData.teamFormat === 'teams' && !challengeData.postToFeed ? onNext() : onSubmit()}
-            disabled={!challengeData.format || !challengeData.courseId || !challengeData.matchDate}
+            onClick={() => shouldShowNext ? onNext() : onSubmit()}
+            disabled={!canSubmit}
             className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
           >
-            {challengeData.teamFormat === 'teams' && !challengeData.postToFeed ? 'Next: Teams' : 'Send Challenge'}
+            {shouldShowNext ? 'Next: Teams' : (challengeData.postToFeed ? 'Post Challenge' : 'Send Challenge')}
           </Button>
         </div>
       </CardContent>

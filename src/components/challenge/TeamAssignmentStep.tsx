@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { Users, User, Trophy, Target } from 'lucide-react';
+import { Trophy, Target } from 'lucide-react';
+import { usePlayerProfiles } from '@/hooks/usePlayerProfiles';
+import { TeamCard } from './TeamCard';
+import { UnassignedPlayersSection } from './UnassignedPlayersSection';
 
 interface Player {
   id: string;
@@ -17,12 +19,6 @@ interface ChallengeData {
   matchDate: string;
   teamFormat: string;
   postToFeed: boolean;
-}
-
-interface ProfileData {
-  id: string;
-  full_name: string;
-  handicap: number;
 }
 
 interface TeamAssignmentStepProps {
@@ -43,32 +39,7 @@ export const TeamAssignmentStep = ({
   onSubmit 
 }: TeamAssignmentStepProps) => {
   const [userTeam, setUserTeam] = useState(1);
-  const [playerProfiles, setPlayerProfiles] = useState<ProfileData[]>([]);
-
-  useEffect(() => {
-    fetchPlayerProfiles();
-  }, [selectedPlayers]);
-
-  const fetchPlayerProfiles = async () => {
-    if (selectedPlayers.length === 0) return;
-
-    const playerIds = selectedPlayers.map(p => p.id);
-    
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, handicap')
-        .in('id', playerIds);
-
-      if (error) {
-        console.error('Error fetching player profiles:', error);
-      } else {
-        setPlayerProfiles(data || []);
-      }
-    } catch (error) {
-      console.error('Error in fetchPlayerProfiles:', error);
-    }
-  };
+  const { playerProfiles } = usePlayerProfiles(selectedPlayers);
 
   const totalPlayers = selectedPlayers.length + 1;
   const maxTeams = Math.min(Math.floor(totalPlayers / 2), 4);
@@ -141,127 +112,29 @@ export const TeamAssignmentStep = ({
         {/* Teams */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2].slice(0, maxTeams).map(teamNumber => (
-            <div key={teamNumber} className="border-2 border-dashed border-gray-200 rounded-lg p-4 min-h-32">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Badge className={teamNumber === 1 ? 'bg-blue-500' : 'bg-red-500'}>
-                    Team {teamNumber}
-                  </Badge>
-                  <span className="text-sm text-gray-500">
-                    ({getTeamPlayers(teamNumber).length} players)
-                  </span>
-                </div>
-                <div className="text-xs text-gray-500">
-                  Avg HC: {getTeamHandicap(teamNumber)}
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                {/* Current user */}
-                {teamNumber === userTeam && (
-                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-primary" />
-                        <div>
-                          <p className="font-medium text-primary">{user.full_name || user.email} (You)</p>
-                          <p className="text-xs text-gray-500">Handicap: {user.handicap || 0}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        {[1, 2].slice(0, maxTeams).map(team => (
-                          <Button
-                            key={team}
-                            variant={userTeam === team ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setUserTeam(team)}
-                            className="w-8 h-8 p-0 text-xs"
-                          >
-                            {team}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Team players */}
-                {selectedPlayers
-                  .filter(p => p.team === teamNumber)
-                  .map(player => {
-                    const playerData = playerProfiles.find(u => u.id === player.id);
-                    return (
-                      <div key={player.id} className="p-3 bg-gray-50 rounded-lg border">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-gray-400" />
-                            <div>
-                              <p className="font-medium text-gray-800">{playerData?.full_name || 'Loading...'}</p>
-                              <p className="text-xs text-gray-500">Handicap: {playerData?.handicap || 0}</p>
-                            </div>
-                          </div>
-                          <div className="flex gap-1">
-                            {[1, 2].slice(0, maxTeams).map(team => (
-                              <Button
-                                key={team}
-                                variant={player.team === team ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => assignPlayerToTeam(player.id, team)}
-                                className="w-8 h-8 p-0 text-xs"
-                              >
-                                {team}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
+            <TeamCard
+              key={teamNumber}
+              teamNumber={teamNumber}
+              maxTeams={maxTeams}
+              user={user}
+              userTeam={userTeam}
+              selectedPlayers={selectedPlayers}
+              playerProfiles={playerProfiles}
+              onAssignToTeam={assignPlayerToTeam}
+              onUserTeamChange={setUserTeam}
+              getTeamHandicap={getTeamHandicap}
+              getTeamPlayers={getTeamPlayers}
+            />
           ))}
         </div>
 
         {/* Unassigned players */}
-        {unassignedPlayers.length > 0 && (
-          <div className="border border-gray-200 rounded-lg p-4">
-            <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Unassigned Players ({unassignedPlayers.length})
-            </h4>
-            <div className="space-y-2">
-              {unassignedPlayers.map(player => {
-                const playerData = playerProfiles.find(u => u.id === player.id);
-                return (
-                  <div key={player.id} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-yellow-600" />
-                        <div>
-                          <p className="font-medium text-gray-800">{playerData?.full_name || 'Loading...'}</p>
-                          <p className="text-xs text-gray-500">Handicap: {playerData?.handicap || 0}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        {[1, 2].slice(0, maxTeams).map(team => (
-                          <Button
-                            key={team}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => assignPlayerToTeam(player.id, team)}
-                            className="w-8 h-8 p-0 text-xs"
-                          >
-                            {team}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <UnassignedPlayersSection
+          unassignedPlayers={unassignedPlayers}
+          playerProfiles={playerProfiles}
+          maxTeams={maxTeams}
+          onAssignToTeam={assignPlayerToTeam}
+        />
 
         <div className="flex gap-3">
           <Button 

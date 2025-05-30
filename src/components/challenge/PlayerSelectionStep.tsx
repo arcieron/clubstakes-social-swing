@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { Search, Users, UserPlus, Globe } from 'lucide-react';
+import { Users, Globe } from 'lucide-react';
+import { useClubMembers } from '@/hooks/useClubMembers';
+import { PlayerSearchInput } from './PlayerSearchInput';
+import { SelectedPlayersDisplay } from './SelectedPlayersDisplay';
+import { PlayerCard } from './PlayerCard';
 
 interface Player {
   id: string;
@@ -18,15 +20,6 @@ interface ChallengeData {
   matchDate: string;
   teamFormat: string;
   postToFeed: boolean;
-}
-
-interface ProfileData {
-  id: string;
-  full_name: string;
-  id_number: number;
-  handicap: number;
-  credits: number;
-  club_id: string;
 }
 
 interface PlayerSelectionStepProps {
@@ -49,44 +42,7 @@ export const PlayerSelectionStep = ({
   onSubmit 
 }: PlayerSelectionStepProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [clubMembers, setClubMembers] = useState<ProfileData[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchClubMembers();
-  }, [user]);
-
-  const fetchClubMembers = async () => {
-    // Try multiple ways to get club_id from user object
-    const userClubId = user?.club_id || user?.profile?.club_id;
-    
-    if (!userClubId) {
-      console.log('No club_id found for user:', user);
-      setLoading(false);
-      return;
-    }
-
-    console.log('Fetching club members for club_id:', userClubId);
-
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, id_number, handicap, credits, club_id')
-        .eq('club_id', userClubId)
-        .neq('id', user.id);
-
-      if (error) {
-        console.error('Error fetching club members:', error);
-      } else {
-        console.log('Fetched club members:', data);
-        setClubMembers(data || []);
-      }
-    } catch (error) {
-      console.error('Error in fetchClubMembers:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { clubMembers, loading } = useClubMembers(user);
   
   const filteredMembers = clubMembers.filter(member =>
     member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -141,51 +97,18 @@ export const PlayerSelectionStep = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-6">
-        {/* Current Selection Summary */}
-        <div className="bg-primary/5 p-4 rounded-lg">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium text-primary">Match Participants</p>
-            <Badge variant="secondary">{totalPlayers} players</Badge>
-          </div>
-          
-          <div className="flex flex-wrap gap-2">
-            <Badge className="bg-primary text-white">
-              {user.full_name || user.email} (You)
-              {challengeData.teamFormat === 'teams' && ' - Team 1'}
-            </Badge>
-            {selectedPlayers.map((player, index) => {
-              const playerData = clubMembers.find(u => u.id === player.id);
-              return (
-                <Badge key={player.id} variant="outline" className="flex items-center gap-1">
-                  {playerData?.full_name || 'Unknown Player'}
-                  {challengeData.teamFormat === 'teams' && ` - Team ${Math.floor(index / 2) + (index % 2 === 0 ? 1 : 2)}`}
-                  <button
-                    onClick={() => handlePlayerToggle(player.id)}
-                    className="text-gray-500 hover:text-red-500 ml-1"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              );
-            })}
-            {challengeData.postToFeed && (
-              <Badge variant="outline" className="border-dashed border-blue-300 text-blue-600">
-                + Open spots for club members
-              </Badge>
-            )}
-          </div>
-        </div>
+        <SelectedPlayersDisplay
+          user={user}
+          selectedPlayers={selectedPlayers}
+          challengeData={challengeData}
+          clubMembers={clubMembers}
+          onPlayerRemove={handlePlayerToggle}
+        />
 
-        {/* Search and Player List */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input
-            placeholder="Search members by name or ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-white border-gray-200"
-          />
-        </div>
+        <PlayerSearchInput
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
         
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {filteredMembers.map((member) => {
@@ -193,39 +116,13 @@ export const PlayerSelectionStep = ({
             const canSelect = selectedPlayers.length < 7;
             
             return (
-              <button
+              <PlayerCard
                 key={member.id}
-                onClick={() => handlePlayerToggle(member.id)}
-                disabled={!canSelect && !isSelected}
-                className={`w-full p-3 border rounded-lg text-left transition-all duration-200 ${
-                  isSelected 
-                    ? 'bg-primary/10 border-primary shadow-sm' 
-                    : canSelect 
-                      ? 'bg-white hover:bg-primary/5 border-gray-100 hover:border-primary/30' 
-                      : 'bg-gray-50 border-gray-100 opacity-50 cursor-not-allowed'
-                }`}
-              >
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      isSelected ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {isSelected ? '✓' : <UserPlus className="w-4 h-4" />}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-gray-800 font-medium">{member.full_name}</p>
-                        <Badge variant="secondary" className="text-xs">#{member.id_number}</Badge>
-                      </div>
-                      <p className="text-gray-500 text-sm">Handicap: {member.handicap}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-primary font-bold">{member.credits.toLocaleString()}</p>
-                    <p className="text-gray-400 text-xs">credits</p>
-                  </div>
-                </div>
-              </button>
+                member={member}
+                isSelected={isSelected}
+                canSelect={canSelect}
+                onToggle={handlePlayerToggle}
+              />
             );
           })}
           

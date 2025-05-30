@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, Trophy, Users, Calendar, MapPin } from 'lucide-react';
@@ -29,7 +28,6 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
 
   const openChallenges = matches.filter(m => 
     m.status === 'open' && 
-    m.creator_id !== user.id &&
     m.is_public
   );
   

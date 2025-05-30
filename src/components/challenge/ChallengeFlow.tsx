@@ -55,21 +55,23 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
       console.log('Selected players:', selectedPlayers);
       console.log('User club_id:', user.club_id);
 
-      // Create the match in Supabase
+      // Create the match in Supabase - use the exact field names from the database schema
+      const matchInsert = {
+        creator_id: user.id,
+        club_id: user.club_id,
+        format: challengeData.format as any, // Cast to match the enum type
+        course_id: challengeData.courseId,
+        wager_amount: challengeData.wagerAmount,
+        match_date: challengeData.matchDate,
+        team_format: challengeData.teamFormat as any, // Cast to match the enum type
+        status: challengeData.postToFeed ? 'open' : 'pending' as any, // Cast to match the enum type
+        is_public: challengeData.postToFeed,
+        max_players: challengeData.postToFeed ? (selectedPlayers.length > 0 ? selectedPlayers.length + 1 : 8) : undefined
+      };
+
       const { data: match, error: matchError } = await supabase
         .from('matches')
-        .insert({
-          creator_id: user.id,
-          club_id: user.club_id,
-          format: challengeData.format,
-          course_id: challengeData.courseId,
-          wager_amount: challengeData.wagerAmount,
-          match_date: challengeData.matchDate,
-          team_format: challengeData.teamFormat,
-          status: challengeData.postToFeed ? 'open' : 'pending',
-          is_public: challengeData.postToFeed,
-          max_players: challengeData.postToFeed ? (selectedPlayers.length > 0 ? selectedPlayers.length + 1 : 8) : undefined
-        })
+        .insert(matchInsert)
         .select()
         .single();
 

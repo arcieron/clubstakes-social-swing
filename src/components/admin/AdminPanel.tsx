@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Users, RotateCcw, Plus, Copy, Calendar, DollarSign, Settings } from 'lucide-react';
+import { Users, RotateCcw, Plus, Copy, Calendar, Trophy, Settings } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -16,11 +16,12 @@ export const AdminPanel = ({ user }: AdminPanelProps) => {
   const [newInviteCode, setNewInviteCode] = useState('');
   const [clubMembers, setClubMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalCredits, setTotalCredits] = useState(0);
+  const [totalMatches, setTotalMatches] = useState(0);
   const [daysLeft] = useState(180); // This could be calculated from season end date
 
   useEffect(() => {
     fetchClubMembers();
+    fetchTotalMatches();
   }, [user.club_id]);
 
   const fetchClubMembers = async () => {
@@ -33,12 +34,25 @@ export const AdminPanel = ({ user }: AdminPanelProps) => {
       if (error) throw error;
       
       setClubMembers(data || []);
-      const credits = (data || []).reduce((sum, member) => sum + (member.credits || 0), 0);
-      setTotalCredits(credits);
     } catch (error) {
       console.error('Error fetching club members:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTotalMatches = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('club_id', user.club_id);
+
+      if (error) throw error;
+      
+      setTotalMatches(data?.length || 0);
+    } catch (error) {
+      console.error('Error fetching total matches:', error);
     }
   };
 
@@ -118,10 +132,10 @@ export const AdminPanel = ({ user }: AdminPanelProps) => {
         <Card className="border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4 text-center">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <DollarSign className="w-5 h-5 text-green-600" />
+              <Trophy className="w-5 h-5 text-green-600" />
             </div>
-            <p className="text-2xl font-bold text-gray-800 mb-1">{totalCredits.toLocaleString()}</p>
-            <p className="text-gray-500 text-sm font-medium">Total Credits</p>
+            <p className="text-2xl font-bold text-gray-800 mb-1">{totalMatches}</p>
+            <p className="text-gray-500 text-sm font-medium">Matches Played</p>
           </CardContent>
         </Card>
 

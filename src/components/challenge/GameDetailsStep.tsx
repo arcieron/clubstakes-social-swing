@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -111,13 +110,9 @@ export const GameDetailsStep = ({
               step={50}
               className="w-full"
             />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">100 credits</span>
-              <div className="text-center">
-                <span className="text-2xl font-bold text-primary">{challengeData.wagerAmount}</span>
-                <span className="text-accent font-semibold ml-1">credits</span>
-              </div>
-              <span className="text-sm text-gray-500">1,500 credits</span>
+            <div className="text-center">
+              <span className="text-2xl font-bold text-primary">{challengeData.wagerAmount}</span>
+              <span className="text-accent font-semibold ml-1">credits</span>
             </div>
           </div>
         </div>

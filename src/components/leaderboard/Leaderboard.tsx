@@ -37,7 +37,7 @@ export const Leaderboard = ({ user }: LeaderboardProps) => {
     if (position === 0) return { icon: Trophy, color: 'text-accent', label: 'Top Dog' };
     if (position === 1) return { icon: Medal, color: 'text-gray-400', label: 'Runner Up' };
     if (position === 2) return { icon: Award, color: 'text-amber-700', label: 'Bronze' };
-    if (member.credits > 15000) return { icon: Award, color: 'text-primary', label: 'High Roller' };
+    if ((member.credits || 0) > 15000) return { icon: Award, color: 'text-primary', label: 'High Roller' };
     return null;
   };
 
@@ -102,13 +102,13 @@ export const Leaderboard = ({ user }: LeaderboardProps) => {
                           </div>
                         )}
                       </div>
-                      <p className="text-gray-500 text-sm">Handicap: {member.handicap}</p>
+                      <p className="text-gray-500 text-sm">Handicap: {member.handicap || 0}</p>
                     </div>
                   </div>
                   
                   <div className="text-right">
                     <p className="text-xl font-bold text-gray-800">
-                      {member.credits.toLocaleString()}
+                      {(member.credits || 0).toLocaleString()}
                     </p>
                     <p className="text-gray-500 text-sm">credits</p>
                   </div>

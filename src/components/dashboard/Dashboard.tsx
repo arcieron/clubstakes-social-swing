@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
@@ -70,21 +69,33 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
     };
 
     const fetchLeaderboard = async () => {
-      // Mock leaderboard data (replace with actual data fetching)
-      const mockLeaderboard = [
-        { id: 'user1', name: 'John Smith', wins: 12, credits: 12500 },
-        { id: 'user2', name: 'Mike Johnson', wins: 8, credits: 9800 },
-        { id: 'user3', name: 'Sarah Davis', wins: 15, credits: 15200 },
-        { id: 'user4', name: 'Tom Wilson', wins: 5, credits: 8500 },
-        { id: 'user5', name: 'Robert Garcia', wins: 18, credits: 18900 }
-      ];
-      setLeaderboard(mockLeaderboard);
+      if (user?.club_id) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, credits, handicap')
+          .eq('club_id', user.club_id)
+          .order('credits', { ascending: false })
+          .limit(10);
+
+        if (error) {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+        } else {
+          const transformedData = data?.map(profile => ({
+            id: profile.id,
+            name: profile.full_name,
+            credits: profile.credits || 0,
+            wins: 0, // TODO: Calculate actual wins from matches
+            handicap: profile.handicap || 0
+          })) || [];
+          setLeaderboard(transformedData);
+        }
+      }
     };
 
     fetchActiveMatches();
     fetchMatchHistory();
     fetchLeaderboard();
-  }, [authUser]);
+  }, [authUser, user?.club_id]);
 
   if (loading) {
     return (

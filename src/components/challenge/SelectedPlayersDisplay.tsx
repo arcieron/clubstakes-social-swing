@@ -1,5 +1,7 @@
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 
 interface Player {
   id: string;
@@ -26,6 +28,8 @@ interface SelectedPlayersDisplayProps {
   challengeData: ChallengeData;
   clubMembers: ProfileData[];
   onPlayerRemove: (playerId: string) => void;
+  onAddOpenSpot?: () => void;
+  openSpots?: number;
 }
 
 export const SelectedPlayersDisplay = ({ 
@@ -33,9 +37,11 @@ export const SelectedPlayersDisplay = ({
   selectedPlayers, 
   challengeData, 
   clubMembers, 
-  onPlayerRemove 
+  onPlayerRemove,
+  onAddOpenSpot,
+  openSpots = 0
 }: SelectedPlayersDisplayProps) => {
-  const totalPlayers = selectedPlayers.length + 1;
+  const totalPlayers = selectedPlayers.length + 1 + openSpots;
 
   return (
     <div className="bg-primary/5 p-4 rounded-lg">
@@ -44,7 +50,7 @@ export const SelectedPlayersDisplay = ({
         <Badge variant="secondary">{totalPlayers} players</Badge>
       </div>
       
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mb-4">
         <Badge className="bg-primary text-white">
           {user.full_name || user.email} (You)
           {challengeData.teamFormat === 'teams' && ' - Team 1'}
@@ -64,12 +70,23 @@ export const SelectedPlayersDisplay = ({
             </Badge>
           );
         })}
-        {challengeData.postToFeed && (
-          <Badge variant="outline" className="border-dashed border-blue-300 text-blue-600">
-            + Open spots for club members
+        {Array.from({ length: openSpots }, (_, index) => (
+          <Badge key={`open-spot-${index}`} variant="outline" className="border-dashed border-blue-300 text-blue-600">
+            Open Spot
           </Badge>
-        )}
+        ))}
       </div>
+      
+      {challengeData.postToFeed && onAddOpenSpot && (
+        <Button 
+          variant="outline" 
+          onClick={onAddOpenSpot}
+          className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2"
+        >
+          <Plus size={16} />
+          Add Open Spot for Club Members
+        </Button>
+      )}
     </div>
   );
 };

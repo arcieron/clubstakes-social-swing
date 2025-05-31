@@ -19,6 +19,11 @@ interface PlayerCardProps {
 }
 
 export const PlayerCard = ({ member, isSelected, canSelect, onToggle }: PlayerCardProps) => {
+  // Generate simple display ID based on id_number
+  const getDisplayId = (idNumber: number) => {
+    return `rivi${idNumber}`;
+  };
+
   return (
     <button
       onClick={() => onToggle(member.id)}
@@ -41,7 +46,7 @@ export const PlayerCard = ({ member, isSelected, canSelect, onToggle }: PlayerCa
           <div>
             <div className="flex items-center gap-2">
               <p className="text-gray-800 font-medium">{member.full_name}</p>
-              <Badge variant="secondary" className="text-xs">#{member.id_number}</Badge>
+              <Badge variant="secondary" className="text-xs">{getDisplayId(member.id_number)}</Badge>
             </div>
             <p className="text-gray-500 text-sm">Handicap: {member.handicap}</p>
           </div>

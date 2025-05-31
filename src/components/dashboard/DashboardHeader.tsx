@@ -9,6 +9,11 @@ interface DashboardHeaderProps {
 }
 
 export const DashboardHeader = ({ profile, onChallenge }: DashboardHeaderProps) => {
+  // Generate simple display ID based on id_number
+  const getDisplayId = (idNumber: number) => {
+    return `rivi${idNumber}`;
+  };
+
   return (
     <Card className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
       <div className="space-y-4 text-center">
@@ -17,7 +22,7 @@ export const DashboardHeader = ({ profile, onChallenge }: DashboardHeaderProps) 
             {profile?.full_name}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            ID: {profile?.id?.slice(0, 8)}...
+            ID: {profile?.id_number ? getDisplayId(profile.id_number) : 'N/A'}
           </p>
         </div>
         

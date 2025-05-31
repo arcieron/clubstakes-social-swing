@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,7 +35,7 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
             matches!inner(*)
           `)
           .eq('player_id', authUser.id)
-          .eq('matches.status', 'pending');
+          .eq('matches.status', 'in_progress');
 
         if (error) {
           toast({ title: "Error", description: error.message, variant: "destructive" });

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,7 @@ interface AddPlayersToMatchProps {
 }
 
 export const AddPlayersToMatch = ({ matchId, onPlayersAdded }: AddPlayersToMatchProps) => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const [availablePlayers, setAvailablePlayers] = useState<any[]>([]);
   const [currentPlayers, setCurrentPlayers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,7 +30,7 @@ export const AddPlayersToMatch = ({ matchId, onPlayersAdded }: AddPlayersToMatch
       const { data: players } = await supabase
         .from('profiles')
         .select('id, full_name, handicap')
-        .eq('club_id', user?.club_id)
+        .eq('club_id', profile?.club_id)
         .order('full_name');
 
       setAvailablePlayers(players || []);

@@ -68,6 +68,87 @@ export type Database = {
           },
         ]
       }
+      hole_scores: {
+        Row: {
+          created_at: string
+          hole_number: number
+          id: string
+          match_id: string
+          player_id: string
+          score: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hole_number: number
+          id?: string
+          match_id: string
+          player_id: string
+          score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hole_number?: number
+          id?: string
+          match_id?: string
+          player_id?: string
+          score?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hole_scores_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hole_scores_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_confirmations: {
+        Row: {
+          confirmed_at: string
+          id: string
+          match_id: string
+          player_id: string
+        }
+        Insert: {
+          confirmed_at?: string
+          id?: string
+          match_id: string
+          player_id: string
+        }
+        Update: {
+          confirmed_at?: string
+          id?: string
+          match_id?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_confirmations_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_confirmations_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_players: {
         Row: {
           id: string

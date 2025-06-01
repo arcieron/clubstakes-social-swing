@@ -35,8 +35,9 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
 
   useEffect(() => {
     initializeScorecard();
+    fetchExistingScores();
     fetchConfirmations();
-  }, []);
+  }, [matchId, players]);
 
   const initializeScorecard = () => {
     const holes = Array.from({ length: 18 }, (_, i) => ({
@@ -50,17 +51,75 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
     setHoleScores(holes);
   };
 
-  const fetchConfirmations = async () => {
-    // Fetch existing confirmations from database
-    // This would be implemented with a new confirmations table
+  const fetchExistingScores = async () => {
+    try {
+      const { data: scores } = await supabase
+        .from('hole_scores')
+        .select('player_id, hole_number, score')
+        .eq('match_id', matchId);
+
+      if (scores) {
+        setHoleScores(prev => prev.map(hole => ({
+          ...hole,
+          scores: {
+            ...hole.scores,
+            ...scores
+              .filter(s => s.hole_number === hole.hole)
+              .reduce((acc, s) => {
+                acc[s.player_id] = s.score || 0;
+                return acc;
+              }, {} as Record<string, number>)
+          }
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching scores:', error);
+    }
   };
 
-  const updateScore = (hole: number, playerId: string, score: number) => {
-    setHoleScores(prev => prev.map(h => 
-      h.hole === hole 
-        ? { ...h, scores: { ...h.scores, [playerId]: score } }
-        : h
-    ));
+  const fetchConfirmations = async () => {
+    try {
+      const { data: confs } = await supabase
+        .from('match_confirmations')
+        .select('player_id')
+        .eq('match_id', matchId);
+
+      if (confs) {
+        const confirmationMap = confs.reduce((acc, conf) => {
+          acc[conf.player_id] = true;
+          return acc;
+        }, {} as Record<string, boolean>);
+        setConfirmations(confirmationMap);
+      }
+    } catch (error) {
+      console.error('Error fetching confirmations:', error);
+    }
+  };
+
+  const updateScore = async (hole: number, playerId: string, score: number) => {
+    try {
+      const { error } = await supabase
+        .from('hole_scores')
+        .upsert({
+          match_id: matchId,
+          player_id: playerId,
+          hole_number: hole,
+          score: score
+        }, {
+          onConflict: 'match_id,player_id,hole_number'
+        });
+
+      if (error) throw error;
+
+      setHoleScores(prev => prev.map(h => 
+        h.hole === hole 
+          ? { ...h, scores: { ...h.scores, [playerId]: score } }
+          : h
+      ));
+    } catch (error) {
+      console.error('Error updating score:', error);
+      toast({ title: "Error", description: "Failed to save score", variant: "destructive" });
+    }
   };
 
   const handleScoreInput = (hole: number, playerId: string, value: string) => {
@@ -70,20 +129,22 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
     }));
   };
 
-  const saveHoleScores = (hole: number) => {
-    Object.entries(tempScores).forEach(([key, value]) => {
-      if (key.startsWith(`${hole}-`)) {
+  const saveHoleScores = async (hole: number) => {
+    const promises = Object.entries(tempScores)
+      .filter(([key]) => key.startsWith(`${hole}-`))
+      .map(([key, value]) => {
         const playerId = key.split('-')[1];
         const score = parseInt(value) || 0;
-        updateScore(hole, playerId, score);
-      }
-    });
+        return updateScore(hole, playerId, score);
+      });
+
+    await Promise.all(promises);
     setEditingHole(null);
     setTempScores({});
   };
 
   const calculateTotal = (playerId: string) => {
-    return holeScores.reduce((total, hole) => total + hole.scores[playerId], 0);
+    return holeScores.reduce((total, hole) => total + (hole.scores[playerId] || 0), 0);
   };
 
   const calculateToPar = (playerId: string) => {
@@ -96,10 +157,21 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
   const confirmScores = async () => {
     setLoading(true);
     try {
-      // Save scores to database and mark as confirmed
+      const { error } = await supabase
+        .from('match_confirmations')
+        .upsert({
+          match_id: matchId,
+          player_id: user?.id
+        }, {
+          onConflict: 'match_id,player_id'
+        });
+
+      if (error) throw error;
+
       toast({ title: "Success", description: "Scores confirmed!" });
-      onSubmitScores();
+      fetchConfirmations();
     } catch (error) {
+      console.error('Error confirming scores:', error);
       toast({ title: "Error", description: "Failed to confirm scores", variant: "destructive" });
     } finally {
       setLoading(false);
@@ -107,6 +179,8 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
   };
 
   const isTeamFormat = match.team_format === 'teams';
+  const userConfirmed = confirmations[user?.id || ''];
+  const allConfirmed = players.every(p => confirmations[p.profiles.id]);
 
   return (
     <div className="space-y-4 pb-6">
@@ -133,9 +207,14 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
       <div className="grid grid-cols-1 gap-2">
         {players.map((player) => (
           <div key={player.id} className="flex justify-between items-center p-3 bg-white rounded-lg border">
-            <div>
-              <p className="font-medium text-sm">{player.profiles.full_name}</p>
-              <p className="text-xs text-gray-500">HCP: {player.profiles.handicap}</p>
+            <div className="flex items-center gap-2">
+              <div>
+                <p className="font-medium text-sm">{player.profiles.full_name}</p>
+                <p className="text-xs text-gray-500">HCP: {player.profiles.handicap}</p>
+              </div>
+              {confirmations[player.profiles.id] && (
+                <Check className="w-4 h-4 text-green-600" />
+              )}
             </div>
             <div className="text-right">
               <div className="font-bold text-lg">{calculateTotal(player.profiles.id) || '-'}</div>
@@ -145,151 +224,156 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
         ))}
       </div>
 
-      {/* Scorecard */}
-      <div className="space-y-2">
-        {/* Front 9 */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-700">Front 9</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b">
-                    <th className="p-2 text-left">Hole</th>
-                    {Array.from({ length: 9 }, (_, i) => (
-                      <th key={i + 1} className="p-1 text-center min-w-[40px]">{i + 1}</th>
-                    ))}
-                    <th className="p-2 text-center font-bold">OUT</th>
-                  </tr>
-                  <tr className="border-b bg-gray-50">
-                    <td className="p-2 text-left font-medium">Par</td>
+      {/* Front 9 */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-gray-700">Front 9</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b">
+                  <th className="p-2 text-left">Hole</th>
+                  {Array.from({ length: 9 }, (_, i) => (
+                    <th key={i + 1} className="p-1 text-center min-w-[40px]">{i + 1}</th>
+                  ))}
+                  <th className="p-2 text-center font-bold">OUT</th>
+                </tr>
+                <tr className="border-b bg-gray-50">
+                  <td className="p-2 text-left font-medium">Par</td>
+                  {holeScores.slice(0, 9).map((hole) => (
+                    <td key={hole.hole} className="p-1 text-center">{hole.par}</td>
+                  ))}
+                  <td className="p-2 text-center font-bold">
+                    {holeScores.slice(0, 9).reduce((sum, h) => sum + h.par, 0)}
+                  </td>
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((player) => (
+                  <tr key={player.id} className="border-b">
+                    <td className="p-2 text-left">
+                      <div className="font-medium">{player.profiles.full_name.split(' ')[0]}</div>
+                    </td>
                     {holeScores.slice(0, 9).map((hole) => (
-                      <td key={hole.hole} className="p-1 text-center">{hole.par}</td>
+                      <td key={hole.hole} className="p-1 text-center">
+                        {editingHole === hole.hole ? (
+                          <Input
+                            type="number"
+                            className="w-8 h-8 text-xs text-center p-0 border-primary"
+                            value={tempScores[`${hole.hole}-${player.profiles.id}`] || ''}
+                            onChange={(e) => handleScoreInput(hole.hole, player.profiles.id, e.target.value)}
+                            min="1"
+                            max="15"
+                          />
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setEditingHole(hole.hole);
+                              players.forEach(p => {
+                                setTempScores(prev => ({
+                                  ...prev,
+                                  [`${hole.hole}-${p.profiles.id}`]: hole.scores[p.profiles.id]?.toString() || ''
+                                }));
+                              });
+                            }}
+                            className="w-8 h-8 text-center hover:bg-gray-100 rounded flex items-center justify-center"
+                          >
+                            {hole.scores[player.profiles.id] || '-'}
+                          </button>
+                        )}
+                      </td>
                     ))}
                     <td className="p-2 text-center font-bold">
-                      {holeScores.slice(0, 9).reduce((sum, h) => sum + h.par, 0)}
+                      {holeScores.slice(0, 9).reduce((sum, h) => sum + (h.scores[player.profiles.id] || 0), 0) || '-'}
                     </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {players.map((player) => (
-                    <tr key={player.id} className="border-b">
-                      <td className="p-2 text-left">
-                        <div className="font-medium">{player.profiles.full_name.split(' ')[0]}</div>
-                      </td>
-                      {holeScores.slice(0, 9).map((hole) => (
-                        <td key={hole.hole} className="p-1 text-center">
-                          {editingHole === hole.hole ? (
-                            <Input
-                              type="number"
-                              className="w-8 h-8 text-xs text-center p-0 border-primary"
-                              value={tempScores[`${hole.hole}-${player.profiles.id}`] || ''}
-                              onChange={(e) => handleScoreInput(hole.hole, player.profiles.id, e.target.value)}
-                              min="1"
-                              max="15"
-                              autoFocus={tempScores[`${hole.hole}-${player.profiles.id}`] === undefined}
-                            />
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setEditingHole(hole.hole);
-                                setTempScores({ [`${hole.hole}-${player.profiles.id}`]: hole.scores[player.profiles.id]?.toString() || '' });
-                              }}
-                              className="w-8 h-8 text-center hover:bg-gray-100 rounded flex items-center justify-center"
-                            >
-                              {hole.scores[player.profiles.id] || '-'}
-                            </button>
-                          )}
-                        </td>
-                      ))}
-                      <td className="p-2 text-center font-bold">
-                        {holeScores.slice(0, 9).reduce((sum, h) => sum + h.scores[player.profiles.id], 0) || '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Back 9 */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-700">Back 9</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b">
-                    <th className="p-2 text-left">Hole</th>
-                    {Array.from({ length: 9 }, (_, i) => (
-                      <th key={i + 10} className="p-1 text-center min-w-[40px]">{i + 10}</th>
-                    ))}
-                    <th className="p-2 text-center font-bold">IN</th>
-                    <th className="p-2 text-center font-bold">TOT</th>
-                  </tr>
-                  <tr className="border-b bg-gray-50">
-                    <td className="p-2 text-left font-medium">Par</td>
-                    {holeScores.slice(9, 18).map((hole) => (
-                      <td key={hole.hole} className="p-1 text-center">{hole.par}</td>
-                    ))}
-                    <td className="p-2 text-center font-bold">
-                      {holeScores.slice(9, 18).reduce((sum, h) => sum + h.par, 0)}
-                    </td>
-                    <td className="p-2 text-center font-bold">
-                      {holeScores.reduce((sum, h) => sum + h.par, 0)}
-                    </td>
-                  </tr>
-                </thead>
-                <tbody>
-                  {players.map((player) => (
-                    <tr key={player.id} className="border-b">
-                      <td className="p-2 text-left">
-                        <div className="font-medium">{player.profiles.full_name.split(' ')[0]}</div>
-                      </td>
-                      {holeScores.slice(9, 18).map((hole) => (
-                        <td key={hole.hole} className="p-1 text-center">
-                          {editingHole === hole.hole ? (
-                            <Input
-                              type="number"
-                              className="w-8 h-8 text-xs text-center p-0 border-primary"
-                              value={tempScores[`${hole.hole}-${player.profiles.id}`] || ''}
-                              onChange={(e) => handleScoreInput(hole.hole, player.profiles.id, e.target.value)}
-                              min="1"
-                              max="15"
-                              autoFocus={tempScores[`${hole.hole}-${player.profiles.id}`] === undefined}
-                            />
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setEditingHole(hole.hole);
-                                setTempScores({ [`${hole.hole}-${player.profiles.id}`]: hole.scores[player.profiles.id]?.toString() || '' });
-                              }}
-                              className="w-8 h-8 text-center hover:bg-gray-100 rounded flex items-center justify-center"
-                            >
-                              {hole.scores[player.profiles.id] || '-'}
-                            </button>
-                          )}
-                        </td>
-                      ))}
-                      <td className="p-2 text-center font-bold">
-                        {holeScores.slice(9, 18).reduce((sum, h) => sum + h.scores[player.profiles.id], 0) || '-'}
-                      </td>
-                      <td className="p-2 text-center font-bold text-primary">
-                        {calculateTotal(player.profiles.id) || '-'}
-                      </td>
-                    </tr>
+      {/* Back 9 */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm text-gray-700">Back 9</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b">
+                  <th className="p-2 text-left">Hole</th>
+                  {Array.from({ length: 9 }, (_, i) => (
+                    <th key={i + 10} className="p-1 text-center min-w-[40px]">{i + 10}</th>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  <th className="p-2 text-center font-bold">IN</th>
+                  <th className="p-2 text-center font-bold">TOT</th>
+                </tr>
+                <tr className="border-b bg-gray-50">
+                  <td className="p-2 text-left font-medium">Par</td>
+                  {holeScores.slice(9, 18).map((hole) => (
+                    <td key={hole.hole} className="p-1 text-center">{hole.par}</td>
+                  ))}
+                  <td className="p-2 text-center font-bold">
+                    {holeScores.slice(9, 18).reduce((sum, h) => sum + h.par, 0)}
+                  </td>
+                  <td className="p-2 text-center font-bold">
+                    {holeScores.reduce((sum, h) => sum + h.par, 0)}
+                  </td>
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((player) => (
+                  <tr key={player.id} className="border-b">
+                    <td className="p-2 text-left">
+                      <div className="font-medium">{player.profiles.full_name.split(' ')[0]}</div>
+                    </td>
+                    {holeScores.slice(9, 18).map((hole) => (
+                      <td key={hole.hole} className="p-1 text-center">
+                        {editingHole === hole.hole ? (
+                          <Input
+                            type="number"
+                            className="w-8 h-8 text-xs text-center p-0 border-primary"
+                            value={tempScores[`${hole.hole}-${player.profiles.id}`] || ''}
+                            onChange={(e) => handleScoreInput(hole.hole, player.profiles.id, e.target.value)}
+                            min="1"
+                            max="15"
+                          />
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setEditingHole(hole.hole);
+                              players.forEach(p => {
+                                setTempScores(prev => ({
+                                  ...prev,
+                                  [`${hole.hole}-${p.profiles.id}`]: hole.scores[p.profiles.id]?.toString() || ''
+                                }));
+                              });
+                            }}
+                            className="w-8 h-8 text-center hover:bg-gray-100 rounded flex items-center justify-center"
+                          >
+                            {hole.scores[player.profiles.id] || '-'}
+                          </button>
+                        )}
+                      </td>
+                    ))}
+                    <td className="p-2 text-center font-bold">
+                      {holeScores.slice(9, 18).reduce((sum, h) => sum + (h.scores[player.profiles.id] || 0), 0) || '-'}
+                    </td>
+                    <td className="p-2 text-center font-bold text-primary">
+                      {calculateTotal(player.profiles.id) || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Action Buttons */}
       <div className="space-y-3 pt-4">
@@ -316,12 +400,22 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
 
         <Button 
           onClick={confirmScores}
-          disabled={loading || editingHole !== null}
+          disabled={loading || editingHole !== null || userConfirmed}
           className="w-full bg-primary hover:bg-primary/90"
           size="lg"
         >
-          {loading ? 'Confirming...' : 'Confirm Scorecard'}
+          {userConfirmed ? 'Scores Confirmed ✓' : loading ? 'Confirming...' : 'Confirm My Scorecard'}
         </Button>
+
+        {allConfirmed && (
+          <Button 
+            onClick={onSubmitScores}
+            className="w-full bg-green-600 hover:bg-green-700"
+            size="lg"
+          >
+            Complete Match
+          </Button>
+        )}
       </div>
     </div>
   );

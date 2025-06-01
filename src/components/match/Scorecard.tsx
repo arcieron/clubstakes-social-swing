@@ -168,11 +168,11 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
 
       if (error) throw error;
 
-      toast({ title: "Success", description: "Scores confirmed!" });
+      toast({ title: "Success", description: "Scorecard confirmed!" });
       fetchConfirmations();
     } catch (error) {
       console.error('Error confirming scores:', error);
-      toast({ title: "Error", description: "Failed to confirm scores", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to confirm scorecard", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -180,7 +180,9 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
 
   const isTeamFormat = match.team_format === 'teams';
   const userConfirmed = confirmations[user?.id || ''];
-  const allConfirmed = players.every(p => confirmations[p.profiles.id]);
+  const confirmedCount = Object.keys(confirmations).length;
+  const totalNeeded = players.length;
+  const allConfirmed = confirmedCount === totalNeeded;
 
   return (
     <div className="space-y-4 pb-6">
@@ -189,7 +191,7 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
         <CardHeader className="pb-3">
           <CardTitle className="text-primary flex items-center gap-2">
             {isTeamFormat ? <Users className="w-5 h-5" /> : <User className="w-5 h-5" />}
-            Scorecard
+            Shared Scorecard
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -404,8 +406,13 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
           className="w-full bg-primary hover:bg-primary/90"
           size="lg"
         >
-          {userConfirmed ? 'Scores Confirmed ✓' : loading ? 'Confirming...' : 'Confirm My Scorecard'}
+          {userConfirmed ? 'Scorecard Confirmed ✓' : loading ? 'Confirming...' : 'Confirm Scorecard'}
         </Button>
+
+        {/* Progress indicator */}
+        <div className="text-center text-sm text-gray-600">
+          {confirmedCount} of {totalNeeded} players have confirmed their scorecard
+        </div>
 
         {allConfirmed && (
           <Button 

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Check, Edit, Users, User } from 'lucide-react';
+import { Check, Users, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface ScorecardProps {
@@ -26,7 +26,6 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
   const { user } = useAuth();
   const [holeScores, setHoleScores] = useState<HoleScore[]>([]);
   const [editingHole, setEditingHole] = useState<number | null>(null);
-  const [tempScores, setTempScores] = useState<Record<string, string>>({});
   const [confirmations, setConfirmations] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
 
@@ -122,25 +121,11 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
     }
   };
 
-  const handleScoreInput = (hole: number, playerId: string, value: string) => {
-    setTempScores(prev => ({
-      ...prev,
-      [`${hole}-${playerId}`]: value
-    }));
-  };
-
-  const saveHoleScores = async (hole: number) => {
-    const promises = Object.entries(tempScores)
-      .filter(([key]) => key.startsWith(`${hole}-`))
-      .map(([key, value]) => {
-        const playerId = key.split('-')[1];
-        const score = parseInt(value) || 0;
-        return updateScore(hole, playerId, score);
-      });
-
-    await Promise.all(promises);
-    setEditingHole(null);
-    setTempScores({});
+  const handleScoreChange = async (hole: number, playerId: string, value: string) => {
+    const score = parseInt(value) || 0;
+    if (score > 0) {
+      await updateScore(hole, playerId, score);
+    }
   };
 
   const calculateTotal = (playerId: string) => {
@@ -264,22 +249,21 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
                           <Input
                             type="number"
                             className="w-8 h-8 text-xs text-center p-0 border-primary"
-                            value={tempScores[`${hole.hole}-${player.profiles.id}`] || ''}
-                            onChange={(e) => handleScoreInput(hole.hole, player.profiles.id, e.target.value)}
+                            value={hole.scores[player.profiles.id] || ''}
+                            onChange={(e) => handleScoreChange(hole.hole, player.profiles.id, e.target.value)}
+                            onBlur={() => setEditingHole(null)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                setEditingHole(null);
+                              }
+                            }}
                             min="1"
                             max="15"
+                            autoFocus
                           />
                         ) : (
                           <button
-                            onClick={() => {
-                              setEditingHole(hole.hole);
-                              players.forEach(p => {
-                                setTempScores(prev => ({
-                                  ...prev,
-                                  [`${hole.hole}-${p.profiles.id}`]: hole.scores[p.profiles.id]?.toString() || ''
-                                }));
-                              });
-                            }}
+                            onClick={() => setEditingHole(hole.hole)}
                             className="w-8 h-8 text-center hover:bg-gray-100 rounded flex items-center justify-center"
                           >
                             {hole.scores[player.profiles.id] || '-'}
@@ -340,22 +324,21 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
                           <Input
                             type="number"
                             className="w-8 h-8 text-xs text-center p-0 border-primary"
-                            value={tempScores[`${hole.hole}-${player.profiles.id}`] || ''}
-                            onChange={(e) => handleScoreInput(hole.hole, player.profiles.id, e.target.value)}
+                            value={hole.scores[player.profiles.id] || ''}
+                            onChange={(e) => handleScoreChange(hole.hole, player.profiles.id, e.target.value)}
+                            onBlur={() => setEditingHole(null)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                setEditingHole(null);
+                              }
+                            }}
                             min="1"
                             max="15"
+                            autoFocus
                           />
                         ) : (
                           <button
-                            onClick={() => {
-                              setEditingHole(hole.hole);
-                              players.forEach(p => {
-                                setTempScores(prev => ({
-                                  ...prev,
-                                  [`${hole.hole}-${p.profiles.id}`]: hole.scores[p.profiles.id]?.toString() || ''
-                                }));
-                              });
-                            }}
+                            onClick={() => setEditingHole(hole.hole)}
                             className="w-8 h-8 text-center hover:bg-gray-100 rounded flex items-center justify-center"
                           >
                             {hole.scores[player.profiles.id] || '-'}
@@ -379,30 +362,9 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
 
       {/* Action Buttons */}
       <div className="space-y-3 pt-4">
-        {editingHole && (
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => saveHoleScores(editingHole)}
-              className="flex-1 bg-green-600 hover:bg-green-700"
-            >
-              <Check className="w-4 h-4 mr-2" />
-              Save Hole {editingHole}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setEditingHole(null);
-                setTempScores({});
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
-
         <Button 
           onClick={confirmScores}
-          disabled={loading || editingHole !== null || userConfirmed}
+          disabled={loading || userConfirmed}
           className="w-full bg-primary hover:bg-primary/90"
           size="lg"
         >

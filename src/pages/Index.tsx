@@ -8,7 +8,6 @@ import { AdminPanel } from '@/components/admin/AdminPanel';
 import { MockAccountCreator } from '@/components/dev/MockAccountCreator';
 import { Navigation } from '@/components/layout/Navigation';
 import { useState } from 'react';
-
 const Index = () => {
   const {
     user,
@@ -18,7 +17,6 @@ const Index = () => {
   } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
   const [showChallenge, setShowChallenge] = useState(false);
-
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -29,11 +27,9 @@ const Index = () => {
         </div>
       </div>;
   }
-
   if (!user || !profile) {
     return <AuthPage />;
   }
-
   const renderView = () => {
     if (showChallenge) {
       return <ChallengeFlow user={profile} onClose={() => setShowChallenge(false)} />;
@@ -54,18 +50,17 @@ const Index = () => {
         return <Dashboard user={profile} onChallenge={() => setShowChallenge(true)} />;
     }
   };
-
   return <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto bg-white min-h-screen relative">
         {/* Header */}
         <div className="bg-primary border-b border-primary/80 p-3 shadow-sm">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <img src="/lovable-uploads/44ebd465-7492-4344-97fc-8f8a5d43c419.png" alt="ClubStakes Logo" className="w-12 h-12 object-contain" />
+              <img src="/lovable-uploads/44ebd465-7492-4344-97fc-8f8a5d43c419.png" alt="ClubStakes Logo" className="w-20 h-20 object-contain" />
               <h1 className="text-lg font-bold text-white">
             </h1>
             </div>
-            <button onClick={signOut} className="text-white hover:text-green-200 text-xs font-medium px-2 py-1">
+            <button onClick={signOut} className="text-white hover:text-green-200 font-medium px-2 py-1 text-base">
               Logout
             </button>
           </div>
@@ -81,5 +76,4 @@ const Index = () => {
       </div>
     </div>;
 };
-
 export default Index;

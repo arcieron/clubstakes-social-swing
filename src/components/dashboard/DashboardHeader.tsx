@@ -15,35 +15,26 @@ export const DashboardHeader = ({ profile, onChallenge }: DashboardHeaderProps) 
   };
 
   return (
-    <Card className="bg-green-600 rounded-xl shadow-sm border border-green-700 p-6">
+    <Card className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
       <div className="space-y-4 text-center">
-        {/* Logo */}
-        <div className="flex justify-center mb-4">
-          <img 
-            src="/lovable-uploads/d6ad57cb-cf85-45e9-bb86-6efa922d473a.png" 
-            alt="ClubStakes Logo" 
-            className="w-16 h-16 object-contain"
-          />
-        </div>
-        
         <div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-gray-800">
             {profile?.full_name}
           </h1>
-          <p className="text-sm text-green-100 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             ID: {profile?.id_number ? getDisplayId(profile.id_number) : 'N/A'}
           </p>
         </div>
         
         <div className="flex items-center justify-center gap-2">
-          <Trophy className="w-5 h-5 text-yellow-300" />
-          <span className="text-xl font-bold text-yellow-300">
+          <Trophy className="w-5 h-5 text-primary" />
+          <span className="text-xl font-bold text-primary">
             {profile?.credits?.toLocaleString() || 0}
           </span>
-          <span className="text-sm text-green-100">credits</span>
+          <span className="text-sm text-gray-500">credits</span>
         </div>
         
-        <Button onClick={onChallenge} className="bg-white text-green-600 hover:bg-green-50">
+        <Button onClick={onChallenge} className="bg-primary hover:bg-primary/90">
           <Plus className="w-4 h-4 mr-2" />
           New Match
         </Button>

@@ -60,22 +60,26 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto bg-white min-h-screen relative">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 p-4 shadow-sm">
+        <div className="bg-green-600 border-b border-green-700 p-4 shadow-sm">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white text-lg">🏌️</span>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-white">
+                <img 
+                  src="/lovable-uploads/44ebd465-7492-4344-97fc-8f8a5d43c419.png" 
+                  alt="ClubStakes Logo" 
+                  className="w-8 h-8 object-contain"
+                />
               </div>
-              <h1 className="text-xl font-bold text-gray-800">ClubStakes</h1>
+              <h1 className="text-xl font-bold text-white">ClubStakes</h1>
             </div>
             <button
               onClick={signOut}
-              className="text-gray-500 hover:text-primary text-sm font-medium"
+              className="text-white hover:text-green-200 text-sm font-medium"
             >
               Logout
             </button>
           </div>
-          <p className="text-gray-500 text-sm mt-1 font-medium">{profile.clubs?.name}</p>
+          <p className="text-green-100 text-sm mt-1 font-medium">{profile.clubs?.name}</p>
         </div>
 
         {/* Main Content */}

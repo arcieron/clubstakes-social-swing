@@ -24,6 +24,9 @@ export const DashboardHeader = ({ profile, onChallenge }: DashboardHeaderProps) 
           <p className="text-sm text-gray-500 mt-1">
             ID: {profile?.id_number ? getDisplayId(profile.id_number) : 'N/A'}
           </p>
+          <p className="text-sm text-primary font-medium mt-1">
+            {profile?.clubs?.name}
+          </p>
         </div>
         
         <div className="flex items-center justify-center gap-2">

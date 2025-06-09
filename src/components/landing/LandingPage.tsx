@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Trophy, Users, Shield, Target, CheckCircle, ArrowRight, Zap, MessageCircle, Award, RefreshCw } from 'lucide-react';
@@ -66,33 +67,34 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
       </header>
 
       {/* Hero Section */}
-      <section className="max-w-6xl mx-auto px-6 py-20 text-center">
-        <div className="animate-fade-in">
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <img 
-              src="/lovable-uploads/44ebd465-7492-4344-97fc-8f8a5d43c419.png" 
-              alt="Pins Logo" 
-              className="w-12 h-12 object-contain"
-            />
-            <span className="text-xl font-semibold text-primary">Pins</span>
+      <section className="bg-primary py-20">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <div className="animate-fade-in">
+            <div className="flex justify-center mb-8">
+              <img 
+                src="/lovable-uploads/44ebd465-7492-4344-97fc-8f8a5d43c419.png" 
+                alt="Pins Logo" 
+                className="w-24 h-24 object-contain"
+              />
+            </div>
+            <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
+              The Private Club Golf App<br />
+              That Turns Every Round Into<br />
+              <span className="text-accent">Bragging Rights</span>
+            </h1>
+            <p className="text-xl text-white/90 mb-12 max-w-3xl mx-auto">
+              A GHIN-integrated, private club betting app that lets members challenge each other for fun, 
+              not money — just exclusive in-club Pins Credits.
+            </p>
+            <Button 
+              onClick={onGetStarted}
+              size="lg"
+              className="bg-white text-primary hover:bg-white/90 text-lg px-8 py-4 animate-scale-in"
+            >
+              Join the Competition
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
           </div>
-          <h1 className="text-5xl font-bold text-gray-900 mb-6 leading-tight">
-            The Private Club Golf App<br />
-            That Turns Every Round Into<br />
-            <span className="text-primary">Bragging Rights</span>
-          </h1>
-          <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
-            A GHIN-integrated, private club betting app that lets members challenge each other for fun, 
-            not money — just exclusive in-club Pins Credits.
-          </p>
-          <Button 
-            onClick={onGetStarted}
-            size="lg"
-            className="bg-primary hover:bg-primary/90 text-lg px-8 py-4 animate-scale-in"
-          >
-            Join the Competition
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
         </div>
       </section>
 

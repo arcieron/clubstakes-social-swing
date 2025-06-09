@@ -1,4 +1,5 @@
 
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Trophy, Users, Shield, Target, CheckCircle, ArrowRight, Zap, MessageCircle, Award, RefreshCw } from 'lucide-react';
@@ -92,7 +93,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
       {/* How It Works */}
       <section className="bg-gradient-to-br from-slate-50 to-blue-50 py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,#fff,rgba(255,255,255,0.6))]" />
-        <div className="max-w-7xl mx-auto px-6 relative">
+        <div className="max-w-4xl mx-auto px-6 relative">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">How It Works</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -100,14 +101,14 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="space-y-6">
             {howItWorks.map((step, index) => (
               <div
                 key={index}
                 className="group relative animate-fade-in"
                 style={{ animationDelay: `${index * 0.15}s` }}
               >
-                <Card className="p-8 h-full bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:scale-105 cursor-pointer overflow-hidden">
+                <Card className="p-8 bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 hover:scale-[1.02] cursor-pointer overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <div className="relative z-10">
                     <div className="flex items-start gap-6">
@@ -224,3 +225,4 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
     </div>
   );
 };
+

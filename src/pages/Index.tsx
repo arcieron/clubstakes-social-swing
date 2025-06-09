@@ -15,11 +15,17 @@ const Index = () => {
   const {
     user,
     profile,
-    loading
+    loading,
+    signOut
   } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
   const [showChallenge, setShowChallenge] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+
+  const handleLogout = async () => {
+    await signOut();
+    setShowAuth(false);
+  };
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
@@ -63,12 +69,12 @@ const Index = () => {
   return <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto bg-white min-h-screen relative">
         {/* Header */}
-        <div className="bg-primary border-b border-primary/80 p-2 shadow-sm">
+        <div className="bg-primary border-b border-primary/80 p-3 shadow-sm">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <img src="/lovable-uploads/44ebd465-7492-4344-97fc-8f8a5d43c419.png" alt="ClubStakes Logo" className="w-12 h-12 object-contain" />
             </div>
-            <button onClick={() => setShowAuth(true)} className="text-white hover:text-green-200 font-medium px-2 py-1 text-sm">
+            <button onClick={handleLogout} className="text-white hover:text-green-200 font-medium px-3 py-1.5 text-sm rounded transition-colors hover:bg-white/10">
               Logout
             </button>
           </div>

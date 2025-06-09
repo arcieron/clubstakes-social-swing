@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Trophy, Users, Shield, Target, CheckCircle, ArrowRight, Zap, MessageCircle, Award, RefreshCw } from 'lucide-react';
@@ -70,7 +69,11 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
       <section className="max-w-6xl mx-auto px-6 py-20 text-center">
         <div className="animate-fade-in">
           <div className="flex items-center justify-center gap-2 mb-6">
-            <Target className="w-8 h-8 text-primary" />
+            <img 
+              src="/lovable-uploads/44ebd465-7492-4344-97fc-8f8a5d43c419.png" 
+              alt="Pins Logo" 
+              className="w-12 h-12 object-contain"
+            />
             <span className="text-xl font-semibold text-primary">Pins</span>
           </div>
           <h1 className="text-5xl font-bold text-gray-900 mb-6 leading-tight">

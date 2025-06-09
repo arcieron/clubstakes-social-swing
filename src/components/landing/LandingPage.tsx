@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Trophy, Users, Shield, Target, CheckCircle, ArrowRight, Zap, MessageCircle, Award, RefreshCw } from 'lucide-react';
@@ -49,25 +48,16 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img 
-              src="/lovable-uploads/44ebd465-7492-4344-97fc-8f8a5d43c419.png" 
-              alt="Pins Logo" 
-              className="w-12 h-12 object-contain"
-            />
-            <h1 className="text-2xl font-bold text-primary">Pins</h1>
-          </div>
-          <Button onClick={onGetStarted} className="bg-primary hover:bg-primary/90">
+      {/* Hero Section */}
+      <section className="bg-primary py-20 relative">
+        <div className="absolute top-6 right-6">
+          <Button 
+            onClick={onGetStarted} 
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
+          >
             Get Started
           </Button>
         </div>
-      </header>
-
-      {/* Hero Section */}
-      <section className="bg-primary py-20">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <div className="animate-fade-in">
             <div className="flex justify-center mb-8">

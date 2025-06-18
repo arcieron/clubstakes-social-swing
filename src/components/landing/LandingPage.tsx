@@ -82,13 +82,10 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
               The Private Club Golf App<br />
               That Turns Every Round Into<br />
-              <span className="text-accent relative inline-block h-[1.2em] overflow-hidden">
+              <span className="text-accent inline-block min-h-[1.2em]">
                 <span 
                   key={currentTextIndex}
-                  className="absolute inset-0 animate-fade-in"
-                  style={{
-                    animation: 'fadeInSlide 0.5s ease-in-out'
-                  }}
+                  className="animate-fadeInSlide inline-block"
                 >
                   {rotatingTexts[currentTextIndex]}
                 </span>

@@ -1,14 +1,24 @@
-
-
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Trophy, Users, Shield, Target, CheckCircle, ArrowRight, Zap, MessageCircle, Award, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface LandingPageProps {
   onGetStarted: () => void;
 }
 
 export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
+  const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  const rotatingTexts = ["Bragging Rights", "A Competition", "More Fun"];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTextIndex((prev) => (prev + 1) % rotatingTexts.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const features = [
     {
       icon: RefreshCw,
@@ -72,7 +82,17 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
               The Private Club Golf App<br />
               That Turns Every Round Into<br />
-              <span className="text-accent">Bragging Rights</span>
+              <span className="text-accent relative inline-block h-[1.2em] overflow-hidden">
+                <span 
+                  key={currentTextIndex}
+                  className="absolute inset-0 animate-fade-in"
+                  style={{
+                    animation: 'fadeInSlide 0.5s ease-in-out'
+                  }}
+                >
+                  {rotatingTexts[currentTextIndex]}
+                </span>
+              </span>
             </h1>
             <p className="text-xl text-white/90 mb-12 max-w-3xl mx-auto">
               A GHIN-integrated, private club betting app that lets members challenge each other for fun, 
@@ -225,4 +245,3 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
     </div>
   );
 };
-

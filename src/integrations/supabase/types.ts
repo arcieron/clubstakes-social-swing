@@ -326,6 +326,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_credits: {
+        Args: { user_id: string; amount: number }
+        Returns: undefined
+      }
       get_user_club_id: {
         Args: Record<PropertyKey, never>
         Returns: string

@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -77,10 +76,22 @@ export const GameDetailsStep = ({
     onChallengeDataChange({ ...challengeData, ...updates });
   };
 
+  const handleFormatChange = (format: string) => {
+    // Auto-set team format for team-based games
+    const teamFormats = ['better-ball', 'scramble'];
+    const newTeamFormat = teamFormats.includes(format) ? 'teams' : challengeData.teamFormat;
+    
+    updateChallengeData({ 
+      format, 
+      teamFormat: newTeamFormat 
+    });
+  };
+
   // Can proceed if we have required fields
   const canProceed = challengeData.format && challengeData.courseId && challengeData.matchDate;
 
   const isSkinsGame = challengeData.format === 'skins';
+  const isTeamBasedFormat = ['better-ball', 'scramble'].includes(challengeData.format);
 
   return (
     <Card className="border-primary/20 shadow-md">
@@ -93,9 +104,7 @@ export const GameDetailsStep = ({
       <CardContent className="space-y-6 pt-6">
         <div>
           <Label>Game Type</Label>
-          <Select value={challengeData.format} onValueChange={(value) => 
-            updateChallengeData({ format: value })
-          }>
+          <Select value={challengeData.format} onValueChange={handleFormatChange}>
             <SelectTrigger className="bg-white border-gray-200">
               <SelectValue placeholder="Select game type" />
             </SelectTrigger>
@@ -179,16 +188,40 @@ export const GameDetailsStep = ({
             value={challengeData.teamFormat} 
             onValueChange={(value) => updateChallengeData({ teamFormat: value })}
             className="flex gap-6 mt-2"
+            disabled={isTeamBasedFormat}
           >
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="individual" id="individual" />
-              <Label htmlFor="individual">Individual Play</Label>
+              <RadioGroupItem 
+                value="individual" 
+                id="individual" 
+                disabled={isTeamBasedFormat}
+              />
+              <Label 
+                htmlFor="individual"
+                className={isTeamBasedFormat ? "text-gray-400" : ""}
+              >
+                Individual Play
+              </Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="teams" id="teams" />
-              <Label htmlFor="teams">Team Play</Label>
+              <RadioGroupItem 
+                value="teams" 
+                id="teams"
+                disabled={isTeamBasedFormat}
+              />
+              <Label 
+                htmlFor="teams"
+                className={isTeamBasedFormat ? "text-gray-400" : ""}
+              >
+                Team Play
+              </Label>
             </div>
           </RadioGroup>
+          {isTeamBasedFormat && (
+            <p className="text-xs text-gray-500 mt-1">
+              Team play is required for {challengeData.format.replace('-', ' ')} format
+            </p>
+          )}
         </div>
 
         <div className="border-t pt-4">

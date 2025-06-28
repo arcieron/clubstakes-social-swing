@@ -1,7 +1,9 @@
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Trophy, Users, Shield, Target, CheckCircle, ArrowRight, Zap, MessageCircle, Award, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { ClubInquiryForm } from './ClubInquiryForm';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -9,6 +11,7 @@ interface LandingPageProps {
 
 export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  const [showInquiryForm, setShowInquiryForm] = useState(false);
   const rotatingTexts = ["Bragging Rights", "A Competition", "More Fun"];
 
   useEffect(() => {
@@ -67,7 +70,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             onClick={onGetStarted} 
             className="bg-accent text-accent-foreground hover:bg-accent/90"
           >
-            Get Started
+            Sign In
           </Button>
         </div>
         <div className="max-w-6xl mx-auto px-6 text-center">
@@ -96,7 +99,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               not money — just exclusive in-club Pins Credits.
             </p>
             <Button 
-              onClick={onGetStarted}
+              onClick={() => setShowInquiryForm(true)}
               size="lg"
               className="bg-white text-primary hover:bg-white/90 text-lg px-8 py-4 animate-scale-in"
             >
@@ -215,7 +218,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             Ready to Add More Fun to Every Round?
           </h2>
           <Button 
-            onClick={onGetStarted}
+            onClick={() => setShowInquiryForm(true)}
             size="lg"
             className="bg-primary hover:bg-primary/90 text-lg px-12 py-4 animate-scale-in"
           >
@@ -239,6 +242,11 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
           <p className="text-gray-400">© 2024 Pins. All rights reserved.</p>
         </div>
       </footer>
+
+      <ClubInquiryForm 
+        isOpen={showInquiryForm} 
+        onClose={() => setShowInquiryForm(false)} 
+      />
     </div>
   );
 };

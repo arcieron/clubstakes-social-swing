@@ -27,6 +27,14 @@ const Index = () => {
     setShowAuth(false);
   };
 
+  const handleViewChange = (view: string) => {
+    // Prevent non-admin users from accessing admin view
+    if (view === 'admin' && !profile?.is_admin) {
+      return;
+    }
+    setCurrentView(view);
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -57,10 +65,15 @@ const Index = () => {
       case 'feed':
         return <SocialFeed user={profile} />;
       case 'admin':
-        return <div className="p-4 space-y-6">
-            <AdminPanel user={profile} />
-            <MockAccountCreator />
-          </div>;
+        // Only render admin panel if user is actually an admin
+        if (profile?.is_admin) {
+          return <div className="p-4 space-y-6">
+              <AdminPanel user={profile} />
+              <MockAccountCreator />
+            </div>;
+        }
+        // Fallback to dashboard if non-admin somehow tries to access admin
+        return <Dashboard user={profile} onChallenge={() => setShowChallenge(true)} />;
       default:
         return <Dashboard user={profile} onChallenge={() => setShowChallenge(true)} />;
     }
@@ -86,7 +99,7 @@ const Index = () => {
         </div>
 
         {/* Bottom Navigation */}
-        <Navigation currentView={currentView} onViewChange={setCurrentView} isAdmin={profile.is_admin} />
+        <Navigation currentView={currentView} onViewChange={handleViewChange} isAdmin={profile.is_admin} />
       </div>
     </div>;
 };

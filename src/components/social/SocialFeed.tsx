@@ -1,4 +1,5 @@
 
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, Trophy, Users, Calendar, MapPin } from 'lucide-react';
@@ -41,7 +42,18 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
     return `${Math.floor(diffInHours / 24)}d ago`;
   };
 
-  const handleJoinChallenge = async (matchId: string) => {
+  const handleJoinChallenge = async (matchId: string, wagerAmount: number) => {
+    // Check if user has enough credits
+    const userCredits = user.credits || 0;
+    if (userCredits < wagerAmount) {
+      toast({
+        title: "Insufficient Credits",
+        description: `You need ${wagerAmount.toLocaleString()} credits to join this challenge. You have ${userCredits.toLocaleString()} credits.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     const success = await joinMatch(matchId);
     if (success) {
       toast({
@@ -98,6 +110,8 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
               const maxPlayers = challenge.max_players || 8;
               const isUserInMatch = challenge.match_players?.some(p => p.player_id === user.id) || challenge.creator_id === user.id;
               const hasAvailableSpots = currentPlayers < maxPlayers;
+              const userCredits = user.credits || 0;
+              const hasEnoughCredits = userCredits >= challenge.wager_amount;
               
               return (
                 <Card key={challenge.id} className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
@@ -129,14 +143,24 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
                         {currentPlayers}/{maxPlayers}
                       </div>
                     </div>
+
+                    {!hasEnoughCredits && !isUserInMatch && (
+                      <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-800">
+                          You need {challenge.wager_amount.toLocaleString()} credits to join. 
+                          You have {userCredits.toLocaleString()} credits.
+                        </p>
+                      </div>
+                    )}
                     
                     <Button 
-                      onClick={() => handleJoinChallenge(challenge.id)}
+                      onClick={() => handleJoinChallenge(challenge.id, challenge.wager_amount)}
                       className="w-full bg-primary hover:bg-primary/90 text-white"
-                      disabled={!hasAvailableSpots || isUserInMatch}
+                      disabled={!hasAvailableSpots || isUserInMatch || !hasEnoughCredits}
                     >
                       {isUserInMatch ? 'Already Joined' : 
-                       !hasAvailableSpots ? 'Challenge Full' : 'Join Challenge'}
+                       !hasAvailableSpots ? 'Challenge Full' : 
+                       !hasEnoughCredits ? 'Insufficient Credits' : 'Join Challenge'}
                     </Button>
                   </CardContent>
                 </Card>
@@ -206,3 +230,4 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
     </div>
   );
 };
+

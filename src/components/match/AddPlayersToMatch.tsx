@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,17 +20,35 @@ export const AddPlayersToMatch = ({ matchId, onPlayersAdded }: AddPlayersToMatch
   const [currentPlayers, setCurrentPlayers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [matchWagerAmount, setMatchWagerAmount] = useState(0);
 
   useEffect(() => {
     fetchPlayers();
     fetchCurrentPlayers();
+    fetchMatchDetails();
   }, [matchId]);
+
+  const fetchMatchDetails = async () => {
+    try {
+      const { data: match } = await supabase
+        .from('matches')
+        .select('wager_amount')
+        .eq('id', matchId)
+        .single();
+
+      if (match) {
+        setMatchWagerAmount(match.wager_amount);
+      }
+    } catch (error) {
+      console.error('Error fetching match details:', error);
+    }
+  };
 
   const fetchPlayers = async () => {
     try {
       const { data: players } = await supabase
         .from('profiles')
-        .select('id, full_name, handicap')
+        .select('id, full_name, handicap, credits')
         .eq('club_id', profile?.club_id)
         .order('full_name');
 
@@ -57,6 +76,20 @@ export const AddPlayersToMatch = ({ matchId, onPlayersAdded }: AddPlayersToMatch
   };
 
   const addPlayer = async (playerId: string) => {
+    // Check if player has enough credits
+    const player = availablePlayers.find(p => p.id === playerId);
+    if (!player) return;
+
+    const playerCredits = player.credits || 0;
+    if (playerCredits < matchWagerAmount) {
+      toast({ 
+        title: "Insufficient Credits", 
+        description: `${player.full_name} needs ${matchWagerAmount.toLocaleString()} credits to join this match. They have ${playerCredits.toLocaleString()} credits.`,
+        variant: "destructive" 
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase
@@ -166,23 +199,38 @@ export const AddPlayersToMatch = ({ matchId, onPlayersAdded }: AddPlayersToMatch
             </p>
           ) : (
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {filteredPlayers.map((player) => (
-                <div key={player.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
-                  <div>
-                    <p className="font-medium">{player.full_name}</p>
-                    <p className="text-sm text-gray-500">HCP: {player.handicap}</p>
+              {filteredPlayers.map((player) => {
+                const hasEnoughCredits = (player.credits || 0) >= matchWagerAmount;
+                
+                return (
+                  <div key={player.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium">{player.full_name}</p>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <span>HCP: {player.handicap}</span>
+                        <span>•</span>
+                        <span className={hasEnoughCredits ? 'text-green-600' : 'text-red-600'}>
+                          {(player.credits || 0).toLocaleString()} credits
+                        </span>
+                      </div>
+                      {!hasEnoughCredits && (
+                        <p className="text-xs text-red-600 mt-1">
+                          Needs {matchWagerAmount.toLocaleString()} credits to join
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addPlayer(player.id)}
+                      disabled={loading || !hasEnoughCredits}
+                      className={hasEnoughCredits ? "text-green-600 hover:text-green-700" : "text-gray-400"}
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addPlayer(player.id)}
-                    disabled={loading}
-                    className="text-green-600 hover:text-green-700"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -190,3 +238,4 @@ export const AddPlayersToMatch = ({ matchId, onPlayersAdded }: AddPlayersToMatch
     </div>
   );
 };
+

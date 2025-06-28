@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, Trophy, Users, Calendar, MapPin } from 'lucide-react';
@@ -93,9 +94,10 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
           </h3>
           <div className="space-y-3">
             {openChallenges.map(challenge => {
-              const currentPlayers = challenge.match_players?.length || 1;
+              const currentPlayers = challenge.match_players?.length || 1; // Include creator
               const maxPlayers = challenge.max_players || 8;
-              const isUserInMatch = challenge.match_players?.some(p => p.player_id === user.id);
+              const isUserInMatch = challenge.match_players?.some(p => p.player_id === user.id) || challenge.creator_id === user.id;
+              const hasAvailableSpots = currentPlayers < maxPlayers;
               
               return (
                 <Card key={challenge.id} className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
@@ -131,10 +133,10 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
                     <Button 
                       onClick={() => handleJoinChallenge(challenge.id)}
                       className="w-full bg-primary hover:bg-primary/90 text-white"
-                      disabled={currentPlayers >= maxPlayers || isUserInMatch}
+                      disabled={!hasAvailableSpots || isUserInMatch}
                     >
                       {isUserInMatch ? 'Already Joined' : 
-                       currentPlayers >= maxPlayers ? 'Challenge Full' : 'Join Challenge'}
+                       !hasAvailableSpots ? 'Challenge Full' : 'Join Challenge'}
                     </Button>
                   </CardContent>
                 </Card>

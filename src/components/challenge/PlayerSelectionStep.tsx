@@ -27,6 +27,8 @@ interface PlayerSelectionStepProps {
   user: any;
   selectedPlayers: Player[];
   onPlayersChange: (players: Player[]) => void;
+  openSpots: {[teamNumber: number]: number};
+  onOpenSpotsChange: (openSpots: {[teamNumber: number]: number}) => void;
   challengeData: ChallengeData;
   onBack: () => void;
   onNext: () => void;
@@ -37,15 +39,14 @@ export const PlayerSelectionStep = ({
   user,
   selectedPlayers,
   onPlayersChange,
+  openSpots,
+  onOpenSpotsChange,
   challengeData,
   onBack,
   onNext,
   onSubmit
 }: PlayerSelectionStepProps) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [openSpots, setOpenSpots] = useState<{
-    [teamNumber: number]: number;
-  }>({});
   const {
     clubMembers,
     loading
@@ -94,16 +95,36 @@ export const PlayerSelectionStep = ({
 
   const handleAddOpenSpot = (teamNumber?: number) => {
     if (teamNumber && challengeData.teamFormat === 'teams') {
-      setOpenSpots(prev => ({
-        ...prev,
-        [teamNumber]: (prev[teamNumber] || 0) + 1
-      }));
+      onOpenSpotsChange({
+        ...openSpots,
+        [teamNumber]: (openSpots[teamNumber] || 0) + 1
+      });
     } else {
       // For individual format, add to team 1 or general
-      setOpenSpots(prev => ({
-        ...prev,
-        1: (prev[1] || 0) + 1
-      }));
+      onOpenSpotsChange({
+        ...openSpots,
+        1: (openSpots[1] || 0) + 1
+      });
+    }
+  };
+
+  const handleRemoveOpenSpot = (teamNumber?: number) => {
+    if (teamNumber && challengeData.teamFormat === 'teams') {
+      const currentSpots = openSpots[teamNumber] || 0;
+      if (currentSpots > 0) {
+        onOpenSpotsChange({
+          ...openSpots,
+          [teamNumber]: currentSpots - 1
+        });
+      }
+    } else {
+      const currentSpots = openSpots[1] || 0;
+      if (currentSpots > 0) {
+        onOpenSpotsChange({
+          ...openSpots,
+          1: currentSpots - 1
+        });
+      }
     }
   };
 
@@ -141,7 +162,8 @@ export const PlayerSelectionStep = ({
           clubMembers={clubMembers} 
           onPlayerRemove={playerId => handlePlayerToggle(playerId)} 
           onPlayerTeamChange={handlePlayerTeamChange} 
-          onAddOpenSpot={handleAddOpenSpot} 
+          onAddOpenSpot={handleAddOpenSpot}
+          onRemoveOpenSpot={handleRemoveOpenSpot}
           openSpots={openSpots} 
         />
 
@@ -198,4 +220,3 @@ export const PlayerSelectionStep = ({
     </Card>
   );
 };
-

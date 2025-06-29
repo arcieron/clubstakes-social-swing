@@ -1,7 +1,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Minus } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
 interface Player {
@@ -31,6 +31,7 @@ interface SelectedPlayersDisplayProps {
   onPlayerRemove: (playerId: string) => void;
   onPlayerTeamChange?: (playerId: string, teamNumber: number) => void;
   onAddOpenSpot?: (teamNumber?: number) => void;
+  onRemoveOpenSpot?: (teamNumber?: number) => void;
   openSpots?: {[teamNumber: number]: number};
 }
 
@@ -42,6 +43,7 @@ export const SelectedPlayersDisplay = ({
   onPlayerRemove,
   onPlayerTeamChange,
   onAddOpenSpot,
+  onRemoveOpenSpot,
   openSpots = {}
 }: SelectedPlayersDisplayProps) => {
   const totalOpenSpots = Object.values(openSpots).reduce((sum, count) => sum + count, 0);
@@ -135,29 +137,53 @@ export const SelectedPlayersDisplay = ({
               
               {/* Show open spots for this team */}
               {Array.from({ length: teamOpenSpots }, (_, index) => (
-                <Badge 
-                  key={`team-${teamNumber}-spot-${index}`} 
-                  variant="outline" 
-                  className="border-dashed border-blue-300 text-blue-600"
-                >
-                  Open Spot
-                </Badge>
+                <div key={`team-${teamNumber}-spot-${index}`} className="flex items-center gap-1">
+                  <Badge 
+                    variant="outline" 
+                    className="border-dashed border-blue-300 text-blue-600"
+                  >
+                    Open Spot
+                  </Badge>
+                  {onRemoveOpenSpot && (
+                    <button
+                      onClick={() => onRemoveOpenSpot(teamNumber)}
+                      className="text-gray-500 hover:text-red-500 ml-1"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               ))}
               
               {provided.placeholder}
             </div>
             
-            {/* Add open spot button for this team */}
-            {challengeData.postToFeed && onAddOpenSpot && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => onAddOpenSpot(teamNumber)}
-                className="w-full mt-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2"
-              >
-                <Plus size={14} />
-                Add Open Spot
-              </Button>
+            {/* Add/Remove open spot buttons for this team */}
+            {challengeData.postToFeed && (
+              <div className="flex gap-2 mt-2">
+                {onAddOpenSpot && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => onAddOpenSpot(teamNumber)}
+                    className="flex-1 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2"
+                  >
+                    <Plus size={14} />
+                    Add Open Spot
+                  </Button>
+                )}
+                {onRemoveOpenSpot && teamOpenSpots > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => onRemoveOpenSpot(teamNumber)}
+                    className="border-red-300 text-red-600 hover:bg-red-50 flex items-center justify-center gap-2"
+                  >
+                    <Minus size={14} />
+                    Remove Spot
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -256,22 +282,46 @@ export const SelectedPlayersDisplay = ({
 
           {/* Open spots for individual format */}
           {Array.from({ length: totalOpenSpots }, (_, index) => (
-            <Badge key={`open-spot-${index}`} variant="outline" className="border-dashed border-blue-300 text-blue-600">
-              Open Spot
-            </Badge>
+            <div key={`open-spot-${index}`} className="flex items-center gap-1">
+              <Badge variant="outline" className="border-dashed border-blue-300 text-blue-600">
+                Open Spot
+              </Badge>
+              {onRemoveOpenSpot && (
+                <button
+                  onClick={() => onRemoveOpenSpot()}
+                  className="text-gray-500 hover:text-red-500 ml-1"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}
       
-      {challengeData.postToFeed && onAddOpenSpot && challengeData.teamFormat !== 'teams' && (
-        <Button 
-          variant="outline" 
-          onClick={() => onAddOpenSpot()}
-          className="w-full border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2"
-        >
-          <Plus size={16} />
-          Add Open Spot
-        </Button>
+      {challengeData.postToFeed && challengeData.teamFormat !== 'teams' && (
+        <div className="flex gap-2">
+          {onAddOpenSpot && (
+            <Button 
+              variant="outline" 
+              onClick={() => onAddOpenSpot()}
+              className="flex-1 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-2"
+            >
+              <Plus size={16} />
+              Add Open Spot
+            </Button>
+          )}
+          {onRemoveOpenSpot && totalOpenSpots > 0 && (
+            <Button 
+              variant="outline" 
+              onClick={() => onRemoveOpenSpot()}
+              className="border-red-300 text-red-600 hover:bg-red-50 flex items-center justify-center gap-2"
+            >
+              <Minus size={16} />
+              Remove Spot
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );

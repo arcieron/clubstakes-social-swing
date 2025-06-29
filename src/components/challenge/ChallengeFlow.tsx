@@ -16,6 +16,8 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
     setStep,
     selectedPlayers,
     setSelectedPlayers,
+    openSpots,
+    setOpenSpots,
     challengeData,
     setChallengeData,
     handleSubmit
@@ -42,6 +44,8 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
             user={user}
             selectedPlayers={selectedPlayers}
             onPlayersChange={setSelectedPlayers}
+            openSpots={openSpots}
+            onOpenSpotsChange={setOpenSpots}
             challengeData={challengeData}
             onBack={() => setStep(1)}
             onNext={() => setStep(3)}
@@ -54,6 +58,8 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
     }
   };
 
+  const totalOpenSpots = Object.values(openSpots).reduce((sum, count) => sum + count, 0);
+
   return (
     <div className="p-4">
       <ChallengeHeader onClose={onClose} />
@@ -61,7 +67,7 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
       <ChallengeProgress 
         step={step} 
         teamFormat={challengeData.teamFormat} 
-        playersCount={selectedPlayers.length} 
+        playersCount={selectedPlayers.length + 1 + totalOpenSpots} 
       />
 
       {renderStep()}

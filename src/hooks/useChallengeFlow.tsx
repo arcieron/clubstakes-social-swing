@@ -21,6 +21,7 @@ interface ChallengeData {
 export const useChallengeFlow = (user: any, onClose: () => void) => {
   const [step, setStep] = useState(1);
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
+  const [openSpots, setOpenSpots] = useState<{[teamNumber: number]: number}>({});
   const [challengeData, setChallengeData] = useState<ChallengeData>({
     format: '',
     courseId: '',
@@ -31,6 +32,9 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
   });
 
   const handleSubmit = async () => {
+    // Calculate total open spots
+    const totalOpenSpots = Object.values(openSpots).reduce((sum, count) => sum + count, 0);
+    
     // Allow submission if either posting to feed OR players are selected
     if (!challengeData.postToFeed && selectedPlayers.length === 0) {
       toast({
@@ -44,7 +48,13 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
     try {
       console.log('Creating match with data:', challengeData);
       console.log('Selected players:', selectedPlayers);
+      console.log('Open spots:', openSpots);
       console.log('User club_id:', user.club_id);
+
+      // Calculate max players including open spots
+      const maxPlayers = challengeData.postToFeed ? 
+        (selectedPlayers.length + 1 + totalOpenSpots) : 
+        undefined;
 
       // Create the match in Supabase
       const matchInsert = {
@@ -57,7 +67,7 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
         team_format: challengeData.teamFormat as any,
         status: challengeData.postToFeed ? 'open' : 'pending' as any,
         is_public: challengeData.postToFeed,
-        max_players: challengeData.postToFeed ? (selectedPlayers.length > 0 ? selectedPlayers.length + 1 : 8) : undefined
+        max_players: maxPlayers
       };
 
       const { data: match, error: matchError } = await supabase
@@ -161,6 +171,8 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
     setStep,
     selectedPlayers,
     setSelectedPlayers,
+    openSpots,
+    setOpenSpots,
     challengeData,
     setChallengeData,
     handleSubmit

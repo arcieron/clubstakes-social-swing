@@ -32,7 +32,7 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
   });
 
   const handleSubmit = async () => {
-    // Calculate total open spots
+    // Calculate total open spots - each open spot is for 1 player
     const totalOpenSpots = Object.values(openSpots).reduce((sum, count) => sum + count, 0);
     
     // Allow submission if either posting to feed OR players are selected
@@ -51,10 +51,11 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
       console.log('Open spots:', openSpots);
       console.log('User club_id:', user.club_id);
 
-      // Calculate max players - this is the total capacity including creator, selected players, and open spots
-      const maxPlayers = challengeData.postToFeed ? 
-        (1 + selectedPlayers.length + totalOpenSpots) : // Creator + selected + open spots
-        (1 + selectedPlayers.length); // Creator + selected (no open spots for private challenges)
+      // Calculate max players correctly:
+      // - Creator (1) + Selected players + Open spots (each open spot = 1 player slot)
+      const maxPlayers = 1 + selectedPlayers.length + totalOpenSpots;
+
+      console.log('Calculated max_players:', maxPlayers);
 
       // Create the match in Supabase
       const matchInsert = {

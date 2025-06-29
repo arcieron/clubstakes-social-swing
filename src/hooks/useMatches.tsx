@@ -105,7 +105,7 @@ export const useMatches = (user: any) => {
       if (newPlayerCount >= maxPlayers) {
         const { error: updateError } = await supabase
           .from('matches')
-          .update({ status: 'active' })
+          .update({ status: 'in_progress' })
           .eq('id', matchId);
 
         if (updateError) {

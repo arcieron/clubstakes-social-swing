@@ -103,6 +103,7 @@ export const useMatches = (user: any) => {
       // Check if match is now full and update status if needed
       const newPlayerCount = currentPlayers + 1;
       if (newPlayerCount >= maxPlayers) {
+        console.log('Match is now full, updating status to in_progress');
         const { error: updateError } = await supabase
           .from('matches')
           .update({ status: 'in_progress' })
@@ -110,10 +111,12 @@ export const useMatches = (user: any) => {
 
         if (updateError) {
           console.error('Error updating match status:', updateError);
+        } else {
+          console.log('Successfully updated match status to in_progress');
         }
       }
 
-      // Refresh matches
+      // Refresh matches to get updated data
       await fetchMatches();
       return true;
     } catch (error) {

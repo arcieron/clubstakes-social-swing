@@ -28,18 +28,25 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   useEffect(() => {
     const fetchActiveMatches = async () => {
       if (authUser) {
+        console.log('Fetching active matches for user:', authUser.id);
         const { data: matchPlayers, error } = await supabase
           .from('match_players')
           .select(`
             match_id,
-            matches!inner(*)
+            matches!inner(
+              *,
+              courses(name),
+              profiles!matches_creator_id_fkey(full_name)
+            )
           `)
           .eq('player_id', authUser.id)
           .eq('matches.status', 'in_progress');
 
         if (error) {
+          console.error('Error fetching active matches:', error);
           toast({ title: "Error", description: error.message, variant: "destructive" });
         } else {
+          console.log('Fetched active matches:', matchPlayers);
           const matches = matchPlayers?.map(mp => mp.matches) || [];
           setActiveMatches(matches);
         }

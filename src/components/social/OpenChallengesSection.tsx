@@ -61,14 +61,14 @@ export const OpenChallengesSection = ({
       </h3>
       <div className="space-y-3">
         {openChallenges.map(challenge => {
-          // Calculate actual open spots: max_players minus all current players (including creator)
-          // The creator is always included in match_players, so we just need to count all match_players
+          // Calculate open spots available for joining
+          // max_players represents: creator + selected players + open spots added during creation
+          // match_players contains: creator + selected players + anyone who joined open spots
           const currentPlayers = challenge.match_players?.length || 0;
-          const maxPlayers = challenge.max_players || 8;
+          const totalMatchSize = challenge.max_players || 8;
           
-          // Open spots are the slots that were specifically added during match creation
-          // This is max_players minus the actual players that were selected/invited
-          const openSpots = maxPlayers - currentPlayers;
+          // Available open spots = total match size minus current players
+          const openSpots = totalMatchSize - currentPlayers;
           
           const isUserInMatch = challenge.match_players?.some(p => p.player_id === user.id);
           const hasAvailableSpots = openSpots > 0;

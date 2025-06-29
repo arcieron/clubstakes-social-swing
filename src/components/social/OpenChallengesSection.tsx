@@ -61,11 +61,12 @@ export const OpenChallengesSection = ({
       </h3>
       <div className="space-y-3">
         {openChallenges.map(challenge => {
-          // Current players is the actual number of players who have joined (including creator)
+          // Calculate open spots: max_players minus players already joined
           const currentPlayers = challenge.match_players?.length || 0;
           const maxPlayers = challenge.max_players || 8;
+          const openSpots = maxPlayers - currentPlayers;
           const isUserInMatch = challenge.match_players?.some(p => p.player_id === user.id);
-          const hasAvailableSpots = currentPlayers < maxPlayers;
+          const hasAvailableSpots = openSpots > 0;
           const userCredits = user.credits || 0;
           const hasEnoughCredits = userCredits >= challenge.wager_amount;
           
@@ -96,7 +97,7 @@ export const OpenChallengesSection = ({
                   </div>
                   <div className="flex items-center gap-1">
                     <Users className="w-4 h-4" />
-                    {currentPlayers}/{maxPlayers}
+                    {openSpots} open spot{openSpots !== 1 ? 's' : ''}
                   </div>
                 </div>
 

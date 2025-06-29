@@ -1,169 +1,25 @@
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { mockUsers, mockCourses } from '@/lib/mockData';
-import { ArrowLeft } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { PlayerSelectionStep } from './PlayerSelectionStep';
 import { GameDetailsStep } from './GameDetailsStep';
+import { ChallengeHeader } from './ChallengeHeader';
+import { ChallengeProgress } from './ChallengeProgress';
+import { useChallengeFlow } from '@/hooks/useChallengeFlow';
 
 interface ChallengeFlowProps {
   user: any;
   onClose: () => void;
 }
 
-interface Player {
-  id: string;
-  team?: number;
-}
-
-interface ChallengeData {
-  format: string;
-  courseId: string;
-  wagerAmount: number;
-  matchDate: string;
-  teamFormat: string;
-  postToFeed: boolean;
-}
-
 export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
-  const [step, setStep] = useState(1);
-  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
-  const [challengeData, setChallengeData] = useState<ChallengeData>({
-    format: '',
-    courseId: '',
-    wagerAmount: 500,
-    matchDate: new Date().toISOString().split('T')[0],
-    teamFormat: 'individual',
-    postToFeed: false
-  });
-
-  const handleSubmit = async () => {
-    // Allow submission if either posting to feed OR players are selected
-    if (!challengeData.postToFeed && selectedPlayers.length === 0) {
-      toast({
-        title: "No players selected",
-        description: "Please select at least one other player or post to feed.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      console.log('Creating match with data:', challengeData);
-      console.log('Selected players:', selectedPlayers);
-      console.log('User club_id:', user.club_id);
-
-      // Create the match in Supabase
-      const matchInsert = {
-        creator_id: user.id,
-        club_id: user.club_id,
-        format: challengeData.format as any,
-        course_id: challengeData.courseId,
-        wager_amount: challengeData.wagerAmount,
-        match_date: challengeData.matchDate,
-        team_format: challengeData.teamFormat as any,
-        status: challengeData.postToFeed ? 'open' : 'pending' as any,
-        is_public: challengeData.postToFeed,
-        max_players: challengeData.postToFeed ? (selectedPlayers.length > 0 ? selectedPlayers.length + 1 : 8) : undefined
-      };
-
-      const { data: match, error: matchError } = await supabase
-        .from('matches')
-        .insert(matchInsert)
-        .select()
-        .single();
-
-      if (matchError) {
-        console.error('Error creating match:', matchError);
-        toast({
-          title: "Error creating challenge",
-          description: matchError.message,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('Match created successfully:', match);
-
-      // Add creator to match_players - always team 1 for team format
-      let creatorTeamNumber = null;
-      if (challengeData.teamFormat === 'teams') {
-        creatorTeamNumber = 1;
-      }
-
-      const { error: creatorError } = await supabase
-        .from('match_players')
-        .insert({
-          match_id: match.id,
-          player_id: user.id,
-          team_number: creatorTeamNumber
-        });
-
-      if (creatorError) {
-        console.error('Error adding creator to match:', creatorError);
-      }
-
-      // Add selected players to match_players with their assigned teams
-      if (selectedPlayers.length > 0) {
-        const playerInserts = selectedPlayers.map((player) => {
-          let teamNumber = null;
-          
-          if (challengeData.teamFormat === 'teams') {
-            // Use the assigned team or default to team 2 if not assigned
-            teamNumber = player.team || 2;
-          }
-          
-          return {
-            match_id: match.id,
-            player_id: player.id,
-            team_number: teamNumber
-          };
-        });
-
-        const { error: playersError } = await supabase
-          .from('match_players')
-          .insert(playerInserts);
-
-        if (playersError) {
-          console.error('Error adding players to match:', playersError);
-          toast({
-            title: "Error adding players",
-            description: playersError.message,
-            variant: "destructive"
-          });
-          return;
-        }
-      }
-
-      if (challengeData.postToFeed) {
-        toast({
-          title: "Challenge Posted!",
-          description: "Your challenge has been posted to the club feed for others to join."
-        });
-      } else {
-        const playerNames = selectedPlayers.map(p => {
-          const player = mockUsers.find(u => u.id === p.id);
-          return player?.fullName;
-        }).join(', ');
-        
-        toast({
-          title: "Challenge Sent!",
-          description: `${playerNames} ${selectedPlayers.length === 1 ? 'has' : 'have'} been challenged to a match.`
-        });
-      }
-      
-      onClose();
-    } catch (error) {
-      console.error('Unexpected error creating challenge:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while creating the challenge.",
-        variant: "destructive"
-      });
-    }
-  };
+  const {
+    step,
+    setStep,
+    selectedPlayers,
+    setSelectedPlayers,
+    challengeData,
+    setChallengeData,
+    handleSubmit
+  } = useChallengeFlow(user, onClose);
 
   const renderStep = () => {
     switch (step) {
@@ -200,20 +56,13 @@ export const ChallengeFlow = ({ user, onClose }: ChallengeFlowProps) => {
 
   return (
     <div className="p-4">
-      <div className="mb-4">
-        <Button
-          variant="ghost"
-          onClick={onClose}
-          className="text-primary hover:text-primary/80 p-2"
-        >
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to Dashboard
-        </Button>
-      </div>
-
-      <div className="mb-4 text-sm text-gray-500">
-        Step {step} of 2 | Team Format: {challengeData.teamFormat} | Players: {selectedPlayers.length}
-      </div>
+      <ChallengeHeader onClose={onClose} />
+      
+      <ChallengeProgress 
+        step={step} 
+        teamFormat={challengeData.teamFormat} 
+        playersCount={selectedPlayers.length} 
+      />
 
       {renderStep()}
     </div>

@@ -29,26 +29,50 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
     const fetchActiveMatches = async () => {
       if (authUser) {
         console.log('Fetching active matches for user:', authUser.id);
-        const { data: matchPlayers, error } = await supabase
+        
+        // First get all match IDs where the user is a player
+        const { data: userMatches, error: userMatchError } = await supabase
           .from('match_players')
+          .select('match_id')
+          .eq('player_id', authUser.id);
+
+        if (userMatchError) {
+          console.error('Error fetching user matches:', userMatchError);
+          toast({ title: "Error", description: userMatchError.message, variant: "destructive" });
+          return;
+        }
+
+        if (!userMatches || userMatches.length === 0) {
+          console.log('No matches found for user');
+          setActiveMatches([]);
+          return;
+        }
+
+        const matchIds = userMatches.map(um => um.match_id);
+        console.log('User is in matches:', matchIds);
+
+        // Now get the full match details for in_progress matches
+        const { data: matches, error: matchError } = await supabase
+          .from('matches')
           .select(`
-            match_id,
-            matches!inner(
-              *,
-              courses(name),
-              profiles!matches_creator_id_fkey(full_name)
+            *,
+            courses(name),
+            profiles!matches_creator_id_fkey(full_name),
+            match_players(
+              player_id,
+              team_number,
+              profiles(full_name, handicap)
             )
           `)
-          .eq('player_id', authUser.id)
-          .eq('matches.status', 'in_progress');
+          .in('id', matchIds)
+          .eq('status', 'in_progress');
 
-        if (error) {
-          console.error('Error fetching active matches:', error);
-          toast({ title: "Error", description: error.message, variant: "destructive" });
+        if (matchError) {
+          console.error('Error fetching match details:', matchError);
+          toast({ title: "Error", description: matchError.message, variant: "destructive" });
         } else {
-          console.log('Fetched active matches:', matchPlayers);
-          const matches = matchPlayers?.map(mp => mp.matches) || [];
-          setActiveMatches(matches);
+          console.log('Fetched active matches with details:', matches);
+          setActiveMatches(matches || []);
         }
       }
     };

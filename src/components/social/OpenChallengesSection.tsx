@@ -61,7 +61,7 @@ export const OpenChallengesSection = ({
       </h3>
       <div className="space-y-3">
         {openChallenges.map(challenge => {
-          // Current players includes all match_players (including creator)
+          // Current players is the actual number of players who have joined (including creator)
           const currentPlayers = challenge.match_players?.length || 0;
           const maxPlayers = challenge.max_players || 8;
           const isUserInMatch = challenge.match_players?.some(p => p.player_id === user.id);

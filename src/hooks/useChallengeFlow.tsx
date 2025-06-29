@@ -51,10 +51,10 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
       console.log('Open spots:', openSpots);
       console.log('User club_id:', user.club_id);
 
-      // Calculate max players including open spots
+      // Calculate max players - this is the total capacity including creator, selected players, and open spots
       const maxPlayers = challengeData.postToFeed ? 
-        (selectedPlayers.length + 1 + totalOpenSpots) : 
-        undefined;
+        (1 + selectedPlayers.length + totalOpenSpots) : // Creator + selected + open spots
+        (1 + selectedPlayers.length); // Creator + selected (no open spots for private challenges)
 
       // Create the match in Supabase
       const matchInsert = {
@@ -139,9 +139,10 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
       }
 
       if (challengeData.postToFeed) {
+        const spotsText = totalOpenSpots > 0 ? ` with ${totalOpenSpots} open spot${totalOpenSpots > 1 ? 's' : ''}` : '';
         toast({
           title: "Challenge Posted!",
-          description: "Your challenge has been posted to the club feed for others to join."
+          description: `Your challenge has been posted to the club feed${spotsText} for others to join.`
         });
       } else {
         const playerNames = selectedPlayers.map(p => {

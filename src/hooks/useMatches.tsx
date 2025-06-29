@@ -71,6 +71,21 @@ export const useMatches = (user: any) => {
     try {
       console.log('Joining match:', matchId, 'with team:', teamNumber);
       
+      // First check if the match is full
+      const match = matches.find(m => m.id === matchId);
+      if (!match) {
+        console.error('Match not found');
+        return false;
+      }
+
+      const currentPlayers = match.match_players?.length || 0;
+      const maxPlayers = match.max_players || 8;
+      
+      if (currentPlayers >= maxPlayers) {
+        console.error('Match is full');
+        return false;
+      }
+
       // Add user to match_players with optional team assignment
       const { error } = await supabase
         .from('match_players')
@@ -83,6 +98,19 @@ export const useMatches = (user: any) => {
       if (error) {
         console.error('Error joining match:', error);
         return false;
+      }
+
+      // Check if match is now full and update status if needed
+      const newPlayerCount = currentPlayers + 1;
+      if (newPlayerCount >= maxPlayers) {
+        const { error: updateError } = await supabase
+          .from('matches')
+          .update({ status: 'active' })
+          .eq('id', matchId);
+
+        if (updateError) {
+          console.error('Error updating match status:', updateError);
+        }
       }
 
       // Refresh matches

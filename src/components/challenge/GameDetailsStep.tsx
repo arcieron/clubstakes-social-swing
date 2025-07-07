@@ -105,7 +105,7 @@ export const GameDetailsStep = ({
   const isTeamBasedFormat = ['better-ball', 'scramble'].includes(challengeData.format);
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={300}>
       <Card className="border-primary/20 shadow-md">
         <CardHeader className="bg-primary/10">
           <CardTitle className="text-primary">Game Setup</CardTitle>
@@ -118,11 +118,15 @@ export const GameDetailsStep = ({
             <Label className="flex items-center gap-2">
               Game Type
               <Tooltip>
-                <TooltipTrigger>
-                  <Info className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                <TooltipTrigger asChild>
+                  <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="text-sm">
+                <TooltipContent 
+                  side="right" 
+                  align="start"
+                  className="max-w-sm bg-white border border-gray-200 shadow-lg p-3 z-50"
+                >
+                  <p className="text-sm text-gray-700 leading-relaxed">
                     {challengeData.format ? gameTypeDescriptions[challengeData.format as keyof typeof gameTypeDescriptions] : 'Select a game type to see how winners are calculated'}
                   </p>
                 </TooltipContent>
@@ -132,16 +136,19 @@ export const GameDetailsStep = ({
               <SelectTrigger className="bg-white border-gray-200">
                 <SelectValue placeholder="Select game type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
                 <SelectItem value="match-play">
                   <div className="flex items-center justify-between w-full">
                     <span>Match Play</span>
                     <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-gray-400 ml-2 cursor-help" />
                       </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{gameTypeDescriptions['match-play']}</p>
+                      <TooltipContent 
+                        side="left" 
+                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3 z-[60]"
+                      >
+                        <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['match-play']}</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -150,11 +157,14 @@ export const GameDetailsStep = ({
                   <div className="flex items-center justify-between w-full">
                     <span>Stroke Play</span>
                     <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-gray-400 ml-2 cursor-help" />
                       </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{gameTypeDescriptions['stroke-play']}</p>
+                      <TooltipContent 
+                        side="left" 
+                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3 z-[60]"
+                      >
+                        <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['stroke-play']}</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -163,11 +173,14 @@ export const GameDetailsStep = ({
                   <div className="flex items-center justify-between w-full">
                     <span>Nassau</span>
                     <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-gray-400 ml-2 cursor-help" />
                       </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{gameTypeDescriptions['nassau']}</p>
+                      <TooltipContent 
+                        side="left" 
+                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3 z-[60]"
+                      >
+                        <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['nassau']}</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -176,11 +189,14 @@ export const GameDetailsStep = ({
                   <div className="flex items-center justify-between w-full">
                     <span>Scramble</span>
                     <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-gray-400 ml-2 cursor-help" />
                       </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{gameTypeDescriptions['scramble']}</p>
+                      <TooltipContent 
+                        side="left" 
+                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3 z-[60]"
+                      >
+                        <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['scramble']}</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -189,11 +205,14 @@ export const GameDetailsStep = ({
                   <div className="flex items-center justify-between w-full">
                     <span>Better Ball</span>
                     <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-gray-400 ml-2 cursor-help" />
                       </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{gameTypeDescriptions['better-ball']}</p>
+                      <TooltipContent 
+                        side="left" 
+                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3 z-[60]"
+                      >
+                        <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['better-ball']}</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -202,11 +221,14 @@ export const GameDetailsStep = ({
                   <div className="flex items-center justify-between w-full">
                     <span>Skins</span>
                     <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      <TooltipTrigger asChild>
+                        <Info className="w-3 h-3 text-gray-400 ml-2 cursor-help" />
                       </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">{gameTypeDescriptions['skins']}</p>
+                      <TooltipContent 
+                        side="left" 
+                        className="max-w-xs bg-white border border-gray-200 shadow-lg p-3 z-[60]"
+                      >
+                        <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['skins']}</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -223,7 +245,7 @@ export const GameDetailsStep = ({
               <SelectTrigger className="bg-white border-gray-200">
                 <SelectValue placeholder={loading ? "Loading courses..." : "Select course"} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
                 {courses.map((course) => (
                   <SelectItem key={course.id} value={course.id}>
                     {course.name} ({course.rating}/{course.slope})

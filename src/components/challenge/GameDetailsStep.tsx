@@ -6,8 +6,10 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect } from 'react';
+import { Info } from 'lucide-react';
 
 interface ChallengeData {
   format: string;
@@ -87,6 +89,15 @@ export const GameDetailsStep = ({
     });
   };
 
+  const gameTypeDescriptions = {
+    'match-play': 'Winner determined by who wins the most holes head-to-head. Each hole is worth 1 point - lowest score wins the hole.',
+    'stroke-play': 'Winner has the lowest total score for all 18 holes. Traditional golf scoring.',
+    'nassau': 'Three separate bets: front 9, back 9, and overall 18-hole match. Winner of each segment gets the credits.',
+    'scramble': 'Team format where all players hit, then play from the best shot. Lowest team score wins.',
+    'better-ball': 'Team format using the lowest score from each team on every hole. Lowest total team score wins.',
+    'skins': 'Winner of each hole gets the credits for that hole. If tied, credits carry over to next hole.'
+  };
+
   // Can proceed if we have required fields
   const canProceed = challengeData.format && challengeData.courseId && challengeData.matchDate;
 
@@ -94,175 +105,261 @@ export const GameDetailsStep = ({
   const isTeamBasedFormat = ['better-ball', 'scramble'].includes(challengeData.format);
 
   return (
-    <Card className="border-primary/20 shadow-md">
-      <CardHeader className="bg-primary/10">
-        <CardTitle className="text-primary">Game Setup</CardTitle>
-        <CardDescription>
-          Configure your match details and format
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6 pt-6">
-        <div>
-          <Label>Game Type</Label>
-          <Select value={challengeData.format} onValueChange={handleFormatChange}>
-            <SelectTrigger className="bg-white border-gray-200">
-              <SelectValue placeholder="Select game type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="match-play">Match Play</SelectItem>
-              <SelectItem value="stroke-play">Stroke Play</SelectItem>
-              <SelectItem value="nassau">Nassau</SelectItem>
-              <SelectItem value="scramble">Scramble</SelectItem>
-              <SelectItem value="better-ball">Better Ball</SelectItem>
-              <SelectItem value="skins">Skins</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label>Course</Label>
-          <Select value={challengeData.courseId} onValueChange={(value) => 
-            updateChallengeData({ courseId: value })
-          }>
-            <SelectTrigger className="bg-white border-gray-200">
-              <SelectValue placeholder={loading ? "Loading courses..." : "Select course"} />
-            </SelectTrigger>
-            <SelectContent>
-              {courses.map((course) => (
-                <SelectItem key={course.id} value={course.id}>
-                  {course.name} ({course.rating}/{course.slope})
+    <TooltipProvider>
+      <Card className="border-primary/20 shadow-md">
+        <CardHeader className="bg-primary/10">
+          <CardTitle className="text-primary">Game Setup</CardTitle>
+          <CardDescription>
+            Configure your match details and format
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          <div>
+            <Label className="flex items-center gap-2">
+              Game Type
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="w-4 h-4 text-gray-400 hover:text-gray-600" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-sm">
+                    {challengeData.format ? gameTypeDescriptions[challengeData.format as keyof typeof gameTypeDescriptions] : 'Select a game type to see how winners are calculated'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </Label>
+            <Select value={challengeData.format} onValueChange={handleFormatChange}>
+              <SelectTrigger className="bg-white border-gray-200">
+                <SelectValue placeholder="Select game type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="match-play">
+                  <div className="flex items-center justify-between w-full">
+                    <span>Match Play</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{gameTypeDescriptions['match-play']}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label>Match Date</Label>
-          <Input
-            type="date"
-            value={challengeData.matchDate}
-            onChange={(e) => updateChallengeData({ matchDate: e.target.value })}
-            className="bg-white border-gray-200"
-          />
-        </div>
-
-        <div className="space-y-3">
-          <Label>
-            Wager Amount{isSkinsGame && <span className="text-sm text-gray-600 ml-1">(per hole)</span>}
-          </Label>
-          <div className="space-y-4">
-            <Slider
-              value={[challengeData.wagerAmount]}
-              onValueChange={(value) => updateChallengeData({ wagerAmount: value[0] })}
-              min={100}
-              max={1500}
-              step={50}
-              className="w-full"
-            />
-            <div className="text-center">
-              <span className="text-2xl font-bold text-primary">{challengeData.wagerAmount}</span>
-              <span className="text-accent font-semibold ml-1">credits</span>
-            </div>
+                <SelectItem value="stroke-play">
+                  <div className="flex items-center justify-between w-full">
+                    <span>Stroke Play</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{gameTypeDescriptions['stroke-play']}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </SelectItem>
+                <SelectItem value="nassau">
+                  <div className="flex items-center justify-between w-full">
+                    <span>Nassau</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{gameTypeDescriptions['nassau']}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </SelectItem>
+                <SelectItem value="scramble">
+                  <div className="flex items-center justify-between w-full">
+                    <span>Scramble</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{gameTypeDescriptions['scramble']}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </SelectItem>
+                <SelectItem value="better-ball">
+                  <div className="flex items-center justify-between w-full">
+                    <span>Better Ball</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{gameTypeDescriptions['better-ball']}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </SelectItem>
+                <SelectItem value="skins">
+                  <div className="flex items-center justify-between w-full">
+                    <span>Skins</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="w-3 h-3 text-gray-400 ml-2" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-sm">{gameTypeDescriptions['skins']}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          
-          {isSkinsGame && (
-            <div className="border-t pt-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="skinsCarryover" 
-                  checked={challengeData.skinsCarryover || false}
-                  onCheckedChange={(checked) => updateChallengeData({ skinsCarryover: !!checked })}
-                />
-                <Label htmlFor="skinsCarryover" className="text-sm">
-                  Credits carry over to next hole for ties
-                </Label>
+
+          <div>
+            <Label>Course</Label>
+            <Select value={challengeData.courseId} onValueChange={(value) => 
+              updateChallengeData({ courseId: value })
+            }>
+              <SelectTrigger className="bg-white border-gray-200">
+                <SelectValue placeholder={loading ? "Loading courses..." : "Select course"} />
+              </SelectTrigger>
+              <SelectContent>
+                {courses.map((course) => (
+                  <SelectItem key={course.id} value={course.id}>
+                    {course.name} ({course.rating}/{course.slope})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Match Date</Label>
+            <Input
+              type="date"
+              value={challengeData.matchDate}
+              onChange={(e) => updateChallengeData({ matchDate: e.target.value })}
+              className="bg-white border-gray-200"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <Label>
+              Wager Amount{isSkinsGame && <span className="text-sm text-gray-600 ml-1">(per hole)</span>}
+            </Label>
+            <div className="space-y-4">
+              <Slider
+                value={[challengeData.wagerAmount]}
+                onValueChange={(value) => updateChallengeData({ wagerAmount: value[0] })}
+                min={100}
+                max={1500}
+                step={50}
+                className="w-full"
+              />
+              <div className="text-center">
+                <span className="text-2xl font-bold text-primary">{challengeData.wagerAmount}</span>
+                <span className="text-accent font-semibold ml-1">credits</span>
               </div>
             </div>
-          )}
-        </div>
-
-        <div>
-          <Label>Team Format</Label>
-          <RadioGroup 
-            value={challengeData.teamFormat} 
-            onValueChange={(value) => updateChallengeData({ teamFormat: value })}
-            className="flex gap-6 mt-2"
-            disabled={isTeamBasedFormat}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem 
-                value="individual" 
-                id="individual" 
-                disabled={isTeamBasedFormat}
-              />
-              <Label 
-                htmlFor="individual"
-                className={isTeamBasedFormat ? "text-gray-400" : ""}
-              >
-                Individual Play
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem 
-                value="teams" 
-                id="teams"
-                disabled={isTeamBasedFormat}
-              />
-              <Label 
-                htmlFor="teams"
-                className={isTeamBasedFormat ? "text-gray-400" : ""}
-              >
-                Team Play
-              </Label>
-            </div>
-          </RadioGroup>
-          {isTeamBasedFormat && (
-            <p className="text-xs text-gray-500 mt-1">
-              Team play is required for {challengeData.format.replace('-', ' ')} format
-            </p>
-          )}
-        </div>
-
-        <div className="border-t pt-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="postToFeed" 
-              checked={challengeData.postToFeed}
-              onCheckedChange={(checked) => updateChallengeData({ postToFeed: !!checked })}
-            />
-            <Label htmlFor="postToFeed" className="text-sm">
-              Post to club feed for others to join
-            </Label>
+            
+            {isSkinsGame && (
+              <div className="border-t pt-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="skinsCarryover" 
+                    checked={challengeData.skinsCarryover || false}
+                    onCheckedChange={(checked) => updateChallengeData({ skinsCarryover: !!checked })}
+                  />
+                  <Label htmlFor="skinsCarryover" className="text-sm">
+                    Credits carry over to next hole for ties
+                  </Label>
+                </div>
+              </div>
+            )}
           </div>
-          
-          {challengeData.postToFeed && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
-              <p className="text-sm text-blue-800">
-                When you post to the club feed, other members can join your challenge. 
-                You can still invite specific players in the next step.
-              </p>
-            </div>
-          )}
-        </div>
 
-        <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            onClick={onBack}
-            className="flex-1 border-primary text-primary hover:bg-primary/10"
-          >
-            {isFirstStep ? 'Cancel' : 'Back'}
-          </Button>
-          <Button 
-            onClick={onNext}
-            disabled={!canProceed}
-            className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
-          >
-            Next: Select Players
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          <div>
+            <Label>Team Format</Label>
+            <RadioGroup 
+              value={challengeData.teamFormat} 
+              onValueChange={(value) => updateChallengeData({ teamFormat: value })}
+              className="flex gap-6 mt-2"
+              disabled={isTeamBasedFormat}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem 
+                  value="individual" 
+                  id="individual" 
+                  disabled={isTeamBasedFormat}
+                />
+                <Label 
+                  htmlFor="individual"
+                  className={isTeamBasedFormat ? "text-gray-400" : ""}
+                >
+                  Individual Play
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem 
+                  value="teams" 
+                  id="teams"
+                  disabled={isTeamBasedFormat}
+                />
+                <Label 
+                  htmlFor="teams"
+                  className={isTeamBasedFormat ? "text-gray-400" : ""}
+                >
+                  Team Play
+                </Label>
+              </div>
+            </RadioGroup>
+            {isTeamBasedFormat && (
+              <p className="text-xs text-gray-500 mt-1">
+                Team play is required for {challengeData.format.replace('-', ' ')} format
+              </p>
+            )}
+          </div>
+
+          <div className="border-t pt-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="postToFeed" 
+                checked={challengeData.postToFeed}
+                onCheckedChange={(checked) => updateChallengeData({ postToFeed: !!checked })}
+              />
+              <Label htmlFor="postToFeed" className="text-sm">
+                Post to club feed for others to join
+              </Label>
+            </div>
+            
+            {challengeData.postToFeed && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                <p className="text-sm text-blue-800">
+                  When you post to the club feed, other members can join your challenge. 
+                  You can still invite specific players in the next step.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={onBack}
+              className="flex-1 border-primary text-primary hover:bg-primary/10"
+            >
+              {isFirstStep ? 'Cancel' : 'Back'}
+            </Button>
+            <Button 
+              onClick={onNext}
+              disabled={!canProceed}
+              className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
+            >
+              Next: Select Players
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 };

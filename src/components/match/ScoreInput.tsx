@@ -14,6 +14,8 @@ interface ScoreInputProps {
   format: string;
   teamFormat: string;
   wagerAmount: number;
+  scoringType?: 'gross' | 'net';
+  courseId?: string;
   onScoreUpdate: (playerId: string, score: number) => void;
   onMatchComplete: (results: any) => void;
   scores: Record<string, number>;
@@ -25,6 +27,8 @@ export const ScoreInput = ({
   format, 
   teamFormat,
   wagerAmount,
+  scoringType = 'gross',
+  courseId,
   onScoreUpdate, 
   onMatchComplete,
   scores 
@@ -67,7 +71,15 @@ export const ScoreInput = ({
 
     setCalculating(true);
     try {
-      const results = calculateMatchResults(format, teamFormat, players, scores, wagerAmount);
+      const results = await calculateMatchResults(
+        format, 
+        teamFormat, 
+        players, 
+        scores, 
+        wagerAmount, 
+        scoringType,
+        courseId
+      );
       
       await saveMatchResults(matchId, results, format);
       
@@ -103,12 +115,12 @@ export const ScoreInput = ({
 
   const getScoreDescription = (format: string) => {
     switch (format) {
-      case 'stroke-play': return 'Enter total strokes taken for the round';
+      case 'stroke-play': return `Enter total strokes taken for the round${scoringType === 'net' ? ' (gross score - will calculate net automatically)' : ''}`;
       case 'match-play': return 'Enter number of holes won against opponent';
       case 'nassau': return 'Enter total Nassau points (front 9 + back 9 + overall)';
       case 'skins': return 'Enter number of skins won during the round';
       case 'scramble': return 'Enter team score (best ball each hole)';
-      case 'better-ball': return 'Enter better ball score for the team';
+      case 'better-ball': return `Enter better ball score for the team${scoringType === 'net' ? ' (gross score - will calculate net automatically)' : ''}`;
       default: return 'Enter score for this format';
     }
   };
@@ -136,6 +148,7 @@ export const ScoreInput = ({
           <Calculator className="w-5 h-5" />
           Score Entry - {format.replace('-', ' ').toUpperCase()}
           {teamFormat === 'teams' && <Badge variant="outline">Team Play</Badge>}
+          {scoringType === 'net' && <Badge variant="outline">Net Scoring</Badge>}
         </CardTitle>
         <p className="text-sm text-gray-600">{getScoreDescription(format)}</p>
       </CardHeader>

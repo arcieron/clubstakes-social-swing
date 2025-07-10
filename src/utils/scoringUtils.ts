@@ -1,320 +1,562 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export interface PlayerScore {
+interface Player {
+  id: string;
+  profiles: {
+    id: string;
+    full_name: string;
+    handicap: number;
+  };
+  team_number?: number;
+}
+
+interface ScoreData {
+  [playerId: string]: number;
+}
+
+interface WinnerResult {
   playerId: string;
   playerName: string;
-  totalScore: number;
-  handicap: number;
-  netScore?: number;
-  position: number;
-  points?: number;
-  holesWon?: number;
-  skinsWon?: number;
+  teamNumber?: number;
+  creditsWon: number;
+  score?: number;
+  details?: string;
 }
 
-export interface MatchResult {
-  winners: PlayerScore[];
-  results: PlayerScore[];
-  payouts: Record<string, number>;
+interface MatchResults {
+  winners: WinnerResult[];
+  totalCredits: number;
+  format: string;
+  summary: string;
 }
 
-// Calculate net score based on handicap
-export const calculateNetScore = (grossScore: number, handicap: number, courseRating: number = 72): number => {
-  return grossScore - handicap;
+// Calculate net score for a player on a specific hole
+const calculateNetScore = (grossScore: number, playerHandicap: number, holeHandicapRating: number): number => {
+  if (!grossScore || !playerHandicap) return grossScore;
+  
+  // Calculate strokes received on this hole
+  const strokesReceived = Math.floor(playerHandicap / 18) + (playerHandicap % 18 >= holeHandicapRating ? 1 : 0);
+  return Math.max(grossScore - strokesReceived, 1); // Minimum score of 1
 };
 
-// Stroke Play scoring
-export const calculateStrokePlayResults = (
-  players: any[],
-  scores: Record<string, number>,
-  wagerAmount: number
-): MatchResult => {
-  const results: PlayerScore[] = players.map(player => {
-    const playerId = player.profiles.id;
-    const totalScore = scores[playerId] || 0;
-    const netScore = calculateNetScore(totalScore, player.profiles.handicap);
-    
-    return {
-      playerId,
-      playerName: player.profiles.full_name,
-      totalScore,
-      handicap: player.profiles.handicap,
-      netScore,
-      position: 0
-    };
-  }).sort((a, b) => (a.netScore || 0) - (b.netScore || 0));
+// Get hole data for net score calculations
+const getHoleData = async (courseId: string) => {
+  const { data: holes } = await supabase
+    .from('holes')
+    .select('hole_number, par, handicap_rating')
+    .eq('course_id', courseId)
+    .order('hole_number');
 
-  // Assign positions
-  results.forEach((result, index) => {
-    result.position = index + 1;
-  });
+  // Fallback to standard data if no course data
+  if (!holes || holes.length === 0) {
+    const standardPars = [4, 4, 3, 5, 4, 3, 4, 4, 5, 4, 3, 4, 5, 4, 3, 4, 4, 5];
+    return Array.from({ length: 18 }, (_, i) => ({
+      hole_number: i + 1,
+      par: standardPars[i],
+      handicap_rating: i + 1
+    }));
+  }
 
-  const winners = results.filter(r => r.position === 1);
-  const totalPot = wagerAmount * players.length;
-  const winnerPayout = Math.floor(totalPot / winners.length);
-
-  const payouts: Record<string, number> = {};
-  winners.forEach(winner => {
-    payouts[winner.playerId] = winnerPayout;
-  });
-
-  return { winners, results, payouts };
+  return holes;
 };
 
-// Match Play scoring (based on holes won)
-export const calculateMatchPlayResults = (
-  players: any[],
-  scores: Record<string, number>,
-  wagerAmount: number
-): MatchResult => {
-  const results: PlayerScore[] = players.map(player => {
-    const playerId = player.profiles.id;
-    const holesWon = scores[playerId] || 0;
-    
-    return {
-      playerId,
-      playerName: player.profiles.full_name,
-      totalScore: holesWon,
-      handicap: player.profiles.handicap,
-      holesWon,
-      position: 0
-    };
-  }).sort((a, b) => (b.holesWon || 0) - (a.holesWon || 0));
+// Calculate total net score for stroke play
+const calculateTotalNetScore = async (playerId: string, courseId: string, players: Player[]): Promise<number> => {
+  const player = players.find(p => p.profiles.id === playerId);
+  if (!player) return 0;
 
-  // Assign positions
-  results.forEach((result, index) => {
-    result.position = index + 1;
-  });
+  const holes = await getHoleData(courseId);
+  
+  // Get all hole scores for this player
+  const { data: holeScores } = await supabase
+    .from('hole_scores')
+    .select('hole_number, score')
+    .eq('player_id', playerId);
 
-  const winners = results.filter(r => r.position === 1);
-  const totalPot = wagerAmount * players.length;
-  const winnerPayout = Math.floor(totalPot / winners.length);
+  if (!holeScores) return 0;
 
-  const payouts: Record<string, number> = {};
-  winners.forEach(winner => {
-    payouts[winner.playerId] = winnerPayout;
-  });
+  let totalNetScore = 0;
+  
+  for (const hole of holes) {
+    const holeScore = holeScores.find(hs => hs.hole_number === hole.hole_number);
+    if (holeScore && holeScore.score) {
+      const netScore = calculateNetScore(holeScore.score, player.profiles.handicap, hole.handicap_rating);
+      totalNetScore += netScore;
+    }
+  }
 
-  return { winners, results, payouts };
+  return totalNetScore;
 };
 
-// Nassau scoring (front 9, back 9, total)
-export const calculateNassauResults = (
-  players: any[],
-  scores: Record<string, number>,
-  wagerAmount: number
-): MatchResult => {
-  // For Nassau, scores represent total points earned
-  const results: PlayerScore[] = players.map(player => {
-    const playerId = player.profiles.id;
-    const points = scores[playerId] || 0;
+export const calculateMatchResults = async (
+  format: string,
+  teamFormat: string,
+  players: Player[],
+  scores: ScoreData,
+  wagerAmount: number,
+  scoringType: 'gross' | 'net' = 'gross',
+  courseId?: string
+): Promise<MatchResults> => {
+  
+  switch (format) {
+    case 'stroke-play':
+      return calculateStrokePlayResults(teamFormat, players, scores, wagerAmount, scoringType, courseId);
     
-    return {
-      playerId,
-      playerName: player.profiles.full_name,
-      totalScore: points,
-      handicap: player.profiles.handicap,
-      points,
-      position: 0
-    };
-  }).sort((a, b) => (b.points || 0) - (a.points || 0));
-
-  // Assign positions
-  results.forEach((result, index) => {
-    result.position = index + 1;
-  });
-
-  const winners = results.filter(r => r.position === 1);
-  const totalPot = wagerAmount * players.length;
-  const winnerPayout = Math.floor(totalPot / winners.length);
-
-  const payouts: Record<string, number> = {};
-  winners.forEach(winner => {
-    payouts[winner.playerId] = winnerPayout;
-  });
-
-  return { winners, results, payouts };
+    case 'match-play':
+      return calculateMatchPlayResults(teamFormat, players, scores, wagerAmount);
+    
+    case 'nassau':
+      return calculateNassauResults(teamFormat, players, scores, wagerAmount, scoringType, courseId);
+    
+    case 'skins':
+      return calculateSkinsResults(teamFormat, players, scores, wagerAmount, scoringType, courseId);
+    
+    case 'scramble':
+      return calculateScrambleResults(teamFormat, players, scores, wagerAmount);
+    
+    case 'better-ball':
+      return calculateBetterBallResults(teamFormat, players, scores, wagerAmount, scoringType, courseId);
+    
+    default:
+      throw new Error(`Unknown format: ${format}`);
+  }
 };
 
-// Skins scoring
-export const calculateSkinsResults = (
-  players: any[],
-  scores: Record<string, number>,
-  wagerAmount: number
-): MatchResult => {
-  const results: PlayerScore[] = players.map(player => {
-    const playerId = player.profiles.id;
-    const skinsWon = scores[playerId] || 0;
-    
-    return {
-      playerId,
+const calculateStrokePlayResults = async (
+  teamFormat: string,
+  players: Player[],
+  scores: ScoreData,
+  wagerAmount: number,
+  scoringType: 'gross' | 'net',
+  courseId?: string
+): Promise<MatchResults> => {
+  
+  let playerScores: { playerId: string; score: number; playerName: string; teamNumber?: number }[] = [];
+
+  if (scoringType === 'net' && courseId) {
+    // Calculate net scores using hole-by-hole data
+    for (const player of players) {
+      const netScore = await calculateTotalNetScore(player.profiles.id, courseId, players);
+      playerScores.push({
+        playerId: player.profiles.id,
+        score: netScore,
+        playerName: player.profiles.full_name,
+        teamNumber: player.team_number
+      });
+    }
+  } else {
+    // Use gross scores
+    playerScores = players.map(player => ({
+      playerId: player.profiles.id,
+      score: scores[player.profiles.id] || 999,
       playerName: player.profiles.full_name,
-      totalScore: skinsWon,
-      handicap: player.profiles.handicap,
-      skinsWon,
-      position: 0
+      teamNumber: player.team_number
+    }));
+  }
+
+  if (teamFormat === 'teams') {
+    // Team stroke play - sum team scores
+    const teamScores = new Map<number, { score: number; players: string[]; teamNumber: number }>();
+    
+    playerScores.forEach(({ score, playerName, teamNumber }) => {
+      if (teamNumber) {
+        if (!teamScores.has(teamNumber)) {
+          teamScores.set(teamNumber, { score: 0, players: [], teamNumber });
+        }
+        const team = teamScores.get(teamNumber)!;
+        team.score += score;
+        team.players.push(playerName);
+      }
+    });
+
+    const sortedTeams = Array.from(teamScores.values()).sort((a, b) => a.score - b.score);
+    const winningTeam = sortedTeams[0];
+    const creditsPerPlayer = Math.floor(wagerAmount / winningTeam.players.length);
+
+    const winners = winningTeam.players.map(playerName => {
+      const player = players.find(p => p.profiles.full_name === playerName)!;
+      return {
+        playerId: player.profiles.id,
+        playerName,
+        teamNumber: winningTeam.teamNumber,
+        creditsWon: creditsPerPlayer,
+        score: winningTeam.score,
+        details: `Team ${winningTeam.teamNumber} total: ${winningTeam.score}`
+      };
+    });
+
+    return {
+      winners,
+      totalCredits: wagerAmount,
+      format: 'stroke-play',
+      summary: `Team ${winningTeam.teamNumber} wins with total score of ${winningTeam.score}`
     };
-  }).sort((a, b) => (b.skinsWon || 0) - (a.skinsWon || 0));
+  } else {
+    // Individual stroke play
+    const sortedPlayers = playerScores.sort((a, b) => a.score - b.score);
+    const winner = sortedPlayers[0];
 
-  // Assign positions
-  results.forEach((result, index) => {
-    result.position = index + 1;
-  });
+    return {
+      winners: [{
+        playerId: winner.playerId,
+        playerName: winner.playerName,
+        creditsWon: wagerAmount,
+        score: winner.score,
+        details: scoringType === 'net' ? 'Net score' : 'Gross score'
+      }],
+      totalCredits: wagerAmount,
+      format: 'stroke-play',
+      summary: `${winner.playerName} wins with ${scoringType} score of ${winner.score}`
+    };
+  }
+};
 
-  // In skins, payout is per skin won
-  const payouts: Record<string, number> = {};
-  results.forEach(result => {
-    if (result.skinsWon && result.skinsWon > 0) {
-      payouts[result.playerId] = result.skinsWon * wagerAmount;
+const calculateMatchPlayResults = async (
+  teamFormat: string,
+  players: Player[],
+  scores: ScoreData,
+  wagerAmount: number
+): Promise<MatchResults> => {
+  
+  if (teamFormat === 'teams') {
+    // Team match play - team with most holes won
+    const teamHoles = new Map<number, { holes: number; players: string[]; teamNumber: number }>();
+    
+    players.forEach(player => {
+      const holes = scores[player.profiles.id] || 0;
+      const teamNumber = player.team_number;
+      
+      if (teamNumber) {
+        if (!teamHoles.has(teamNumber)) {
+          teamHoles.set(teamNumber, { holes: 0, players: [], teamNumber });
+        }
+        const team = teamHoles.get(teamNumber)!;
+        team.holes += holes;
+        team.players.push(player.profiles.full_name);
+      }
+    });
+
+    const sortedTeams = Array.from(teamHoles.values()).sort((a, b) => b.holes - a.holes);
+    const winningTeam = sortedTeams[0];
+    const creditsPerPlayer = Math.floor(wagerAmount / winningTeam.players.length);
+
+    const winners = winningTeam.players.map(playerName => {
+      const player = players.find(p => p.profiles.full_name === playerName)!;
+      return {
+        playerId: player.profiles.id,
+        playerName,
+        teamNumber: winningTeam.teamNumber,
+        creditsWon: creditsPerPlayer,
+        score: winningTeam.holes
+      };
+    });
+
+    return {
+      winners,
+      totalCredits: wagerAmount,
+      format: 'match-play',
+      summary: `Team ${winningTeam.teamNumber} wins with ${winningTeam.holes} holes won`
+    };
+  } else {
+    // Individual match play
+    const playerHoles = players.map(player => ({
+      playerId: player.profiles.id,
+      playerName: player.profiles.full_name,
+      holes: scores[player.profiles.id] || 0
+    })).sort((a, b) => b.holes - a.holes);
+
+    const winner = playerHoles[0];
+
+    return {
+      winners: [{
+        playerId: winner.playerId,
+        playerName: winner.playerName,
+        creditsWon: wagerAmount,
+        score: winner.holes
+      }],
+      totalCredits: wagerAmount,
+      format: 'match-play',
+      summary: `${winner.playerName} wins with ${winner.holes} holes won`
+    };
+  }
+};
+
+const calculateNassauResults = async (
+  teamFormat: string,
+  players: Player[],
+  scores: ScoreData,
+  wagerAmount: number,
+  scoringType: 'gross' | 'net',
+  courseId?: string
+): Promise<MatchResults> => {
+  
+  // Nassau: 3 separate competitions (front 9, back 9, overall)
+  const wagerPerSection = Math.floor(wagerAmount / 3);
+  const winners: WinnerResult[] = [];
+  
+  // For Nassau, scores represent total Nassau points (front + back + overall)
+  const playerScores = players.map(player => ({
+    playerId: player.profiles.id,
+    playerName: player.profiles.full_name,
+    points: scores[player.profiles.id] || 0,
+    teamNumber: player.team_number
+  }));
+
+  if (teamFormat === 'teams') {
+    const teamPoints = new Map<number, { points: number; players: string[]; teamNumber: number }>();
+    
+    playerScores.forEach(({ points, playerName, teamNumber }) => {
+      if (teamNumber) {
+        if (!teamPoints.has(teamNumber)) {
+          teamPoints.set(teamNumber, { points: 0, players: [], teamNumber });
+        }
+        const team = teamPoints.get(teamNumber)!;
+        team.points += points;
+        team.players.push(playerName);
+      }
+    });
+
+    const sortedTeams = Array.from(teamPoints.values()).sort((a, b) => b.points - a.points);
+    const winningTeam = sortedTeams[0];
+    const creditsPerPlayer = Math.floor(wagerAmount / winningTeam.players.length);
+
+    const teamWinners = winningTeam.players.map(playerName => {
+      const player = players.find(p => p.profiles.full_name === playerName)!;
+      return {
+        playerId: player.profiles.id,
+        playerName,
+        teamNumber: winningTeam.teamNumber,
+        creditsWon: creditsPerPlayer,
+        score: winningTeam.points
+      };
+    });
+
+    winners.push(...teamWinners);
+  } else {
+    const sortedPlayers = playerScores.sort((a, b) => b.points - a.points);
+    const winner = sortedPlayers[0];
+
+    winners.push({
+      playerId: winner.playerId,
+      playerName: winner.playerName,
+      creditsWon: wagerAmount,
+      score: winner.points
+    });
+  }
+
+  return {
+    winners,
+    totalCredits: wagerAmount,
+    format: 'nassau',
+    summary: `Nassau winner with ${winners[0].score} total points`
+  };
+};
+
+const calculateSkinsResults = async (
+  teamFormat: string,
+  players: Player[],
+  scores: ScoreData,
+  wagerAmount: number,
+  scoringType: 'gross' | 'net',
+  courseId?: string
+): Promise<MatchResults> => {
+  
+  // Skins: Each hole is worth equal credits, winner takes all for each hole
+  const creditsPerSkin = Math.floor(wagerAmount / 18);
+  
+  const playerSkins = players.map(player => ({
+    playerId: player.profiles.id,
+    playerName: player.profiles.full_name,
+    skins: scores[player.profiles.id] || 0,
+    teamNumber: player.team_number
+  }));
+
+  if (teamFormat === 'teams') {
+    const teamSkins = new Map<number, { skins: number; players: string[]; teamNumber: number }>();
+    
+    playerSkins.forEach(({ skins, playerName, teamNumber }) => {
+      if (teamNumber) {
+        if (!teamSkins.has(teamNumber)) {
+          teamSkins.set(teamNumber, { skins: 0, players: [], teamNumber });
+        }
+        const team = teamSkins.get(teamNumber)!;
+        team.skins += skins;
+        team.players.push(playerName);
+      }
+    });
+
+    const winners: WinnerResult[] = [];
+    
+    teamSkins.forEach((team) => {
+      if (team.skins > 0) {
+        const creditsPerPlayer = Math.floor((team.skins * creditsPerSkin) / team.players.length);
+        team.players.forEach(playerName => {
+          const player = players.find(p => p.profiles.full_name === playerName)!;
+          winners.push({
+            playerId: player.profiles.id,
+            playerName,
+            teamNumber: team.teamNumber,
+            creditsWon: creditsPerPlayer,
+            score: team.skins
+          });
+        });
+      }
+    });
+
+    return {
+      winners,
+      totalCredits: wagerAmount,
+      format: 'skins',
+      summary: `Skins distributed based on holes won`
+    };
+  } else {
+    const winners: WinnerResult[] = playerSkins
+      .filter(player => player.skins > 0)
+      .map(player => ({
+        playerId: player.playerId,
+        playerName: player.playerName,
+        creditsWon: player.skins * creditsPerSkin,
+        score: player.skins
+      }));
+
+    return {
+      winners,
+      totalCredits: wagerAmount,
+      format: 'skins',
+      summary: `Skins distributed: ${winners.map(w => `${w.playerName} (${w.score})`).join(', ')}`
+    };
+  }
+};
+
+const calculateScrambleResults = async (
+  teamFormat: string,
+  players: Player[],
+  scores: ScoreData,
+  wagerAmount: number
+): Promise<MatchResults> => {
+  
+  // Scramble is always team format
+  const teamScores = new Map<number, { score: number; players: string[]; teamNumber: number }>();
+  
+  players.forEach(player => {
+    const teamNumber = player.team_number;
+    if (teamNumber) {
+      if (!teamScores.has(teamNumber)) {
+        teamScores.set(teamNumber, { 
+          score: scores[player.profiles.id] || 999, 
+          players: [], 
+          teamNumber 
+        });
+      }
+      teamScores.get(teamNumber)!.players.push(player.profiles.full_name);
     }
   });
 
-  const winners = results.filter(r => (r.skinsWon || 0) > 0);
+  const sortedTeams = Array.from(teamScores.values()).sort((a, b) => a.score - b.score);
+  const winningTeam = sortedTeams[0];
+  const creditsPerPlayer = Math.floor(wagerAmount / winningTeam.players.length);
 
-  return { winners, results, payouts };
-};
-
-// Scramble/Better Ball scoring (team formats)
-export const calculateTeamResults = (
-  players: any[],
-  scores: Record<string, number>,
-  wagerAmount: number,
-  teamFormat: string
-): MatchResult => {
-  // Group players by team
-  const teams: Record<number, any[]> = {};
-  players.forEach(player => {
-    const teamNumber = player.team_number || 1;
-    if (!teams[teamNumber]) teams[teamNumber] = [];
-    teams[teamNumber].push(player);
+  const winners = winningTeam.players.map(playerName => {
+    const player = players.find(p => p.profiles.full_name === playerName)!;
+    return {
+      playerId: player.profiles.id,
+      playerName,
+      teamNumber: winningTeam.teamNumber,
+      creditsWon: creditsPerPlayer,
+      score: winningTeam.score
+    };
   });
 
-  const teamResults = Object.entries(teams).map(([teamNumber, teamPlayers]) => {
-    // For team formats, use the best score from the team
-    const teamScores = teamPlayers.map(player => scores[player.profiles.id] || 999);
-    const bestScore = Math.min(...teamScores);
-    
-    return {
-      teamNumber: parseInt(teamNumber),
-      players: teamPlayers,
-      score: bestScore,
-      playerNames: teamPlayers.map(p => p.profiles.full_name).join(', ')
-    };
-  }).sort((a, b) => a.score - b.score);
+  return {
+    winners,
+    totalCredits: wagerAmount,
+    format: 'scramble',
+    summary: `Team ${winningTeam.teamNumber} wins scramble with score of ${winningTeam.score}`
+  };
+};
 
-  const results: PlayerScore[] = [];
-  const payouts: Record<string, number> = {};
+const calculateBetterBallResults = async (
+  teamFormat: string,
+  players: Player[],
+  scores: ScoreData,
+  wagerAmount: number,
+  scoringType: 'gross' | 'net',
+  courseId?: string
+): Promise<MatchResults> => {
   
-  teamResults.forEach((team, index) => {
-    const position = index + 1;
-    const isWinningTeam = position === 1;
-    const teamPayout = isWinningTeam ? Math.floor(wagerAmount * Object.keys(teams).length / team.players.length) : 0;
+  if (teamFormat === 'teams') {
+    // Better ball team format
+    const teamScores = new Map<number, { score: number; players: string[]; teamNumber: number }>();
     
-    team.players.forEach(player => {
-      results.push({
-        playerId: player.profiles.id,
-        playerName: player.profiles.full_name,
-        totalScore: team.score,
-        handicap: player.profiles.handicap,
-        position
-      });
-      
-      if (isWinningTeam) {
-        payouts[player.profiles.id] = teamPayout;
+    players.forEach(player => {
+      const teamNumber = player.team_number;
+      if (teamNumber) {
+        const playerScore = scores[player.profiles.id] || 999;
+        
+        if (!teamScores.has(teamNumber)) {
+          teamScores.set(teamNumber, { 
+            score: playerScore, 
+            players: [player.profiles.full_name], 
+            teamNumber 
+          });
+        } else {
+          const team = teamScores.get(teamNumber)!;
+          team.score = Math.min(team.score, playerScore); // Better ball = lower score
+          team.players.push(player.profiles.full_name);
+        }
       }
     });
-  });
 
-  const winners = results.filter(r => r.position === 1);
+    const sortedTeams = Array.from(teamScores.values()).sort((a, b) => a.score - b.score);
+    const winningTeam = sortedTeams[0];
+    const creditsPerPlayer = Math.floor(wagerAmount / winningTeam.players.length);
 
-  return { winners, results, payouts };
-};
+    const winners = winningTeam.players.map(playerName => {
+      const player = players.find(p => p.profiles.full_name === playerName)!;
+      return {
+        playerId: player.profiles.id,
+        playerName,
+        teamNumber: winningTeam.teamNumber,
+        creditsWon: creditsPerPlayer,
+        score: winningTeam.score
+      };
+    });
 
-// Main scoring function
-export const calculateMatchResults = (
-  format: string,
-  teamFormat: string,
-  players: any[],
-  scores: Record<string, number>,
-  wagerAmount: number
-): MatchResult => {
-  console.log('Calculating results for format:', format, 'teamFormat:', teamFormat);
-  console.log('Players:', players.length, 'Scores:', scores);
-
-  if (teamFormat === 'teams' && (format === 'scramble' || format === 'better-ball')) {
-    return calculateTeamResults(players, scores, wagerAmount, format);
-  }
-
-  switch (format) {
-    case 'stroke-play':
-      return calculateStrokePlayResults(players, scores, wagerAmount);
-    case 'match-play':
-      return calculateMatchPlayResults(players, scores, wagerAmount);
-    case 'nassau':
-      return calculateNassauResults(players, scores, wagerAmount);
-    case 'skins':
-      return calculateSkinsResults(players, scores, wagerAmount);
-    case 'scramble':
-    case 'better-ball':
-      return calculateStrokePlayResults(players, scores, wagerAmount);
-    default:
-      return calculateStrokePlayResults(players, scores, wagerAmount);
+    return {
+      winners,
+      totalCredits: wagerAmount,
+      format: 'better-ball',
+      summary: `Team ${winningTeam.teamNumber} wins better ball with score of ${winningTeam.score}`
+    };
+  } else {
+    // Individual better ball (lowest score wins)
+    return calculateStrokePlayResults(teamFormat, players, scores, wagerAmount, scoringType, courseId);
   }
 };
 
-// Save match results to database
-export const saveMatchResults = async (
-  matchId: string,
-  results: MatchResult,
-  format: string
-): Promise<void> => {
+export const saveMatchResults = async (matchId: string, results: MatchResults, format: string) => {
   try {
-    // Update match status to completed
+    // Update match as completed
     const { error: matchError } = await supabase
       .from('matches')
-      .update({
+      .update({ 
         status: 'completed',
-        completed_at: new Date().toISOString(),
-        winner_id: results.winners[0]?.playerId
+        completed_at: new Date().toISOString()
       })
       .eq('id', matchId);
 
-    if (matchError) {
-      console.error('Error updating match:', matchError);
-      throw matchError;
-    }
+    if (matchError) throw matchError;
 
-    // Save individual scores to match_scores table if it exists
-    // For now, we'll use the existing hole_scores structure
-    for (const result of results.results) {
-      const { error: scoreError } = await supabase
-        .from('hole_scores')
-        .upsert({
-          match_id: matchId,
-          player_id: result.playerId,
-          hole_number: 0, // Use 0 to indicate final score
-          score: result.totalScore
-        }, {
-          onConflict: 'match_id,player_id,hole_number'
-        });
+    // Award credits to winners
+    for (const winner of results.winners) {
+      const { error: creditError } = await supabase.rpc('add_credits', {
+        user_id: winner.playerId,
+        amount: winner.creditsWon
+      });
 
-      if (scoreError) {
-        console.error('Error saving score:', scoreError);
-      }
-    }
-
-    // Update player credits based on payouts
-    for (const [playerId, payout] of Object.entries(results.payouts)) {
-      if (payout > 0) {
-        const { error: creditError } = await supabase.rpc('add_credits', {
-          user_id: playerId,
-          amount: payout
-        });
-
-        if (creditError) {
-          console.error('Error updating credits:', creditError);
-        }
+      if (creditError) {
+        console.error('Error awarding credits:', creditError);
       }
     }
 

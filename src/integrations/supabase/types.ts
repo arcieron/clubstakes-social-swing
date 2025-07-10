@@ -142,6 +142,47 @@ export type Database = {
           },
         ]
       }
+      holes: {
+        Row: {
+          course_id: string
+          created_at: string
+          handicap_rating: number
+          hole_number: number
+          id: string
+          par: number
+          updated_at: string
+          yardage: number | null
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          handicap_rating: number
+          hole_number: number
+          id?: string
+          par: number
+          updated_at?: string
+          yardage?: number | null
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          handicap_rating?: number
+          hole_number?: number
+          id?: string
+          par?: number
+          updated_at?: string
+          yardage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "holes_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_confirmations: {
         Row: {
           confirmed_at: string

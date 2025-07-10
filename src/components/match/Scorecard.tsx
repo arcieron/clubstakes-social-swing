@@ -16,9 +16,17 @@ interface ScorecardProps {
   onSubmitScores: () => void;
 }
 
+interface HoleData {
+  hole_number: number;
+  par: number;
+  handicap_rating: number;
+  yardage?: number;
+}
+
 interface HoleScore {
   hole: number;
   par: number;
+  handicap_rating: number;
   scores: Record<string, number>;
 }
 
@@ -28,26 +36,68 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
   const [editingHole, setEditingHole] = useState<number | null>(null);
   const [confirmations, setConfirmations] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
-
-  // Standard 18-hole pars (can be customized based on course)
-  const standardPars = [4, 4, 3, 5, 4, 3, 4, 4, 5, 4, 3, 4, 5, 4, 3, 4, 4, 5];
+  const [holesData, setHolesData] = useState<HoleData[]>([]);
 
   useEffect(() => {
-    initializeScorecard();
+    fetchHolesData();
     fetchExistingScores();
     fetchConfirmations();
-  }, [matchId, players]);
+  }, [matchId, players, match.course_id]);
 
-  const initializeScorecard = () => {
-    const holes = Array.from({ length: 18 }, (_, i) => ({
-      hole: i + 1,
-      par: standardPars[i],
+  const fetchHolesData = async () => {
+    if (!match.course_id) {
+      // Fallback to standard pars if no course selected
+      const standardPars = [4, 4, 3, 5, 4, 3, 4, 4, 5, 4, 3, 4, 5, 4, 3, 4, 4, 5];
+      const fallbackHoles = Array.from({ length: 18 }, (_, i) => ({
+        hole_number: i + 1,
+        par: standardPars[i],
+        handicap_rating: i + 1 // Default handicap rating
+      }));
+      setHolesData(fallbackHoles);
+      initializeScorecard(fallbackHoles);
+      return;
+    }
+
+    try {
+      const { data: holes, error } = await supabase
+        .from('holes')
+        .select('hole_number, par, handicap_rating, yardage')
+        .eq('course_id', match.course_id)
+        .order('hole_number');
+
+      if (error) throw error;
+
+      if (holes && holes.length > 0) {
+        setHolesData(holes);
+        initializeScorecard(holes);
+      } else {
+        // Fallback if no holes data exists for the course
+        const standardPars = [4, 4, 3, 5, 4, 3, 4, 4, 5, 4, 3, 4, 5, 4, 3, 4, 4, 5];
+        const fallbackHoles = Array.from({ length: 18 }, (_, i) => ({
+          hole_number: i + 1,
+          par: standardPars[i],
+          handicap_rating: i + 1
+        }));
+        setHolesData(fallbackHoles);
+        initializeScorecard(fallbackHoles);
+      }
+    } catch (error) {
+      console.error('Error fetching holes data:', error);
+      toast({ title: "Error", description: "Failed to load course data", variant: "destructive" });
+    }
+  };
+
+  const initializeScorecard = (holes: HoleData[]) => {
+    const holeScores = holes.map(hole => ({
+      hole: hole.hole_number,
+      par: hole.par,
+      handicap_rating: hole.handicap_rating,
       scores: players.reduce((acc, player) => {
         acc[player.profiles.id] = 0;
         return acc;
       }, {} as Record<string, number>)
     }));
-    setHoleScores(holes);
+    setHoleScores(holeScores);
   };
 
   const fetchExistingScores = async () => {
@@ -137,6 +187,24 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
     const totalPar = holeScores.reduce((sum, hole) => sum + hole.par, 0);
     const toPar = total - totalPar;
     return toPar === 0 ? 'E' : toPar > 0 ? `+${toPar}` : toPar.toString();
+  };
+
+  // Calculate net score based on handicap and hole handicap ratings
+  const calculateNetScore = (grossScore: number, playerHandicap: number, holeHandicapRating: number) => {
+    if (!grossScore || !playerHandicap) return grossScore;
+    
+    const strokesReceived = Math.floor(playerHandicap / 18) + (playerHandicap % 18 >= holeHandicapRating ? 1 : 0);
+    return Math.max(grossScore - strokesReceived, 1); // Net score can't be less than 1
+  };
+
+  const getDisplayScore = (playerId: string, hole: HoleScore) => {
+    const grossScore = hole.scores[playerId] || 0;
+    const player = players.find(p => p.profiles.id === playerId);
+    const playerHandicap = player?.profiles.handicap || 0;
+    
+    // For now, always show gross score in the scorecard
+    // Net calculations will be used for match results
+    return grossScore;
   };
 
   const confirmScores = async () => {
@@ -236,6 +304,13 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
                     {holeScores.slice(0, 9).reduce((sum, h) => sum + h.par, 0)}
                   </td>
                 </tr>
+                <tr className="border-b bg-gray-50">
+                  <td className="p-2 text-left font-medium text-xs">HCP</td>
+                  {holeScores.slice(0, 9).map((hole) => (
+                    <td key={hole.hole} className="p-1 text-center text-xs">{hole.handicap_rating}</td>
+                  ))}
+                  <td className="p-2 text-center"></td>
+                </tr>
               </thead>
               <tbody>
                 {players.map((player) => (
@@ -266,7 +341,7 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
                             onClick={() => setEditingHole(hole.hole)}
                             className="w-8 h-8 text-center hover:bg-gray-100 rounded flex items-center justify-center"
                           >
-                            {hole.scores[player.profiles.id] || '-'}
+                            {getDisplayScore(player.profiles.id, hole) || '-'}
                           </button>
                         )}
                       </td>
@@ -311,6 +386,14 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
                     {holeScores.reduce((sum, h) => sum + h.par, 0)}
                   </td>
                 </tr>
+                <tr className="border-b bg-gray-50">
+                  <td className="p-2 text-left font-medium text-xs">HCP</td>
+                  {holeScores.slice(9, 18).map((hole) => (
+                    <td key={hole.hole} className="p-1 text-center text-xs">{hole.handicap_rating}</td>
+                  ))}
+                  <td className="p-2 text-center"></td>
+                  <td className="p-2 text-center"></td>
+                </tr>
               </thead>
               <tbody>
                 {players.map((player) => (
@@ -341,7 +424,7 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
                             onClick={() => setEditingHole(hole.hole)}
                             className="w-8 h-8 text-center hover:bg-gray-100 rounded flex items-center justify-center"
                           >
-                            {hole.scores[player.profiles.id] || '-'}
+                            {getDisplayScore(player.profiles.id, hole) || '-'}
                           </button>
                         )}
                       </td>

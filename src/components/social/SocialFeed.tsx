@@ -31,12 +31,17 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
   }
 
   const handleJoinChallenge = async (matchId: string, wagerAmount: number) => {
+    console.log('Joining challenge from social feed:', matchId);
+    
     const success = await joinMatch(matchId);
     if (success) {
       toast({
         title: "Joined Challenge!",
-        description: "You've successfully joined the challenge."
+        description: "You've successfully joined the challenge. Check your Active Matches tab to see if the match is ready to start."
       });
+      
+      // Force a page refresh to update all components
+      window.location.reload();
     } else {
       toast({
         title: "Error",

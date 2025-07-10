@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,105 +26,154 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
+  const fetchActiveMatches = async () => {
+    if (!authUser) return;
+    
+    console.log('Fetching active matches for user:', authUser.id);
+    
+    try {
+      // First get all match IDs where the user is a player
+      const { data: userMatches, error: userMatchError } = await supabase
+        .from('match_players')
+        .select('match_id')
+        .eq('player_id', authUser.id);
+
+      if (userMatchError) {
+        console.error('Error fetching user matches:', userMatchError);
+        toast({ title: "Error", description: userMatchError.message, variant: "destructive" });
+        return;
+      }
+
+      if (!userMatches || userMatches.length === 0) {
+        console.log('No matches found for user');
+        setActiveMatches([]);
+        return;
+      }
+
+      const matchIds = userMatches.map(um => um.match_id);
+      console.log('User is in matches:', matchIds);
+
+      // Now get the full match details for in_progress matches
+      const { data: matches, error: matchError } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          courses(name),
+          profiles!matches_creator_id_fkey(full_name),
+          match_players(
+            player_id,
+            team_number,
+            profiles(full_name, handicap)
+          )
+        `)
+        .in('id', matchIds)
+        .eq('status', 'in_progress');
+
+      if (matchError) {
+        console.error('Error fetching match details:', matchError);
+        toast({ title: "Error", description: matchError.message, variant: "destructive" });
+      } else {
+        console.log('Fetched active matches with details:', matches);
+        setActiveMatches(matches || []);
+      }
+    } catch (error) {
+      console.error('Error in fetchActiveMatches:', error);
+      toast({ title: "Error", description: "Failed to fetch active matches", variant: "destructive" });
+    }
+  };
+
   useEffect(() => {
-    const fetchActiveMatches = async () => {
-      if (authUser) {
-        console.log('Fetching active matches for user:', authUser.id);
-        
-        // First get all match IDs where the user is a player
-        const { data: userMatches, error: userMatchError } = await supabase
-          .from('match_players')
-          .select('match_id')
-          .eq('player_id', authUser.id);
+    if (authUser) {
+      fetchActiveMatches();
+    }
+  }, [authUser]);
 
-        if (userMatchError) {
-          console.error('Error fetching user matches:', userMatchError);
-          toast({ title: "Error", description: userMatchError.message, variant: "destructive" });
-          return;
+  // Set up real-time subscription for match updates
+  useEffect(() => {
+    if (!authUser) return;
+
+    console.log('Setting up real-time subscription for match updates');
+    
+    const channel = supabase
+      .channel('match-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches'
+        },
+        (payload) => {
+          console.log('Match update received:', payload);
+          fetchActiveMatches();
         }
-
-        if (!userMatches || userMatches.length === 0) {
-          console.log('No matches found for user');
-          setActiveMatches([]);
-          return;
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_players'
+        },
+        (payload) => {
+          console.log('Match players update received:', payload);
+          fetchActiveMatches();
         }
+      )
+      .subscribe();
 
-        const matchIds = userMatches.map(um => um.match_id);
-        console.log('User is in matches:', matchIds);
-
-        // Now get the full match details for in_progress matches
-        const { data: matches, error: matchError } = await supabase
-          .from('matches')
-          .select(`
-            *,
-            courses(name),
-            profiles!matches_creator_id_fkey(full_name),
-            match_players(
-              player_id,
-              team_number,
-              profiles(full_name, handicap)
-            )
-          `)
-          .in('id', matchIds)
-          .eq('status', 'in_progress');
-
-        if (matchError) {
-          console.error('Error fetching match details:', matchError);
-          toast({ title: "Error", description: matchError.message, variant: "destructive" });
-        } else {
-          console.log('Fetched active matches with details:', matches);
-          setActiveMatches(matches || []);
-        }
-      }
+    return () => {
+      supabase.removeChannel(channel);
     };
+  }, [authUser]);
 
-    const fetchMatchHistory = async () => {
-      if (authUser) {
-        const { data: matchPlayers, error } = await supabase
-          .from('match_players')
-          .select(`
-            match_id,
-            matches!inner(*)
-          `)
-          .eq('player_id', authUser.id)
-          .eq('matches.status', 'completed')
-          .order('matches(completed_at)', { ascending: false })
-          .limit(5);
+  const fetchMatchHistory = async () => {
+    if (authUser) {
+      const { data: matchPlayers, error } = await supabase
+        .from('match_players')
+        .select(`
+          match_id,
+          matches!inner(*)
+        `)
+        .eq('player_id', authUser.id)
+        .eq('matches.status', 'completed')
+        .order('matches(completed_at)', { ascending: false })
+        .limit(5);
 
-        if (error) {
-          toast({ title: "Error", description: error.message, variant: "destructive" });
-        } else {
-          const matches = matchPlayers?.map(mp => mp.matches) || [];
-          setMatchHistory(matches);
-        }
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        const matches = matchPlayers?.map(mp => mp.matches) || [];
+        setMatchHistory(matches);
       }
-    };
+    }
+  };
 
-    const fetchLeaderboard = async () => {
-      if (user?.club_id) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name, credits, handicap')
-          .eq('club_id', user.club_id)
-          .order('credits', { ascending: false })
-          .limit(10);
+  const fetchLeaderboard = async () => {
+    if (user?.club_id) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, credits, handicap')
+        .eq('club_id', user.club_id)
+        .order('credits', { ascending: false })
+        .limit(10);
 
-        if (error) {
-          toast({ title: "Error", description: error.message, variant: "destructive" });
-        } else {
-          const transformedData = data?.map(profile => ({
-            id: profile.id,
-            name: profile.full_name,
-            credits: profile.credits || 0,
-            wins: 0, // TODO: Calculate actual wins from matches
-            handicap: profile.handicap || 0
-          })) || [];
-          setLeaderboard(transformedData);
-        }
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        const transformedData = data?.map(profile => ({
+          id: profile.id,
+          name: profile.full_name,
+          credits: profile.credits || 0,
+          wins: 0, // TODO: Calculate actual wins from matches
+          handicap: profile.handicap || 0
+        })) || [];
+        setLeaderboard(transformedData);
       }
-    };
+    }
+  };
 
-    fetchActiveMatches();
+  useEffect(() => {
     fetchMatchHistory();
     fetchLeaderboard();
   }, [authUser, user?.club_id]);

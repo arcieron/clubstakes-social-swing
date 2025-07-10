@@ -87,7 +87,7 @@ export const useMatches = (user: any) => {
       }
 
       // Add user to match_players with optional team assignment
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('match_players')
         .insert({
           match_id: matchId,
@@ -95,13 +95,15 @@ export const useMatches = (user: any) => {
           team_number: teamNumber || null
         });
 
-      if (error) {
-        console.error('Error joining match:', error);
+      if (insertError) {
+        console.error('Error joining match:', insertError);
         return false;
       }
 
       // Check if match is now full and update status if needed
       const newPlayerCount = currentPlayers + 1;
+      console.log(`Match ${matchId} now has ${newPlayerCount}/${maxPlayers} players`);
+      
       if (newPlayerCount >= maxPlayers) {
         console.log('Match is now full, updating status to in_progress');
         const { error: updateError } = await supabase

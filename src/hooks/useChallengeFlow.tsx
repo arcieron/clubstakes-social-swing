@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +15,8 @@ interface ChallengeData {
   matchDate: string;
   teamFormat: string;
   postToFeed: boolean;
+  scoringType: 'gross' | 'net';
+  skinsCarryover?: boolean;
 }
 
 export const useChallengeFlow = (user: any, onClose: () => void) => {
@@ -28,7 +29,8 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
     wagerAmount: 500,
     matchDate: new Date().toISOString().split('T')[0],
     teamFormat: 'individual',
-    postToFeed: false
+    postToFeed: false,
+    scoringType: 'gross'
   });
 
   const handleSubmit = async () => {

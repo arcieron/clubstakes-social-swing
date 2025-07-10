@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect } from 'react';
@@ -19,6 +20,7 @@ interface ChallengeData {
   matchDate: string;
   teamFormat: string;
   postToFeed: boolean;
+  scoringType: 'gross' | 'net';
   skinsCarryover?: boolean;
 }
 
@@ -121,20 +123,22 @@ export const GameDetailsStep = ({
               <DialogTrigger asChild>
                 <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer" />
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Game Type Explanations</DialogTitle>
-                  <DialogDescription>
-                    How winners are calculated for each format
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  {Object.entries(gameTypeDescriptions).map(([format, description]) => (
-                    <div key={format} className="space-y-2">
-                      <h4 className="font-semibold capitalize">{format.replace('-', ' ')}</h4>
-                      <p className="text-sm text-gray-600">{description}</p>
-                    </div>
-                  ))}
+              <DialogContent className="max-w-lg fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="bg-white p-6 rounded-lg max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Game Type Explanations</DialogTitle>
+                    <DialogDescription>
+                      How winners are calculated for each format
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    {Object.entries(gameTypeDescriptions).map(([format, description]) => (
+                      <div key={format} className="space-y-2">
+                        <h4 className="font-semibold capitalize">{format.replace('-', ' ')}</h4>
+                        <p className="text-sm text-gray-600">{description}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>
@@ -144,102 +148,26 @@ export const GameDetailsStep = ({
               <SelectValue placeholder="Select game type" />
             </SelectTrigger>
             <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-              <SelectItem value="match-play">
-                <div className="flex items-center justify-between w-full">
-                  <span>Match Play</span>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer" />
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Match Play</DialogTitle>
-                      </DialogHeader>
-                      <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['match-play']}</p>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </SelectItem>
-              <SelectItem value="stroke-play">
-                <div className="flex items-center justify-between w-full">
-                  <span>Stroke Play</span>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer" />
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Stroke Play</DialogTitle>
-                      </DialogHeader>
-                      <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['stroke-play']}</p>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </SelectItem>
-              <SelectItem value="nassau">
-                <div className="flex items-center justify-between w-full">
-                  <span>Nassau</span>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer" />
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Nassau</DialogTitle>
-                      </DialogHeader>
-                      <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['nassau']}</p>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </SelectItem>
-              <SelectItem value="scramble">
-                <div className="flex items-center justify-between w-full">
-                  <span>Scramble</span>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer" />
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Scramble</DialogTitle>
-                      </DialogHeader>
-                      <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['scramble']}</p>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </SelectItem>
-              <SelectItem value="better-ball">
-                <div className="flex items-center justify-between w-full">
-                  <span>Better Ball</span>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer" />
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Better Ball</DialogTitle>
-                      </DialogHeader>
-                      <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['better-ball']}</p>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </SelectItem>
-              <SelectItem value="skins">
-                <div className="flex items-center justify-between w-full">
-                  <span>Skins</span>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer" />
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Skins</DialogTitle>
-                      </DialogHeader>
-                      <p className="text-sm text-gray-700 leading-relaxed">{gameTypeDescriptions['skins']}</p>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </SelectItem>
+              {Object.entries(gameTypeDescriptions).map(([format, description]) => (
+                <SelectItem key={format} value={format}>
+                  <div className="flex items-center justify-between w-full">
+                    <span className="capitalize">{format.replace('-', ' ')}</span>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer" />
+                      </DialogTrigger>
+                      <DialogContent className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                        <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+                          <DialogHeader>
+                            <DialogTitle className="capitalize">{format.replace('-', ' ')}</DialogTitle>
+                          </DialogHeader>
+                          <p className="text-sm text-gray-700 leading-relaxed mt-4">{description}</p>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -270,6 +198,34 @@ export const GameDetailsStep = ({
             onChange={(e) => updateChallengeData({ matchDate: e.target.value })}
             className="bg-white border-gray-200"
           />
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="scoring-toggle" className="text-sm font-medium">
+                Scoring Type
+              </Label>
+              <p className="text-xs text-gray-500">
+                {challengeData.scoringType === 'gross' ? 'Raw scores without handicap adjustments' : 'Handicap-adjusted scores'}
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className={`text-sm ${challengeData.scoringType === 'gross' ? 'font-medium text-primary' : 'text-gray-500'}`}>
+                Gross
+              </span>
+              <Switch
+                id="scoring-toggle"
+                checked={challengeData.scoringType === 'net'}
+                onCheckedChange={(checked) => 
+                  updateChallengeData({ scoringType: checked ? 'net' : 'gross' })
+                }
+              />
+              <span className={`text-sm ${challengeData.scoringType === 'net' ? 'font-medium text-primary' : 'text-gray-500'}`}>
+                Net
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-3">

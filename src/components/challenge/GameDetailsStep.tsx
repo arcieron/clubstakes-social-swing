@@ -51,7 +51,7 @@ export const GameDetailsStep = ({
 }: GameDetailsStepProps) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [openTooltip, setOpenTooltip] = useState<string | null>(null);
+  const [showGameInfo, setShowGameInfo] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -107,10 +107,6 @@ export const GameDetailsStep = ({
   const isSkinsGame = challengeData.format === 'skins';
   const isTeamBasedFormat = ['better-ball', 'scramble'].includes(challengeData.format);
 
-  const toggleTooltip = (tooltipId: string) => {
-    setOpenTooltip(openTooltip === tooltipId ? null : tooltipId);
-  };
-
   return (
     <TooltipProvider>
       <Card className="border-primary/20 shadow-md">
@@ -124,18 +120,34 @@ export const GameDetailsStep = ({
           <div>
             <Label className="flex items-center gap-2">
               Game Type
-              <Tooltip open={openTooltip === 'main-info'} onOpenChange={(open) => setOpenTooltip(open ? 'main-info' : null)}>
+              <Tooltip open={showGameInfo} onOpenChange={setShowGameInfo}>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    onClick={() => toggleTooltip('main-info')}
+                    onClick={() => setShowGameInfo(!showGameInfo)}
                     className="focus:outline-none"
                   >
                     <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs p-3 text-center">
-                  <p className="text-sm">Click on any game type below to see its description</p>
+                <TooltipContent 
+                  side="top" 
+                  className="max-w-md p-4 text-left bg-white border shadow-lg z-[100]"
+                  sideOffset={8}
+                >
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-primary text-sm mb-2">Game Types Available:</h4>
+                    {Object.entries(gameTypeDescriptions).map(([format, description]) => (
+                      <div key={format} className="space-y-1">
+                        <h5 className="font-medium text-xs capitalize text-gray-900">
+                          {format.replace('-', ' ')}
+                        </h5>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          {description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </TooltipContent>
               </Tooltip>
             </Label>
@@ -148,37 +160,6 @@ export const GameDetailsStep = ({
                   <SelectItem key={format} value={format}>
                     <div className="flex items-center justify-between w-full">
                       <span className="capitalize">{format.replace('-', ' ')}</span>
-                      <Tooltip 
-                        open={openTooltip === format} 
-                        onOpenChange={(open) => setOpenTooltip(open ? format : null)}
-                      >
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleTooltip(format);
-                            }}
-                            className="focus:outline-none"
-                          >
-                            <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer hover:text-gray-600" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent 
-                          side="right" 
-                          className="max-w-sm p-3 text-center bg-white border shadow-lg z-50"
-                          sideOffset={10}
-                        >
-                          <div className="space-y-2">
-                            <h4 className="font-semibold capitalize text-primary">
-                              {format.replace('-', ' ')}
-                            </h4>
-                            <p className="text-sm text-gray-700 leading-relaxed">
-                              {description}
-                            </p>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
                     </div>
                   </SelectItem>
                 ))}

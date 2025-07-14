@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -52,6 +51,7 @@ export const GameDetailsStep = ({
 }: GameDetailsStepProps) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openTooltip, setOpenTooltip] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCourses();
@@ -107,6 +107,10 @@ export const GameDetailsStep = ({
   const isSkinsGame = challengeData.format === 'skins';
   const isTeamBasedFormat = ['better-ball', 'scramble'].includes(challengeData.format);
 
+  const toggleTooltip = (tooltipId: string) => {
+    setOpenTooltip(openTooltip === tooltipId ? null : tooltipId);
+  };
+
   return (
     <TooltipProvider>
       <Card className="border-primary/20 shadow-md">
@@ -120,9 +124,15 @@ export const GameDetailsStep = ({
           <div>
             <Label className="flex items-center gap-2">
               Game Type
-              <Tooltip>
+              <Tooltip open={openTooltip === 'main-info'} onOpenChange={(open) => setOpenTooltip(open ? 'main-info' : null)}>
                 <TooltipTrigger asChild>
-                  <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer" />
+                  <button
+                    type="button"
+                    onClick={() => toggleTooltip('main-info')}
+                    className="focus:outline-none"
+                  >
+                    <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer" />
+                  </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-xs p-3 text-center">
                   <p className="text-sm">Click on any game type below to see its description</p>
@@ -138,13 +148,25 @@ export const GameDetailsStep = ({
                   <SelectItem key={format} value={format}>
                     <div className="flex items-center justify-between w-full">
                       <span className="capitalize">{format.replace('-', ' ')}</span>
-                      <Tooltip>
+                      <Tooltip 
+                        open={openTooltip === format} 
+                        onOpenChange={(open) => setOpenTooltip(open ? format : null)}
+                      >
                         <TooltipTrigger asChild>
-                          <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer" />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleTooltip(format);
+                            }}
+                            className="focus:outline-none"
+                          >
+                            <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer hover:text-gray-600" />
+                          </button>
                         </TooltipTrigger>
                         <TooltipContent 
                           side="right" 
-                          className="max-w-sm p-3 text-center bg-white border shadow-lg"
+                          className="max-w-sm p-3 text-center bg-white border shadow-lg z-50"
                           sideOffset={10}
                         >
                           <div className="space-y-2">

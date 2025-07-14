@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect } from 'react';
 import { Info } from 'lucide-react';
@@ -108,242 +108,235 @@ export const GameDetailsStep = ({
   const isTeamBasedFormat = ['better-ball', 'scramble'].includes(challengeData.format);
 
   return (
-    <Card className="border-primary/20 shadow-md">
-      <CardHeader className="bg-primary/10">
-        <CardTitle className="text-primary">Game Setup</CardTitle>
-        <CardDescription>
-          Configure your match details and format
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6 pt-6">
-        <div>
-          <Label className="flex items-center gap-2">
-            Game Type
-            <Dialog>
-              <DialogTrigger asChild>
-                <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer" />
-              </DialogTrigger>
-              <DialogContent className="max-w-lg fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div className="bg-white p-6 rounded-lg max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Game Type Explanations</DialogTitle>
-                    <DialogDescription>
-                      How winners are calculated for each format
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 mt-4">
-                    {Object.entries(gameTypeDescriptions).map(([format, description]) => (
-                      <div key={format} className="space-y-2">
-                        <h4 className="font-semibold capitalize">{format.replace('-', ' ')}</h4>
-                        <p className="text-sm text-gray-600">{description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </Label>
-          <Select value={challengeData.format} onValueChange={handleFormatChange}>
-            <SelectTrigger className="bg-white border-gray-200">
-              <SelectValue placeholder="Select game type" />
-            </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-              {Object.entries(gameTypeDescriptions).map(([format, description]) => (
-                <SelectItem key={format} value={format}>
-                  <div className="flex items-center justify-between w-full">
-                    <span className="capitalize">{format.replace('-', ' ')}</span>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer" />
-                      </DialogTrigger>
-                      <DialogContent className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                        <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-                          <DialogHeader>
-                            <DialogTitle className="capitalize">{format.replace('-', ' ')}</DialogTitle>
-                          </DialogHeader>
-                          <p className="text-sm text-gray-700 leading-relaxed mt-4">{description}</p>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label>Course</Label>
-          <Select value={challengeData.courseId} onValueChange={(value) => 
-            updateChallengeData({ courseId: value })
-          }>
-            <SelectTrigger className="bg-white border-gray-200">
-              <SelectValue placeholder={loading ? "Loading courses..." : "Select course"} />
-            </SelectTrigger>
-            <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-              {courses.map((course) => (
-                <SelectItem key={course.id} value={course.id}>
-                  {course.name} ({course.rating}/{course.slope})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label>Match Date</Label>
-          <Input
-            type="date"
-            value={challengeData.matchDate}
-            onChange={(e) => updateChallengeData({ matchDate: e.target.value })}
-            className="bg-white border-gray-200"
-          />
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <Label htmlFor="scoring-toggle" className="text-sm font-medium">
-                Scoring Type
-              </Label>
-              <p className="text-xs text-gray-500">
-                {challengeData.scoringType === 'gross' ? 'Raw scores without handicap adjustments' : 'Handicap-adjusted scores'}
-              </p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <span className={`text-sm ${challengeData.scoringType === 'gross' ? 'font-medium text-primary' : 'text-gray-500'}`}>
-                Gross
-              </span>
-              <Switch
-                id="scoring-toggle"
-                checked={challengeData.scoringType === 'net'}
-                onCheckedChange={(checked) => 
-                  updateChallengeData({ scoringType: checked ? 'net' : 'gross' })
-                }
-              />
-              <span className={`text-sm ${challengeData.scoringType === 'net' ? 'font-medium text-primary' : 'text-gray-500'}`}>
-                Net
-              </span>
-            </div>
+    <TooltipProvider>
+      <Card className="border-primary/20 shadow-md">
+        <CardHeader className="bg-primary/10">
+          <CardTitle className="text-primary">Game Setup</CardTitle>
+          <CardDescription>
+            Configure your match details and format
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          <div>
+            <Label className="flex items-center gap-2">
+              Game Type
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs p-3 text-center">
+                  <p className="text-sm">Click on any game type below to see its description</p>
+                </TooltipContent>
+              </Tooltip>
+            </Label>
+            <Select value={challengeData.format} onValueChange={handleFormatChange}>
+              <SelectTrigger className="bg-white border-gray-200">
+                <SelectValue placeholder="Select game type" />
+              </SelectTrigger>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                {Object.entries(gameTypeDescriptions).map(([format, description]) => (
+                  <SelectItem key={format} value={format}>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="capitalize">{format.replace('-', ' ')}</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-3 h-3 text-gray-400 ml-2 cursor-pointer" />
+                        </TooltipTrigger>
+                        <TooltipContent 
+                          side="right" 
+                          className="max-w-sm p-3 text-center bg-white border shadow-lg"
+                          sideOffset={10}
+                        >
+                          <div className="space-y-2">
+                            <h4 className="font-semibold capitalize text-primary">
+                              {format.replace('-', ' ')}
+                            </h4>
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                              {description}
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
 
-        <div className="space-y-3">
-          <Label>
-            Wager Amount{isSkinsGame && <span className="text-sm text-gray-600 ml-1">(per hole)</span>}
-          </Label>
-          <div className="space-y-4">
-            <Slider
-              value={[challengeData.wagerAmount]}
-              onValueChange={(value) => updateChallengeData({ wagerAmount: value[0] })}
-              min={100}
-              max={1500}
-              step={50}
-              className="w-full"
+          <div>
+            <Label>Course</Label>
+            <Select value={challengeData.courseId} onValueChange={(value) => 
+              updateChallengeData({ courseId: value })
+            }>
+              <SelectTrigger className="bg-white border-gray-200">
+                <SelectValue placeholder={loading ? "Loading courses..." : "Select course"} />
+              </SelectTrigger>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                {courses.map((course) => (
+                  <SelectItem key={course.id} value={course.id}>
+                    {course.name} ({course.rating}/{course.slope})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Match Date</Label>
+            <Input
+              type="date"
+              value={challengeData.matchDate}
+              onChange={(e) => updateChallengeData({ matchDate: e.target.value })}
+              className="bg-white border-gray-200"
             />
-            <div className="text-center">
-              <span className="text-2xl font-bold text-primary">{challengeData.wagerAmount}</span>
-              <span className="text-accent font-semibold ml-1">credits</span>
-            </div>
           </div>
-          
-          {isSkinsGame && (
-            <div className="border-t pt-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="skinsCarryover" 
-                  checked={challengeData.skinsCarryover || false}
-                  onCheckedChange={(checked) => updateChallengeData({ skinsCarryover: !!checked })}
-                />
-                <Label htmlFor="skinsCarryover" className="text-sm">
-                  Credits carry over to next hole for ties
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="scoring-toggle" className="text-sm font-medium">
+                  Scoring Type
                 </Label>
+                <p className="text-xs text-gray-500">
+                  {challengeData.scoringType === 'gross' ? 'Raw scores without handicap adjustments' : 'Handicap-adjusted scores'}
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <span className={`text-sm ${challengeData.scoringType === 'gross' ? 'font-medium text-primary' : 'text-gray-500'}`}>
+                  Gross
+                </span>
+                <Switch
+                  id="scoring-toggle"
+                  checked={challengeData.scoringType === 'net'}
+                  onCheckedChange={(checked) => 
+                    updateChallengeData({ scoringType: checked ? 'net' : 'gross' })
+                  }
+                />
+                <span className={`text-sm ${challengeData.scoringType === 'net' ? 'font-medium text-primary' : 'text-gray-500'}`}>
+                  Net
+                </span>
               </div>
             </div>
-          )}
-        </div>
-
-        <div>
-          <Label>Team Format</Label>
-          <RadioGroup 
-            value={challengeData.teamFormat} 
-            onValueChange={(value) => updateChallengeData({ teamFormat: value })}
-            className="flex gap-6 mt-2"
-            disabled={isTeamBasedFormat}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem 
-                value="individual" 
-                id="individual" 
-                disabled={isTeamBasedFormat}
-              />
-              <Label 
-                htmlFor="individual"
-                className={isTeamBasedFormat ? "text-gray-400" : ""}
-              >
-                Individual Play
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem 
-                value="teams" 
-                id="teams"
-                disabled={isTeamBasedFormat}
-              />
-              <Label 
-                htmlFor="teams"
-                className={isTeamBasedFormat ? "text-gray-400" : ""}
-              >
-                Team Play
-              </Label>
-            </div>
-          </RadioGroup>
-          {isTeamBasedFormat && (
-            <p className="text-xs text-gray-500 mt-1">
-              Team play is required for {challengeData.format.replace('-', ' ')} format
-            </p>
-          )}
-        </div>
-
-        <div className="border-t pt-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="postToFeed" 
-              checked={challengeData.postToFeed}
-              onCheckedChange={(checked) => updateChallengeData({ postToFeed: !!checked })}
-            />
-            <Label htmlFor="postToFeed" className="text-sm">
-              Post to club feed for others to join
-            </Label>
           </div>
-          
-          {challengeData.postToFeed && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
-              <p className="text-sm text-blue-800">
-                When you post to the club feed, other members can join your challenge. 
-                You can still invite specific players in the next step.
-              </p>
-            </div>
-          )}
-        </div>
 
-        <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            onClick={onBack}
-            className="flex-1 border-primary text-primary hover:bg-primary/10"
-          >
-            {isFirstStep ? 'Cancel' : 'Back'}
-          </Button>
-          <Button 
-            onClick={onNext}
-            disabled={!canProceed}
-            className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
-          >
-            Next: Select Players
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="space-y-3">
+            <Label>
+              Wager Amount{isSkinsGame && <span className="text-sm text-gray-600 ml-1">(per hole)</span>}
+            </Label>
+            <div className="space-y-4">
+              <Slider
+                value={[challengeData.wagerAmount]}
+                onValueChange={(value) => updateChallengeData({ wagerAmount: value[0] })}
+                min={100}
+                max={1500}
+                step={50}
+                className="w-full"
+              />
+              <div className="text-center">
+                <span className="text-2xl font-bold text-primary">{challengeData.wagerAmount}</span>
+                <span className="text-accent font-semibold ml-1">credits</span>
+              </div>
+            </div>
+            
+            {isSkinsGame && (
+              <div className="border-t pt-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="skinsCarryover" 
+                    checked={challengeData.skinsCarryover || false}
+                    onCheckedChange={(checked) => updateChallengeData({ skinsCarryover: !!checked })}
+                  />
+                  <Label htmlFor="skinsCarryover" className="text-sm">
+                    Credits carry over to next hole for ties
+                  </Label>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <Label>Team Format</Label>
+            <RadioGroup 
+              value={challengeData.teamFormat} 
+              onValueChange={(value) => updateChallengeData({ teamFormat: value })}
+              className="flex gap-6 mt-2"
+              disabled={isTeamBasedFormat}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem 
+                  value="individual" 
+                  id="individual" 
+                  disabled={isTeamBasedFormat}
+                />
+                <Label 
+                  htmlFor="individual"
+                  className={isTeamBasedFormat ? "text-gray-400" : ""}
+                >
+                  Individual Play
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem 
+                  value="teams" 
+                  id="teams"
+                  disabled={isTeamBasedFormat}
+                />
+                <Label 
+                  htmlFor="teams"
+                  className={isTeamBasedFormat ? "text-gray-400" : ""}
+                >
+                  Team Play
+                </Label>
+              </div>
+            </RadioGroup>
+            {isTeamBasedFormat && (
+              <p className="text-xs text-gray-500 mt-1">
+                Team play is required for {challengeData.format.replace('-', ' ')} format
+              </p>
+            )}
+          </div>
+
+          <div className="border-t pt-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="postToFeed" 
+                checked={challengeData.postToFeed}
+                onCheckedChange={(checked) => updateChallengeData({ postToFeed: !!checked })}
+              />
+              <Label htmlFor="postToFeed" className="text-sm">
+                Post to club feed for others to join
+              </Label>
+            </div>
+            
+            {challengeData.postToFeed && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                <p className="text-sm text-blue-800">
+                  When you post to the club feed, other members can join your challenge. 
+                  You can still invite specific players in the next step.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={onBack}
+              className="flex-1 border-primary text-primary hover:bg-primary/10"
+            >
+              {isFirstStep ? 'Cancel' : 'Back'}
+            </Button>
+            <Button 
+              onClick={onNext}
+              disabled={!canProceed}
+              className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
+            >
+              Next: Select Players
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 };

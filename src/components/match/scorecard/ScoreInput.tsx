@@ -13,11 +13,19 @@ export const ScoreInput = ({ value, onChange, onBlur, onKeyDown }: ScoreInputPro
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
+    const timer = setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+  };
 
   return (
     <Input
@@ -28,9 +36,11 @@ export const ScoreInput = ({ value, onChange, onBlur, onKeyDown }: ScoreInputPro
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
       onKeyDown={onKeyDown}
+      onFocus={handleFocus}
       min="1"
       max="15"
       placeholder="0"
+      inputMode="numeric"
     />
   );
 };

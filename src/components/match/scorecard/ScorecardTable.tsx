@@ -36,6 +36,25 @@ export const ScorecardTable = ({
   const holeRange = title === 'Front 9' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
   const startHole = title === 'Front 9' ? 1 : 10;
 
+  const handleScoreClick = (hole: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Score button clicked for hole:', hole);
+    setEditingHole(hole);
+  };
+
+  const handleInputBlur = () => {
+    console.log('Input blurred, clearing editing state');
+    setEditingHole(null);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === 'Escape') {
+      e.preventDefault();
+      setEditingHole(null);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -97,20 +116,13 @@ export const ScorecardTable = ({
                           <ScoreInput
                             value={hole.scores[player.profiles.id] || 0}
                             onChange={(value) => handleScoreChange(hole.hole, player.profiles.id, value)}
-                            onBlur={() => setEditingHole(null)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                setEditingHole(null);
-                              }
-                              if (e.key === 'Escape') {
-                                setEditingHole(null);
-                              }
-                            }}
+                            onBlur={handleInputBlur}
+                            onKeyDown={handleKeyDown}
                           />
                         ) : (
                           <ScoreButton
                             score={getDisplayScore(player.profiles.id, hole)}
-                            onClick={() => setEditingHole(hole.hole)}
+                            onClick={(e) => handleScoreClick(hole.hole, e)}
                           />
                         )}
                       </td>

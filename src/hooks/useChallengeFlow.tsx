@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,7 +58,21 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
       // - Creator (1) + Selected players + Open spots (each open spot = 1 player slot)
       const maxPlayers = 1 + selectedPlayers.length + totalOpenSpots;
 
+      // Determine initial status:
+      // - If posting to feed with open spots, status is 'open'
+      // - If no open spots (all players selected), status is 'in_progress'
+      // - Otherwise, status is 'pending'
+      let initialStatus: 'open' | 'in_progress' | 'pending' = 'pending';
+      
+      if (challengeData.postToFeed && totalOpenSpots > 0) {
+        initialStatus = 'open';
+      } else if (totalOpenSpots === 0 && selectedPlayers.length > 0) {
+        // Match is full, set to in_progress immediately
+        initialStatus = 'in_progress';
+      }
+
       console.log('Calculated max_players:', maxPlayers);
+      console.log('Initial status:', initialStatus);
 
       // Create the match in Supabase
       const matchInsert = {
@@ -68,7 +83,7 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
         wager_amount: challengeData.wagerAmount,
         match_date: challengeData.matchDate,
         team_format: challengeData.teamFormat as any,
-        status: challengeData.postToFeed ? 'open' : 'pending' as any,
+        status: initialStatus as any,
         is_public: challengeData.postToFeed,
         max_players: maxPlayers
       };
@@ -153,9 +168,13 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
           return player?.fullName;
         }).join(', ');
         
+        const statusMessage = initialStatus === 'in_progress' 
+          ? 'Match is ready to start!' 
+          : `${playerNames} ${selectedPlayers.length === 1 ? 'has' : 'have'} been challenged to a match.`;
+        
         toast({
-          title: "Challenge Sent!",
-          description: `${playerNames} ${selectedPlayers.length === 1 ? 'has' : 'have'} been challenged to a match.`
+          title: initialStatus === 'in_progress' ? "Match Created!" : "Challenge Sent!",
+          description: statusMessage
         });
       }
       

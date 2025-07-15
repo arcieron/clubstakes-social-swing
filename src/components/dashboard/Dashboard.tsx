@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,33 +26,12 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
   const fetchActiveMatches = async () => {
-    if (!authUser) return;
+    if (!authUser || !user?.club_id) return;
     
-    console.log('Fetching active matches for user:', authUser.id);
+    console.log('Fetching active matches for club:', user.club_id);
     
     try {
-      // First get all match IDs where the user is a player
-      const { data: userMatches, error: userMatchError } = await supabase
-        .from('match_players')
-        .select('match_id')
-        .eq('player_id', authUser.id);
-
-      if (userMatchError) {
-        console.error('Error fetching user matches:', userMatchError);
-        toast({ title: "Error", description: userMatchError.message, variant: "destructive" });
-        return;
-      }
-
-      if (!userMatches || userMatches.length === 0) {
-        console.log('No matches found for user');
-        setActiveMatches([]);
-        return;
-      }
-
-      const matchIds = userMatches.map(um => um.match_id);
-      console.log('User is in matches:', matchIds);
-
-      // Now get the full match details for in_progress matches
+      // Get ALL matches in the club that are in_progress, regardless of user participation
       const { data: matches, error: matchError } = await supabase
         .from('matches')
         .select(`
@@ -66,7 +44,7 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
             profiles(full_name, handicap)
           )
         `)
-        .in('id', matchIds)
+        .eq('club_id', user.club_id)
         .eq('status', 'in_progress');
 
       if (matchError) {
@@ -83,14 +61,14 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   };
 
   useEffect(() => {
-    if (authUser) {
+    if (authUser && user?.club_id) {
       fetchActiveMatches();
     }
-  }, [authUser]);
+  }, [authUser, user?.club_id]);
 
   // Set up real-time subscription for match updates
   useEffect(() => {
-    if (!authUser) return;
+    if (!authUser || !user?.club_id) return;
 
     console.log('Setting up real-time subscription for match updates');
     
@@ -125,7 +103,7 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [authUser]);
+  }, [authUser, user?.club_id]);
 
   const fetchMatchHistory = async () => {
     if (authUser) {

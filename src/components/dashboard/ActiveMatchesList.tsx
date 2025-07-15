@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Clock, Calendar, DollarSign, Users, MapPin } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ActiveMatchesListProps {
   activeMatches: any[];
@@ -11,6 +12,8 @@ interface ActiveMatchesListProps {
 }
 
 export const ActiveMatchesList = ({ activeMatches, onMatchSelect, onChallenge }: ActiveMatchesListProps) => {
+  const { user } = useAuth();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -25,6 +28,7 @@ export const ActiveMatchesList = ({ activeMatches, onMatchSelect, onChallenge }:
           {activeMatches.map((match) => {
             const playerCount = match.match_players?.length || 0;
             const playerNames = match.match_players?.map((mp: any) => mp.profiles?.full_name).filter(Boolean).join(', ') || '';
+            const isUserInMatch = match.match_players?.some((mp: any) => mp.player_id === user?.id);
             
             return (
               <Card 
@@ -40,6 +44,11 @@ export const ActiveMatchesList = ({ activeMatches, onMatchSelect, onChallenge }:
                         <Badge className="bg-green-100 text-green-800 border-green-200">
                           In Progress
                         </Badge>
+                        {isUserInMatch && (
+                          <Badge variant="outline" className="text-blue-600 border-blue-300">
+                            Your Match
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-500">
                         <div className="flex items-center gap-1">
@@ -64,6 +73,9 @@ export const ActiveMatchesList = ({ activeMatches, onMatchSelect, onChallenge }:
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Users className="w-4 h-4" />
                       <span>{playerCount} players</span>
+                      {match.max_players && (
+                        <span className="text-gray-400">/ {match.max_players} max</span>
+                      )}
                     </div>
                     
                     {playerNames && (
@@ -78,7 +90,7 @@ export const ActiveMatchesList = ({ activeMatches, onMatchSelect, onChallenge }:
                         Created by {match.profiles?.full_name}
                       </div>
                       <Button variant="outline" size="sm">
-                        Enter Match
+                        {isUserInMatch ? 'Enter Match' : 'View Match'}
                       </Button>
                     </div>
                   </div>
@@ -94,7 +106,7 @@ export const ActiveMatchesList = ({ activeMatches, onMatchSelect, onChallenge }:
               <Clock className="w-8 h-8 text-gray-400" />
             </div>
             <h3 className="text-lg font-medium text-gray-600 mb-2">No Active Matches</h3>
-            <p className="text-gray-500 mb-4">You don't have any matches in progress right now.</p>
+            <p className="text-gray-500 mb-4">There are no matches in progress in your club right now.</p>
             <Button 
               className="bg-primary hover:bg-primary/90"
               onClick={onChallenge}

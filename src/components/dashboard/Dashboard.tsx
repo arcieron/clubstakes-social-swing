@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
@@ -60,9 +61,47 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
     }
   };
 
+  const fetchMatchHistory = async () => {
+    if (!authUser || !user?.club_id) return;
+    
+    console.log('Fetching match history for user:', authUser.id);
+    
+    try {
+      // Get completed matches where the user was a participant
+      const { data: matchPlayers, error } = await supabase
+        .from('match_players')
+        .select(`
+          match_id,
+          matches!inner(
+            *,
+            courses(name),
+            profiles!matches_creator_id_fkey(full_name),
+            profiles!matches_winner_id_fkey(full_name)
+          )
+        `)
+        .eq('player_id', authUser.id)
+        .eq('matches.status', 'completed')
+        .order('matches(completed_at)', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Error fetching match history:', error);
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        console.log('Fetched match history:', matchPlayers);
+        const matches = matchPlayers?.map(mp => mp.matches) || [];
+        setMatchHistory(matches);
+      }
+    } catch (error) {
+      console.error('Error in fetchMatchHistory:', error);
+      toast({ title: "Error", description: "Failed to fetch match history", variant: "destructive" });
+    }
+  };
+
   useEffect(() => {
     if (authUser && user?.club_id) {
       fetchActiveMatches();
+      fetchMatchHistory();
     }
   }, [authUser, user?.club_id]);
 
@@ -84,6 +123,7 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
         (payload) => {
           console.log('Match update received:', payload);
           fetchActiveMatches();
+          fetchMatchHistory();
         }
       )
       .on(
@@ -104,28 +144,6 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
       supabase.removeChannel(channel);
     };
   }, [authUser, user?.club_id]);
-
-  const fetchMatchHistory = async () => {
-    if (authUser) {
-      const { data: matchPlayers, error } = await supabase
-        .from('match_players')
-        .select(`
-          match_id,
-          matches!inner(*)
-        `)
-        .eq('player_id', authUser.id)
-        .eq('matches.status', 'completed')
-        .order('matches(completed_at)', { ascending: false })
-        .limit(5);
-
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      } else {
-        const matches = matchPlayers?.map(mp => mp.matches) || [];
-        setMatchHistory(matches);
-      }
-    }
-  };
 
   const fetchLeaderboard = async () => {
     if (user?.club_id) {
@@ -152,7 +170,6 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   };
 
   useEffect(() => {
-    fetchMatchHistory();
     fetchLeaderboard();
   }, [authUser, user?.club_id]);
 
@@ -172,7 +189,12 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
     return (
       <ActiveMatch 
         matchId={selectedMatchId} 
-        onBack={() => setSelectedMatchId(null)} 
+        onBack={() => {
+          setSelectedMatchId(null);
+          // Refresh data when returning from match
+          fetchActiveMatches();
+          fetchMatchHistory();
+        }} 
       />
     );
   }

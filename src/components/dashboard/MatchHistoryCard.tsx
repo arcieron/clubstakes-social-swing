@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Award, Calendar, Eye } from 'lucide-react';
+import { Award, Calendar, Eye, Trophy, Crown } from 'lucide-react';
 
 interface MatchHistoryCardProps {
   matchHistory: any[];
@@ -10,6 +10,27 @@ interface MatchHistoryCardProps {
 }
 
 export const MatchHistoryCard = ({ matchHistory, onChallenge }: MatchHistoryCardProps) => {
+  const formatGameType = (format: string) => {
+    switch (format) {
+      case 'match-play': return 'Match Play';
+      case 'stroke-play': return 'Stroke Play';
+      case 'nassau': return 'Nassau';
+      case 'scramble': return 'Scramble';
+      case 'better-ball': return 'Better Ball';
+      case 'skins': return 'Skins';
+      default: return format;
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    return `${Math.floor(diffInHours / 24)}d ago`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -37,19 +58,41 @@ export const MatchHistoryCard = ({ matchHistory, onChallenge }: MatchHistoryCard
                     index < matchHistory.length - 1 ? 'border-b border-gray-100' : ''
                   }`}
                 >
-                  <div className="flex justify-between items-center">
-                    <div className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-3">
-                        <h4 className="font-medium text-gray-800">{match.format}</h4>
+                        <h4 className="font-medium text-gray-800">{formatGameType(match.format)}</h4>
                         <Badge className="bg-green-100 text-green-800 border-green-200">
                           Completed
                         </Badge>
+                        {match.courses?.name && (
+                          <span className="text-sm text-gray-500">at {match.courses.name}</span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1 text-sm text-gray-500">
-                        <Calendar className="w-4 h-4" />
-                        {new Date(match.match_date).toLocaleDateString()}
+                      
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {match.completed_at 
+                            ? formatTimeAgo(match.completed_at)
+                            : new Date(match.match_date).toLocaleDateString()
+                          }
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Trophy className="w-4 h-4" />
+                          {match.wager_amount.toLocaleString()} credits
+                        </div>
                       </div>
+
+                      {match.profiles && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Crown className="w-4 h-4 text-yellow-500" />
+                          <span className="text-gray-600">Winner: </span>
+                          <span className="font-medium text-gray-800">{match.profiles.full_name}</span>
+                        </div>
+                      )}
                     </div>
+                    
                     <Button variant="ghost" size="sm">
                       <Eye className="w-4 h-4 mr-1" />
                       Details

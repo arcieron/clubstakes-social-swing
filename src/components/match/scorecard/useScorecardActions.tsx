@@ -19,7 +19,6 @@ export const useScorecardActions = (
   players: any[]
 ) => {
   const { user } = useAuth();
-  const [editingHole, setEditingHole] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   const updateScore = async (hole: number, playerId: string, score: number) => {
@@ -119,8 +118,6 @@ export const useScorecardActions = (
   };
 
   return {
-    editingHole,
-    setEditingHole,
     loading,
     handleScoreChange,
     calculateTotal,

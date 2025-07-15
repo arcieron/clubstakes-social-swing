@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 
 interface ScoreButtonProps {
   score: number;
-  onClick: (e: React.MouseEvent) => void;
+  onClick: () => void;
 }
 
 export const ScoreButton = ({ score, onClick }: ScoreButtonProps) => {

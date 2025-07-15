@@ -25,8 +25,6 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
   } = useScorecardData(matchId, match, players);
 
   const {
-    editingHole,
-    setEditingHole,
     loading,
     handleScoreChange,
     calculateTotal,
@@ -56,8 +54,8 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
         title="Front 9"
         holeScores={holeScores}
         players={players}
-        editingHole={editingHole}
-        setEditingHole={setEditingHole}
+        editingHole={null}
+        setEditingHole={() => {}}
         handleScoreChange={handleScoreChange}
         getDisplayScore={getDisplayScore}
       />
@@ -66,8 +64,8 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
         title="Back 9"
         holeScores={holeScores}
         players={players}
-        editingHole={editingHole}
-        setEditingHole={setEditingHole}
+        editingHole={null}
+        setEditingHole={() => {}}
         handleScoreChange={handleScoreChange}
         getDisplayScore={getDisplayScore}
         showTotal={true}

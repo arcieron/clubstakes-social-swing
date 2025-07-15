@@ -1,6 +1,7 @@
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScoreInput } from './ScoreInput';
+import { ScoreInputDialog } from './ScoreInputDialog';
 import { ScoreButton } from './ScoreButton';
 
 interface HoleScore {
@@ -33,26 +34,32 @@ export const ScorecardTable = ({
   showTotal = false,
   calculateTotal
 }: ScorecardTableProps) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedHole, setSelectedHole] = useState<HoleScore | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+
   const holeRange = title === 'Front 9' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
   const startHole = title === 'Front 9' ? 1 : 10;
 
-  const handleScoreClick = (hole: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Score button clicked for hole:', hole);
-    setEditingHole(hole);
+  const handleScoreClick = (hole: HoleScore, player: any) => {
+    setSelectedHole(hole);
+    setSelectedPlayer(player);
+    setDialogOpen(true);
   };
 
-  const handleInputBlur = () => {
-    console.log('Input blurred, clearing editing state');
-    setEditingHole(null);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === 'Escape') {
-      e.preventDefault();
-      setEditingHole(null);
+  const handleScoreSave = (score: number) => {
+    if (selectedHole && selectedPlayer) {
+      handleScoreChange(selectedHole.hole, selectedPlayer.profiles.id, score.toString());
     }
+    setDialogOpen(false);
+    setSelectedHole(null);
+    setSelectedPlayer(null);
+  };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    setSelectedHole(null);
+    setSelectedPlayer(null);
   };
 
   return (
@@ -107,27 +114,14 @@ export const ScorecardTable = ({
                   <td className="p-2 text-left">
                     <div className="font-medium">{player.profiles.full_name.split(' ')[0]}</div>
                   </td>
-                  {holeRange.map((hole) => {
-                    const isEditing = editingHole === hole.hole;
-                    
-                    return (
-                      <td key={hole.hole} className="p-1 text-center">
-                        {isEditing ? (
-                          <ScoreInput
-                            value={hole.scores[player.profiles.id] || 0}
-                            onChange={(value) => handleScoreChange(hole.hole, player.profiles.id, value)}
-                            onBlur={handleInputBlur}
-                            onKeyDown={handleKeyDown}
-                          />
-                        ) : (
-                          <ScoreButton
-                            score={getDisplayScore(player.profiles.id, hole)}
-                            onClick={(e) => handleScoreClick(hole.hole, e)}
-                          />
-                        )}
-                      </td>
-                    );
-                  })}
+                  {holeRange.map((hole) => (
+                    <td key={hole.hole} className="p-1 text-center">
+                      <ScoreButton
+                        score={getDisplayScore(player.profiles.id, hole)}
+                        onClick={() => handleScoreClick(hole, player)}
+                      />
+                    </td>
+                  ))}
                   <td className="p-2 text-center font-bold">
                     {holeRange.reduce((sum, h) => sum + (h.scores[player.profiles.id] || 0), 0) || '-'}
                   </td>
@@ -142,6 +136,16 @@ export const ScorecardTable = ({
           </table>
         </div>
       </CardContent>
+
+      <ScoreInputDialog
+        isOpen={dialogOpen}
+        onClose={handleDialogClose}
+        onSave={handleScoreSave}
+        currentScore={selectedHole && selectedPlayer ? selectedHole.scores[selectedPlayer.profiles.id] || 0 : 0}
+        parScore={selectedHole?.par || 4}
+        playerName={selectedPlayer?.profiles.full_name || ''}
+        holeNumber={selectedHole?.hole || 1}
+      />
     </Card>
   );
 };

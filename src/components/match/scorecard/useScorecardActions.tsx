@@ -233,7 +233,7 @@ export const useScorecardActions = (
       };
     });
 
-    // Calculate Nassau points (front 9, back 9, overall)
+    // Calculate winners for each competition
     const front9Winner = playerScores.reduce((lowest, current) => 
       current.front9Score < lowest.front9Score ? current : lowest
     );
@@ -244,8 +244,16 @@ export const useScorecardActions = (
       current.totalScore < lowest.totalScore ? current : lowest
     );
 
-    // For simplicity, return the overall winner (could be enhanced to track all three)
-    return overallWinner;
+    return {
+      front9Winner,
+      back9Winner,
+      overallWinner,
+      // Return overall winner as main winner for backward compatibility
+      playerId: overallWinner.playerId,
+      playerName: overallWinner.playerName,
+      totalScore: overallWinner.totalScore,
+      toPar: overallWinner.toPar
+    };
   };
 
   const calculateSkinsWinner = (match: any) => {
@@ -335,31 +343,84 @@ export const useScorecardActions = (
     return winner;
   };
 
-  const disperseCredits = async (winnerId: string, wagerAmount: number) => {
+  const disperseCredits = async (winner: any, wagerAmount: number) => {
     try {
-      console.log('Dispersing credits:', { winnerId, wagerAmount });
+      console.log('Dispersing credits:', { winner, wagerAmount });
       
-      // Add credits to winner
-      const { error: addError } = await supabase.rpc('add_credits', {
-        user_id: winnerId,
-        amount: wagerAmount * players.length // Winner gets total pot
-      });
+      // Handle Nassau format with multiple winners
+      if (match.format === 'nassau' && winner.front9Winner) {
+        const front9Amount = Math.floor(wagerAmount * 0.25 * players.length);
+        const back9Amount = Math.floor(wagerAmount * 0.25 * players.length);
+        const overallAmount = Math.floor(wagerAmount * 0.5 * players.length);
 
-      if (addError) {
-        console.error('Error adding credits to winner:', addError);
-        throw addError;
-      }
-
-      // Deduct credits from all players (including winner, so winner gets net positive)
-      for (const player of players) {
-        const { error: deductError } = await supabase.rpc('add_credits', {
-          user_id: player.profiles.id,
-          amount: -wagerAmount
+        // Add credits to front 9 winner
+        const { error: front9Error } = await supabase.rpc('add_credits', {
+          user_id: winner.front9Winner.playerId,
+          amount: front9Amount
         });
 
-        if (deductError) {
-          console.error('Error deducting credits from player:', deductError);
-          throw deductError;
+        if (front9Error) {
+          console.error('Error adding front 9 credits:', front9Error);
+          throw front9Error;
+        }
+
+        // Add credits to back 9 winner
+        const { error: back9Error } = await supabase.rpc('add_credits', {
+          user_id: winner.back9Winner.playerId,
+          amount: back9Amount
+        });
+
+        if (back9Error) {
+          console.error('Error adding back 9 credits:', back9Error);
+          throw back9Error;
+        }
+
+        // Add credits to overall winner
+        const { error: overallError } = await supabase.rpc('add_credits', {
+          user_id: winner.overallWinner.playerId,
+          amount: overallAmount
+        });
+
+        if (overallError) {
+          console.error('Error adding overall credits:', overallError);
+          throw overallError;
+        }
+
+        // Deduct credits from all players
+        for (const player of players) {
+          const { error: deductError } = await supabase.rpc('add_credits', {
+            user_id: player.profiles.id,
+            amount: -wagerAmount
+          });
+
+          if (deductError) {
+            console.error('Error deducting credits from player:', deductError);
+            throw deductError;
+          }
+        }
+      } else {
+        // Standard format - winner gets total pot
+        const { error: addError } = await supabase.rpc('add_credits', {
+          user_id: winner.playerId,
+          amount: wagerAmount * players.length
+        });
+
+        if (addError) {
+          console.error('Error adding credits to winner:', addError);
+          throw addError;
+        }
+
+        // Deduct credits from all players (including winner, so winner gets net positive)
+        for (const player of players) {
+          const { error: deductError } = await supabase.rpc('add_credits', {
+            user_id: player.profiles.id,
+            amount: -wagerAmount
+          });
+
+          if (deductError) {
+            console.error('Error deducting credits from player:', deductError);
+            throw deductError;
+          }
         }
       }
 
@@ -377,12 +438,16 @@ export const useScorecardActions = (
       const winner = calculateWinner(match);
       
       // Update match with winner and completion status
+      const winnerId = match.format === 'nassau' && winner.overallWinner 
+        ? winner.overallWinner.playerId 
+        : winner.playerId;
+
       const { error: updateError } = await supabase
         .from('matches')
         .update({
           status: 'completed',
           completed_at: new Date().toISOString(),
-          winner_id: winner.playerId
+          winner_id: winnerId
         })
         .eq('id', matchId);
 
@@ -392,11 +457,22 @@ export const useScorecardActions = (
       }
 
       // Disperse credits
-      await disperseCredits(winner.playerId, match.wager_amount);
+      await disperseCredits(winner, match.wager_amount);
+
+      // Create appropriate toast message
+      let toastMessage = '';
+      if (match.format === 'nassau' && winner.front9Winner) {
+        const front9Name = winner.front9Winner.playerName;
+        const back9Name = winner.back9Winner.playerName;
+        const overallName = winner.overallWinner.playerName;
+        toastMessage = `Nassau Complete! Front 9: ${front9Name}, Back 9: ${back9Name}, Overall: ${overallName}`;
+      } else {
+        toastMessage = `${winner.playerName} wins! Credits have been distributed.`;
+      }
 
       toast({
         title: "Match Complete!",
-        description: `${winner.playerName} wins! Credits have been distributed.`,
+        description: toastMessage,
       });
 
       console.log('Match completed successfully');

@@ -8,7 +8,7 @@ interface ActionButtonsProps {
   totalNeeded: number;
   allConfirmed: boolean;
   onConfirmScores: () => void;
-  onSubmitScores: () => void;
+  onCompleteMatch: () => void;
 }
 
 export const ActionButtons = ({
@@ -18,7 +18,7 @@ export const ActionButtons = ({
   totalNeeded,
   allConfirmed,
   onConfirmScores,
-  onSubmitScores
+  onCompleteMatch
 }: ActionButtonsProps) => {
   return (
     <div className="space-y-3 pt-4">
@@ -37,11 +37,11 @@ export const ActionButtons = ({
 
       {allConfirmed && (
         <Button 
-          onClick={onSubmitScores}
+          onClick={onCompleteMatch}
           className="w-full bg-green-600 hover:bg-green-700"
           size="lg"
         >
-          Complete Match
+          Complete Match & Distribute Credits
         </Button>
       )}
     </div>

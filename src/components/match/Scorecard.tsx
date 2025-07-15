@@ -6,6 +6,7 @@ import { ScorecardTable } from './scorecard/ScorecardTable';
 import { ActionButtons } from './scorecard/ActionButtons';
 import { useScorecardData } from './scorecard/useScorecardData';
 import { useScorecardActions } from './scorecard/useScorecardActions';
+import { useState } from 'react';
 
 interface ScorecardProps {
   matchId: string;
@@ -16,6 +17,7 @@ interface ScorecardProps {
 
 export const Scorecard = ({ matchId, match, players, onSubmitScores }: ScorecardProps) => {
   const { user } = useAuth();
+  const [editingHole, setEditingHole] = useState<{ hole: number; playerId: string } | null>(null);
   
   const {
     holeScores,
@@ -30,7 +32,8 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
     calculateTotal,
     calculateToPar,
     getDisplayScore,
-    confirmScores
+    confirmScores,
+    completeMatch
   } = useScorecardActions(matchId, holeScores, setHoleScores, fetchConfirmations, players);
 
   const isTeamFormat = match.team_format === 'teams';
@@ -38,6 +41,11 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
   const confirmedCount = Object.keys(confirmations).length;
   const totalNeeded = players.length;
   const allConfirmed = confirmedCount === totalNeeded;
+
+  const handleCompleteMatch = async () => {
+    await completeMatch(match);
+    onSubmitScores(); // This will refresh the parent component
+  };
 
   return (
     <div className="space-y-4 pb-6">
@@ -54,8 +62,8 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
         title="Front 9"
         holeScores={holeScores}
         players={players}
-        editingHole={null}
-        setEditingHole={() => {}}
+        editingHole={editingHole}
+        setEditingHole={setEditingHole}
         handleScoreChange={handleScoreChange}
         getDisplayScore={getDisplayScore}
       />
@@ -64,8 +72,8 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
         title="Back 9"
         holeScores={holeScores}
         players={players}
-        editingHole={null}
-        setEditingHole={() => {}}
+        editingHole={editingHole}
+        setEditingHole={setEditingHole}
         handleScoreChange={handleScoreChange}
         getDisplayScore={getDisplayScore}
         showTotal={true}
@@ -79,7 +87,7 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
         totalNeeded={totalNeeded}
         allConfirmed={allConfirmed}
         onConfirmScores={confirmScores}
-        onSubmitScores={onSubmitScores}
+        onCompleteMatch={handleCompleteMatch}
       />
     </div>
   );

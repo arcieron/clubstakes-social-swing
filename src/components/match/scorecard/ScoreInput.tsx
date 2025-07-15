@@ -12,7 +12,7 @@ export const ScoreInput = ({ value, onChange, onBlur, onKeyDown }: ScoreInputPro
   return (
     <Input
       type="number"
-      className="w-8 h-8 text-xs text-center p-0 border-primary"
+      className="w-12 h-10 text-sm text-center border-primary focus:ring-2 focus:ring-primary"
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
@@ -20,6 +20,7 @@ export const ScoreInput = ({ value, onChange, onBlur, onKeyDown }: ScoreInputPro
       min="1"
       max="15"
       autoFocus
+      placeholder="0"
     />
   );
 };

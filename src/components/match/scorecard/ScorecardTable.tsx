@@ -36,6 +36,8 @@ export const ScorecardTable = ({
   const holeRange = title === 'Front 9' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
   const startHole = title === 'Front 9' ? 1 : 10;
 
+  const getEditingKey = (hole: number, playerId: string) => `${hole}-${playerId}`;
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -48,7 +50,7 @@ export const ScorecardTable = ({
               <tr className="border-b">
                 <th className="p-2 text-left">Hole</th>
                 {Array.from({ length: 9 }, (_, i) => (
-                  <th key={startHole + i} className="p-1 text-center min-w-[40px]">
+                  <th key={startHole + i} className="p-1 text-center min-w-[50px]">
                     {startHole + i}
                   </th>
                 ))}
@@ -84,31 +86,39 @@ export const ScorecardTable = ({
             </thead>
             <tbody>
               {players.map((player) => (
-                <tr key={player.id} className="border-b">
+                <tr key={player.id} className="border-b hover:bg-gray-50">
                   <td className="p-2 text-left">
                     <div className="font-medium">{player.profiles.full_name.split(' ')[0]}</div>
                   </td>
-                  {holeRange.map((hole) => (
-                    <td key={hole.hole} className="p-1 text-center">
-                      {editingHole === hole.hole ? (
-                        <ScoreInput
-                          value={hole.scores[player.profiles.id] || 0}
-                          onChange={(value) => handleScoreChange(hole.hole, player.profiles.id, value)}
-                          onBlur={() => setEditingHole(null)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              setEditingHole(null);
-                            }
-                          }}
-                        />
-                      ) : (
-                        <ScoreButton
-                          score={getDisplayScore(player.profiles.id, hole)}
-                          onClick={() => setEditingHole(hole.hole)}
-                        />
-                      )}
-                    </td>
-                  ))}
+                  {holeRange.map((hole) => {
+                    const editingKey = getEditingKey(hole.hole, player.profiles.id);
+                    const isEditing = editingHole === parseInt(editingKey.split('-')[0]) && editingKey.includes(player.profiles.id);
+                    
+                    return (
+                      <td key={hole.hole} className="p-1 text-center">
+                        {isEditing ? (
+                          <ScoreInput
+                            value={hole.scores[player.profiles.id] || 0}
+                            onChange={(value) => handleScoreChange(hole.hole, player.profiles.id, value)}
+                            onBlur={() => setEditingHole(null)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                setEditingHole(null);
+                              }
+                              if (e.key === 'Escape') {
+                                setEditingHole(null);
+                              }
+                            }}
+                          />
+                        ) : (
+                          <ScoreButton
+                            score={getDisplayScore(player.profiles.id, hole)}
+                            onClick={() => setEditingHole(hole.hole)}
+                          />
+                        )}
+                      </td>
+                    );
+                  })}
                   <td className="p-2 text-center font-bold">
                     {holeRange.reduce((sum, h) => sum + (h.scores[player.profiles.id] || 0), 0) || '-'}
                   </td>

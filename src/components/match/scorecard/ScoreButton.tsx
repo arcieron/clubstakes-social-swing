@@ -1,4 +1,6 @@
 
+import { Button } from '@/components/ui/button';
+
 interface ScoreButtonProps {
   score: number;
   onClick: () => void;
@@ -6,11 +8,13 @@ interface ScoreButtonProps {
 
 export const ScoreButton = ({ score, onClick }: ScoreButtonProps) => {
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="sm"
       onClick={onClick}
-      className="w-8 h-8 text-center hover:bg-gray-100 rounded flex items-center justify-center"
+      className="w-12 h-10 text-sm font-medium hover:bg-primary/10 border border-gray-200"
     >
       {score || '-'}
-    </button>
+    </Button>
   );
 };

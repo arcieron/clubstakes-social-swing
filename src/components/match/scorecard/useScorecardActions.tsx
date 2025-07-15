@@ -24,6 +24,8 @@ export const useScorecardActions = (
 
   const updateScore = async (hole: number, playerId: string, score: number) => {
     try {
+      console.log('Updating score:', { hole, playerId, score, matchId });
+      
       const { error } = await supabase
         .from('hole_scores')
         .upsert({
@@ -35,23 +37,38 @@ export const useScorecardActions = (
           onConflict: 'match_id,player_id,hole_number'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating score:', error);
+        throw error;
+      }
 
+      // Update local state immediately for better UX
       setHoleScores(prev => prev.map(h => 
         h.hole === hole 
           ? { ...h, scores: { ...h.scores, [playerId]: score } }
           : h
       ));
+
+      console.log('Score updated successfully');
     } catch (error) {
       console.error('Error updating score:', error);
-      toast({ title: "Error", description: "Failed to save score", variant: "destructive" });
+      toast({ 
+        title: "Error", 
+        description: "Failed to save score. Please try again.", 
+        variant: "destructive" 
+      });
     }
   };
 
   const handleScoreChange = async (hole: number, playerId: string, value: string) => {
     const score = parseInt(value) || 0;
-    if (score > 0) {
+    console.log('Score change requested:', { hole, playerId, value, score });
+    
+    if (score > 0 && score <= 15) {
       await updateScore(hole, playerId, score);
+    } else if (value === '' || score === 0) {
+      // Allow clearing the score
+      await updateScore(hole, playerId, 0);
     }
   };
 
@@ -81,6 +98,8 @@ export const useScorecardActions = (
   const confirmScores = async () => {
     setLoading(true);
     try {
+      console.log('Confirming scores for user:', user?.id);
+      
       const { error } = await supabase
         .from('match_confirmations')
         .upsert({
@@ -90,13 +109,20 @@ export const useScorecardActions = (
           onConflict: 'match_id,player_id'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error confirming scores:', error);
+        throw error;
+      }
 
       toast({ title: "Success", description: "Scorecard confirmed!" });
       fetchConfirmations();
     } catch (error) {
       console.error('Error confirming scores:', error);
-      toast({ title: "Error", description: "Failed to confirm scorecard", variant: "destructive" });
+      toast({ 
+        title: "Error", 
+        description: "Failed to confirm scorecard. Please try again.", 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }

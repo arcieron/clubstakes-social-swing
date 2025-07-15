@@ -15,8 +15,8 @@ interface ScorecardTableProps {
   title: string;
   holeScores: HoleScore[];
   players: any[];
-  editingHole: number | null;
-  setEditingHole: (hole: number | null) => void;
+  editingHole: { hole: number; playerId: string } | null;
+  setEditingHole: (hole: { hole: number; playerId: string } | null) => void;
   handleScoreChange: (hole: number, playerId: string, value: string) => void;
   getDisplayScore: (playerId: string, hole: HoleScore) => number;
   showTotal?: boolean;

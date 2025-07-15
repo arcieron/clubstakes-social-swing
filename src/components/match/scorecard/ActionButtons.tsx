@@ -8,7 +8,6 @@ interface ActionButtonsProps {
   totalNeeded: number;
   allConfirmed: boolean;
   onConfirmScores: () => void;
-  onCompleteMatch: () => void;
 }
 
 export const ActionButtons = ({
@@ -17,8 +16,7 @@ export const ActionButtons = ({
   confirmedCount,
   totalNeeded,
   allConfirmed,
-  onConfirmScores,
-  onCompleteMatch
+  onConfirmScores
 }: ActionButtonsProps) => {
   return (
     <div className="space-y-3 pt-4">
@@ -33,17 +31,12 @@ export const ActionButtons = ({
 
       <div className="text-center text-sm text-gray-600">
         {confirmedCount} of {totalNeeded} players have confirmed their scorecard
+        {allConfirmed && (
+          <div className="mt-2 text-green-600 font-medium">
+            All players confirmed! Match completing automatically...
+          </div>
+        )}
       </div>
-
-      {allConfirmed && (
-        <Button 
-          onClick={onCompleteMatch}
-          className="w-full bg-green-600 hover:bg-green-700"
-          size="lg"
-        >
-          Complete Match & Distribute Credits
-        </Button>
-      )}
     </div>
   );
 };

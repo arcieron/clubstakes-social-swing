@@ -32,20 +32,14 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
     calculateTotal,
     calculateToPar,
     getDisplayScore,
-    confirmScores,
-    completeMatch
-  } = useScorecardActions(matchId, holeScores, setHoleScores, fetchConfirmations, players);
+    confirmScores
+  } = useScorecardActions(matchId, holeScores, setHoleScores, fetchConfirmations, players, confirmations, match);
 
   const isTeamFormat = match.team_format === 'teams';
   const userConfirmed = confirmations[user?.id || ''];
   const confirmedCount = Object.keys(confirmations).length;
   const totalNeeded = players.length;
   const allConfirmed = confirmedCount === totalNeeded;
-
-  const handleCompleteMatch = async () => {
-    await completeMatch(match);
-    onSubmitScores(); // This will refresh the parent component
-  };
 
   return (
     <div className="space-y-4 pb-6">
@@ -87,7 +81,6 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
         totalNeeded={totalNeeded}
         allConfirmed={allConfirmed}
         onConfirmScores={confirmScores}
-        onCompleteMatch={handleCompleteMatch}
       />
     </div>
   );

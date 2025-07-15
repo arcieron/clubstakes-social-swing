@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -16,10 +15,23 @@ export const useScorecardActions = (
   holeScores: HoleScore[],
   setHoleScores: React.Dispatch<React.SetStateAction<HoleScore[]>>,
   fetchConfirmations: () => void,
-  players: any[]
+  players: any[],
+  confirmations: Record<string, boolean>,
+  match: any
 ) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  // Auto-complete match when all players confirm
+  useEffect(() => {
+    const confirmedCount = Object.keys(confirmations).length;
+    const allConfirmed = confirmedCount === players.length && players.length > 0;
+    
+    if (allConfirmed && match?.status === 'in_progress') {
+      console.log('All players confirmed, auto-completing match');
+      completeMatch(match);
+    }
+  }, [confirmations, players.length, match?.status]);
 
   const updateScore = async (hole: number, playerId: string, score: number) => {
     try {
@@ -331,7 +343,7 @@ export const useScorecardActions = (
 
   const completeMatch = async (match: any) => {
     try {
-      console.log('Completing match:', match);
+      console.log('Auto-completing match:', match);
       
       const winner = calculateWinner(match);
       
@@ -408,7 +420,6 @@ export const useScorecardActions = (
     calculateTotal,
     calculateToPar,
     getDisplayScore,
-    confirmScores,
-    completeMatch
+    confirmScores
   };
 };

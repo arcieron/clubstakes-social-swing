@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,6 +22,17 @@ export const useScorecardActions = (
 ) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  // Calculate the lowest handicap in the match for relative handicapping
+  const getLowestHandicap = () => {
+    if (players.length === 0) return 0;
+    return Math.min(...players.map(player => player.profiles.handicap || 0));
+  };
+
+  // Get relative handicap for a player (their handicap minus the lowest handicap)
+  const getRelativeHandicap = (playerHandicap: number) => {
+    return Math.max(0, playerHandicap - getLowestHandicap());
+  };
 
   // Auto-complete match when all players confirm
   useEffect(() => {
@@ -85,13 +97,15 @@ export const useScorecardActions = (
   };
 
   const calculateNetScore = (playerId: string, handicap: number) => {
+    const relativeHandicap = getRelativeHandicap(handicap);
     let netTotal = 0;
+    
     holeScores.forEach(hole => {
       const grossScore = hole.scores[playerId] || 0;
       if (grossScore === 0) return;
       
-      // Calculate strokes received based on handicap and hole handicap rating
-      const strokesReceived = Math.floor(handicap / 18) + (handicap % 18 >= hole.handicap_rating ? 1 : 0);
+      // Calculate strokes received based on relative handicap and hole handicap rating
+      const strokesReceived = Math.floor(relativeHandicap / 18) + (relativeHandicap % 18 >= hole.handicap_rating ? 1 : 0);
       const netScore = Math.max(grossScore - strokesReceived, 0);
       netTotal += netScore;
     });
@@ -126,13 +140,19 @@ export const useScorecardActions = (
     let player2Holes = 0;
 
     holeScores.forEach(hole => {
-      const score1 = match.scoring_type === 'net' 
-        ? hole.scores[player1.profiles.id] - Math.floor(player1.profiles.handicap / 18) - (player1.profiles.handicap % 18 >= hole.handicap_rating ? 1 : 0)
-        : hole.scores[player1.profiles.id];
-      
-      const score2 = match.scoring_type === 'net'
-        ? hole.scores[player2.profiles.id] - Math.floor(player2.profiles.handicap / 18) - (player2.profiles.handicap % 18 >= hole.handicap_rating ? 1 : 0)
-        : hole.scores[player2.profiles.id];
+      let score1 = hole.scores[player1.profiles.id] || 0;
+      let score2 = hole.scores[player2.profiles.id] || 0;
+
+      if (match.scoring_type === 'net') {
+        const relativeHandicap1 = getRelativeHandicap(player1.profiles.handicap || 0);
+        const relativeHandicap2 = getRelativeHandicap(player2.profiles.handicap || 0);
+        
+        const strokes1 = Math.floor(relativeHandicap1 / 18) + (relativeHandicap1 % 18 >= hole.handicap_rating ? 1 : 0);
+        const strokes2 = Math.floor(relativeHandicap2 / 18) + (relativeHandicap2 % 18 >= hole.handicap_rating ? 1 : 0);
+        
+        score1 = score1 - strokes1;
+        score2 = score2 - strokes2;
+      }
 
       if (score1 > 0 && score2 > 0) {
         if (score1 < score2) player1Holes++;
@@ -183,17 +203,23 @@ export const useScorecardActions = (
         ? calculateNetScore(player.profiles.id, player.profiles.handicap || 0)
         : grossTotal;
       
+      const relativeHandicap = getRelativeHandicap(player.profiles.handicap || 0);
+      
       const front9Score = front9.reduce((sum, hole) => {
-        const holeScore = match.scoring_type === 'net'
-          ? (hole.scores[player.profiles.id] || 0) - Math.floor((player.profiles.handicap || 0) / 18) - ((player.profiles.handicap || 0) % 18 >= hole.handicap_rating ? 1 : 0)
-          : (hole.scores[player.profiles.id] || 0);
+        let holeScore = hole.scores[player.profiles.id] || 0;
+        if (match.scoring_type === 'net' && holeScore > 0) {
+          const strokes = Math.floor(relativeHandicap / 18) + (relativeHandicap % 18 >= hole.handicap_rating ? 1 : 0);
+          holeScore = holeScore - strokes;
+        }
         return sum + holeScore;
       }, 0);
 
       const back9Score = back9.reduce((sum, hole) => {
-        const holeScore = match.scoring_type === 'net'
-          ? (hole.scores[player.profiles.id] || 0) - Math.floor((player.profiles.handicap || 0) / 18) - ((player.profiles.handicap || 0) % 18 >= hole.handicap_rating ? 1 : 0)
-          : (hole.scores[player.profiles.id] || 0);
+        let holeScore = hole.scores[player.profiles.id] || 0;
+        if (match.scoring_type === 'net' && holeScore > 0) {
+          const strokes = Math.floor(relativeHandicap / 18) + (relativeHandicap % 18 >= hole.handicap_rating ? 1 : 0);
+          holeScore = holeScore - strokes;
+        }
         return sum + holeScore;
       }, 0);
 
@@ -237,9 +263,12 @@ export const useScorecardActions = (
       players.forEach(player => {
         const grossScore = hole.scores[player.profiles.id] || 0;
         if (grossScore > 0) {
-          const score = match.scoring_type === 'net'
-            ? grossScore - Math.floor((player.profiles.handicap || 0) / 18) - ((player.profiles.handicap || 0) % 18 >= hole.handicap_rating ? 1 : 0)
-            : grossScore;
+          let score = grossScore;
+          if (match.scoring_type === 'net') {
+            const relativeHandicap = getRelativeHandicap(player.profiles.handicap || 0);
+            const strokes = Math.floor(relativeHandicap / 18) + (relativeHandicap % 18 >= hole.handicap_rating ? 1 : 0);
+            score = grossScore - strokes;
+          }
           holeScores.push({ playerId: player.profiles.id, score });
         }
       });

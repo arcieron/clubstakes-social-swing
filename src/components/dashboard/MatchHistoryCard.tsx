@@ -84,11 +84,11 @@ export const MatchHistoryCard = ({ matchHistory, onChallenge }: MatchHistoryCard
                         </div>
                       </div>
 
-                      {match.profiles && (
+                      {match.winner_profile && (
                         <div className="flex items-center gap-2 text-sm">
                           <Crown className="w-4 h-4 text-yellow-500" />
                           <span className="text-gray-600">Winner: </span>
-                          <span className="font-medium text-gray-800">{match.profiles.full_name}</span>
+                          <span className="font-medium text-gray-800">{match.winner_profile.full_name}</span>
                         </div>
                       )}
                     </div>

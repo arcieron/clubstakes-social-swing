@@ -75,8 +75,8 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
           matches!inner(
             *,
             courses(name),
-            profiles!matches_creator_id_fkey(full_name),
-            profiles!matches_winner_id_fkey(full_name)
+            creator_profile:profiles!matches_creator_id_fkey(full_name),
+            winner_profile:profiles!matches_winner_id_fkey(full_name)
           )
         `)
         .eq('player_id', authUser.id)
@@ -89,7 +89,11 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
         console.log('Fetched match history:', matchPlayers);
-        const matches = matchPlayers?.map(mp => mp.matches) || [];
+        const matches = matchPlayers?.map(mp => ({
+          ...mp.matches,
+          creator_profile: mp.matches.creator_profile,
+          winner_profile: mp.matches.winner_profile
+        })) || [];
         setMatchHistory(matches);
       }
     } catch (error) {

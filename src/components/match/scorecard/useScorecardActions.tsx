@@ -64,11 +64,8 @@ export const useScorecardActions = (
     const score = parseInt(value) || 0;
     console.log('Score change requested:', { hole, playerId, value, score });
     
-    if (score > 0 && score <= 15) {
+    if (score >= 0 && score <= 15) {
       await updateScore(hole, playerId, score);
-    } else if (value === '' || score === 0) {
-      // Allow clearing the score
-      await updateScore(hole, playerId, 0);
     }
   };
 
@@ -81,13 +78,6 @@ export const useScorecardActions = (
     const totalPar = holeScores.reduce((sum, hole) => sum + hole.par, 0);
     const toPar = total - totalPar;
     return toPar === 0 ? 'E' : toPar > 0 ? `+${toPar}` : toPar.toString();
-  };
-
-  const calculateNetScore = (grossScore: number, playerHandicap: number, holeHandicapRating: number) => {
-    if (!grossScore || !playerHandicap) return grossScore;
-    
-    const strokesReceived = Math.floor(playerHandicap / 18) + (playerHandicap % 18 >= holeHandicapRating ? 1 : 0);
-    return Math.max(grossScore - strokesReceived, 1);
   };
 
   const getDisplayScore = (playerId: string, hole: HoleScore) => {
@@ -135,7 +125,6 @@ export const useScorecardActions = (
     handleScoreChange,
     calculateTotal,
     calculateToPar,
-    calculateNetScore,
     getDisplayScore,
     confirmScores
   };

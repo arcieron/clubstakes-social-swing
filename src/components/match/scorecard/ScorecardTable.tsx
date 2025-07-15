@@ -36,8 +36,6 @@ export const ScorecardTable = ({
   const holeRange = title === 'Front 9' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
   const startHole = title === 'Front 9' ? 1 : 10;
 
-  const getEditingKey = (hole: number, playerId: string) => `${hole}-${playerId}`;
-
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -91,8 +89,7 @@ export const ScorecardTable = ({
                     <div className="font-medium">{player.profiles.full_name.split(' ')[0]}</div>
                   </td>
                   {holeRange.map((hole) => {
-                    const editingKey = getEditingKey(hole.hole, player.profiles.id);
-                    const isEditing = editingHole === parseInt(editingKey.split('-')[0]) && editingKey.includes(player.profiles.id);
+                    const isEditing = editingHole === hole.hole;
                     
                     return (
                       <td key={hole.hole} className="p-1 text-center">

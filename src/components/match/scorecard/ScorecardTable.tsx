@@ -23,6 +23,40 @@ interface ScorecardTableProps {
   calculateTotal?: (playerId: string) => number;
 }
 
+// Helper function to calculate strokes received on a hole
+const getStrokesOnHole = (playerHandicap: number, holeHandicapRating: number): number => {
+  const handicap = Math.round(playerHandicap);
+  
+  // For positive handicaps (higher handicap players get strokes)
+  if (handicap >= 0) {
+    const strokesPerHole = Math.floor(handicap / 18);
+    const extraStrokes = handicap % 18;
+    
+    let strokes = strokesPerHole;
+    
+    // Add extra stroke if this hole's handicap rating is within the remainder
+    if (extraStrokes >= holeHandicapRating) {
+      strokes += 1;
+    }
+    
+    return strokes;
+  } else {
+    // For negative handicaps (scratch or better players give strokes)
+    const absHandicap = Math.abs(handicap);
+    const strokesPerHole = Math.floor(absHandicap / 18);
+    const extraStrokes = absHandicap % 18;
+    
+    let strokes = strokesPerHole;
+    
+    // Add extra stroke if this hole's handicap rating is within the remainder
+    if (extraStrokes >= holeHandicapRating) {
+      strokes += 1;
+    }
+    
+    return -strokes; // Negative because they give strokes
+  }
+};
+
 export const ScorecardTable = ({
   title,
   holeScores,
@@ -114,14 +148,24 @@ export const ScorecardTable = ({
                   <td className="p-2 text-left">
                     <div className="font-medium">{player.profiles.full_name.split(' ')[0]}</div>
                   </td>
-                  {holeRange.map((hole) => (
-                    <td key={hole.hole} className="p-1 text-center">
-                      <ScoreButton
-                        score={getDisplayScore(player.profiles.id, hole)}
-                        onClick={() => handleScoreClick(hole, player)}
-                      />
-                    </td>
-                  ))}
+                  {holeRange.map((hole) => {
+                    const playerHandicap = player.profiles.handicap || 0;
+                    const receivesStroke = getStrokesOnHole(playerHandicap, hole.handicap_rating) > 0;
+                    
+                    return (
+                      <td key={hole.hole} className="p-1 text-center">
+                        <div className="relative">
+                          <ScoreButton
+                            score={getDisplayScore(player.profiles.id, hole)}
+                            onClick={() => handleScoreClick(hole, player)}
+                          />
+                          {receivesStroke && (
+                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
                   <td className="p-2 text-center font-bold">
                     {holeRange.reduce((sum, h) => sum + (h.scores[player.profiles.id] || 0), 0) || '-'}
                   </td>

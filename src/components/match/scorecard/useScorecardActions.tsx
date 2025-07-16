@@ -212,18 +212,21 @@ export const useScorecardActions = (
         holeScores.forEach(hole => {
           const teamHoleScores: number[] = [];
           
-          teamPlayers.forEach(player => {
-            const grossScore = hole.scores[player.profiles.id] || 0;
-            if (grossScore > 0) {
-              let score = grossScore;
-              if (match.scoring_type === 'net') {
-                const relativeHandicap = getRelativeHandicap(player.profiles.handicap || 0);
-                const strokes = Math.floor(relativeHandicap / 18) + (relativeHandicap % 18 >= hole.handicap_rating ? 1 : 0);
-                score = grossScore - strokes;
+          // Ensure teamPlayers is an array before calling forEach
+          if (Array.isArray(teamPlayers)) {
+            teamPlayers.forEach(player => {
+              const grossScore = hole.scores[player.profiles.id] || 0;
+              if (grossScore > 0) {
+                let score = grossScore;
+                if (match.scoring_type === 'net') {
+                  const relativeHandicap = getRelativeHandicap(player.profiles.handicap || 0);
+                  const strokes = Math.floor(relativeHandicap / 18) + (relativeHandicap % 18 >= hole.handicap_rating ? 1 : 0);
+                  score = grossScore - strokes;
+                }
+                teamHoleScores.push(score);
               }
-              teamHoleScores.push(score);
-            }
-          });
+            });
+          }
 
           // Use the best (lowest) score for the team on this hole
           if (teamHoleScores.length > 0) {

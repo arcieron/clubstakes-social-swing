@@ -439,11 +439,11 @@ export const useScorecardActions = (
   };
 
   const calculateSkinsWinner = (match: any) => {
-    const skinsCounts: Record<string, number> = {};
+    const playerSkins: Record<string, { count: number; holes: number[] }> = {};
     
     // Initialize skins count for each player
     players.forEach(player => {
-      skinsCounts[player.profiles.id] = 0;
+      playerSkins[player.profiles.id] = { count: 0, holes: [] };
     });
 
     // Calculate skins for each hole
@@ -466,26 +466,36 @@ export const useScorecardActions = (
         
         // Only award skin if there's a single winner
         if (winners.length === 1) {
-          skinsCounts[winners[0].playerId]++;
+          playerSkins[winners[0].playerId].count++;
+          playerSkins[winners[0].playerId].holes.push(hole.hole);
         }
       }
     });
 
-    // Find players with most skins (handle ties)
-    const maxSkins = Math.max(...Object.values(skinsCounts));
-    const winners = Object.entries(skinsCounts)
-      .filter(([, count]) => count === maxSkins)
-      .map(([playerId, count]) => {
-        const winner = players.find(p => p.profiles.id === playerId);
-        return {
-          playerId,
-          playerName: winner?.profiles.full_name || '',
-          totalScore: count,
-          toPar: `${count} skins won${count === maxSkins && Object.values(skinsCounts).filter(c => c === maxSkins).length > 1 ? ' (tied)' : ''}`
-        };
-      });
+    // Convert to array with detailed information
+    const skinsResults = Object.entries(playerSkins).map(([playerId, skins]) => {
+      const player = players.find(p => p.profiles.id === playerId);
+      return {
+        playerId,
+        playerName: player?.profiles.full_name || '',
+        skinsWon: skins.count,
+        holesWon: skins.holes,
+        totalScore: skins.count // For compatibility with existing winner structure
+      };
+    });
 
-    return winners.length === 1 ? winners[0] : winners;
+    // Calculate total skins awarded
+    const totalSkins = skinsResults.reduce((sum, player) => sum + player.skinsWon, 0);
+
+    return {
+      skinsResults,
+      totalSkins,
+      // For backward compatibility, return player with most skins as main winner
+      playerId: skinsResults.reduce((max, player) => player.skinsWon > max.skinsWon ? player : max, skinsResults[0])?.playerId,
+      playerName: skinsResults.reduce((max, player) => player.skinsWon > max.skinsWon ? player : max, skinsResults[0])?.playerName,
+      totalScore: Math.max(...skinsResults.map(p => p.skinsWon)),
+      toPar: `${Math.max(...skinsResults.map(p => p.skinsWon))} skins won`
+    };
   };
 
   const calculateWinner = (match: any) => {
@@ -530,6 +540,53 @@ export const useScorecardActions = (
     try {
       console.log('Dispersing credits:', { winner, wagerAmount });
       
+      // Handle skins format with proportional distribution
+      if (match.format === 'skins' && winner.skinsResults) {
+        const totalPot = wagerAmount * players.length;
+        const totalSkins = winner.totalSkins;
+        
+        if (totalSkins === 0) {
+          // No skins won, refund everyone
+          console.log('No skins won, refunding all players');
+          toast({
+            title: "No Skins Won",
+            description: "All holes were tied. Everyone gets their wager back.",
+          });
+          return; // No credits to disperse, everyone keeps their original wager
+        }
+        
+        const perSkinValue = Math.floor(totalPot / totalSkins);
+        
+        // Award credits to players based on skins won
+        for (const playerResult of winner.skinsResults) {
+          if (playerResult.skinsWon > 0) {
+            const creditsToAdd = playerResult.skinsWon * perSkinValue;
+            const { error: addError } = await supabase.rpc('add_credits', {
+              user_id: playerResult.playerId,
+              amount: creditsToAdd
+            });
+            if (addError) throw addError;
+          }
+        }
+        
+        // Calculate remainder due to rounding
+        const totalDistributed = totalSkins * perSkinValue;
+        const remainder = totalPot - totalDistributed;
+        const refundPerPlayer = Math.floor(remainder / players.length);
+        
+        // Deduct wager from all players and add any remainder refund
+        for (const player of players) {
+          const { error: deductError } = await supabase.rpc('add_credits', {
+            user_id: player.profiles.id,
+            amount: -wagerAmount + refundPerPlayer
+          });
+          if (deductError) throw deductError;
+        }
+        
+        console.log('Skins credits dispersed successfully');
+        return;
+      }
+
       // Handle Nassau format with multiple winners (ties possible)
       if (match.format === 'nassau' && winner.front9Winners) {
         const front9Amount = Math.floor(wagerAmount * 0.25 * players.length);
@@ -708,7 +765,13 @@ export const useScorecardActions = (
 
       // Create appropriate toast message
       let toastMessage = '';
-      if (match.format === 'nassau' && winner.front9Winners) {
+      if (match.format === 'skins' && winner.skinsResults) {
+        const playerSummaries = winner.skinsResults
+          .filter(p => p.skinsWon > 0)
+          .map(p => `${p.playerName}: ${p.skinsWon} skins`)
+          .join(', ');
+        toastMessage = playerSummaries || 'No skins won, all wagers refunded';
+      } else if (match.format === 'nassau' && winner.front9Winners) {
         const front9Names = winner.front9Winners.map(w => w.playerName).join(', ');
         const back9Names = winner.back9Winners.map(w => w.playerName).join(', ');
         const overallNames = winner.overallWinners.map(w => w.playerName).join(', ');

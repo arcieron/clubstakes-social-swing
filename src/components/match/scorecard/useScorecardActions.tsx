@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -128,6 +127,13 @@ export const useScorecardActions = (
     return grossScore;
   };
 
+  const findWinnersWithTies = (playerScores: any[]) => {
+    if (playerScores.length === 0) return [];
+    
+    const lowestScore = Math.min(...playerScores.map(p => p.totalScore));
+    return playerScores.filter(p => p.totalScore === lowestScore);
+  };
+
   const calculateMatchPlayWinner = (match: any) => {
     // For match play, we need to compare hole by hole
     if (players.length !== 2) {
@@ -160,6 +166,24 @@ export const useScorecardActions = (
       }
     });
 
+    if (player1Holes === player2Holes) {
+      // Tie - return both players
+      return [
+        {
+          playerId: player1.profiles.id,
+          playerName: player1.profiles.full_name,
+          totalScore: player1Holes,
+          toPar: `${player1Holes} holes won (tied)`
+        },
+        {
+          playerId: player2.profiles.id,
+          playerName: player2.profiles.full_name,
+          totalScore: player2Holes,
+          toPar: `${player2Holes} holes won (tied)`
+        }
+      ];
+    }
+
     return player1Holes > player2Holes ? {
       playerId: player1.profiles.id,
       playerName: player1.profiles.full_name,
@@ -188,9 +212,7 @@ export const useScorecardActions = (
       };
     });
 
-    return playerScores.reduce((lowest, current) => 
-      current.totalScore < lowest.totalScore ? current : lowest
-    );
+    return findWinnersWithTies(playerScores);
   };
 
   const calculateBetterBallWinner = (match: any) => {
@@ -246,18 +268,29 @@ export const useScorecardActions = (
       };
     });
 
-    const winningTeam = teamScores.reduce((lowest, current) => 
-      current.totalScore < lowest.totalScore ? current : lowest
-    );
+    const winningTeams = findWinnersWithTies(teamScores);
+    
+    if (winningTeams.length === 1) {
+      const winningTeam = winningTeams[0];
+      return {
+        playerId: winningTeam.players[0].profiles.id,
+        playerName: winningTeam.teamName,
+        totalScore: winningTeam.totalScore,
+        toPar: winningTeam.toPar === 0 ? 'E' : winningTeam.toPar > 0 ? `+${winningTeam.toPar}` : winningTeam.toPar.toString(),
+        teamNumber: winningTeam.teamNumber,
+        teamPlayers: winningTeam.players
+      };
+    }
 
-    return {
-      playerId: winningTeam.players[0].profiles.id, // Use first player's ID for compatibility
-      playerName: winningTeam.teamName,
-      totalScore: winningTeam.totalScore,
-      toPar: winningTeam.toPar === 0 ? 'E' : winningTeam.toPar > 0 ? `+${winningTeam.toPar}` : winningTeam.toPar.toString(),
-      teamNumber: winningTeam.teamNumber,
-      teamPlayers: winningTeam.players
-    };
+    // Return tied teams
+    return winningTeams.map(team => ({
+      playerId: team.players[0].profiles.id,
+      playerName: team.teamName + ' (tied)',
+      totalScore: team.totalScore,
+      toPar: team.toPar === 0 ? 'E' : team.toPar > 0 ? `+${team.toPar}` : team.toPar.toString(),
+      teamNumber: team.teamNumber,
+      teamPlayers: team.players
+    }));
   };
 
   const calculateScrambleWinner = (match: any) => {
@@ -288,18 +321,29 @@ export const useScorecardActions = (
       };
     });
 
-    const winningTeam = teamScores.reduce((lowest, current) => 
-      current.totalScore < lowest.totalScore ? current : lowest
-    );
+    const winningTeams = findWinnersWithTies(teamScores);
+    
+    if (winningTeams.length === 1) {
+      const winningTeam = winningTeams[0];
+      return {
+        playerId: winningTeam.players[0].profiles.id,
+        playerName: winningTeam.teamName,
+        totalScore: winningTeam.totalScore,
+        toPar: winningTeam.toPar === 0 ? 'E' : winningTeam.toPar > 0 ? `+${winningTeam.toPar}` : winningTeam.toPar.toString(),
+        teamNumber: winningTeam.teamNumber,
+        teamPlayers: winningTeam.players
+      };
+    }
 
-    return {
-      playerId: winningTeam.players[0].profiles.id, // Use first player's ID for compatibility
-      playerName: winningTeam.teamName,
-      totalScore: winningTeam.totalScore,
-      toPar: winningTeam.toPar === 0 ? 'E' : winningTeam.toPar > 0 ? `+${winningTeam.toPar}` : winningTeam.toPar.toString(),
-      teamNumber: winningTeam.teamNumber,
-      teamPlayers: winningTeam.players
-    };
+    // Return tied teams
+    return winningTeams.map(team => ({
+      playerId: team.players[0].profiles.id,
+      playerName: team.teamName + ' (tied)',
+      totalScore: team.totalScore,
+      toPar: team.toPar === 0 ? 'E' : team.toPar > 0 ? `+${team.toPar}` : team.toPar.toString(),
+      teamNumber: team.teamNumber,
+      teamPlayers: team.players
+    }));
   };
 
   const calculateNassauWinner = (match: any) => {
@@ -342,26 +386,20 @@ export const useScorecardActions = (
       };
     });
 
-    // Calculate winners for each competition
-    const front9Winner = playerScores.reduce((lowest, current) => 
-      current.front9Score < lowest.front9Score ? current : lowest
-    );
-    const back9Winner = playerScores.reduce((lowest, current) => 
-      current.back9Score < lowest.back9Score ? current : lowest
-    );
-    const overallWinner = playerScores.reduce((lowest, current) => 
-      current.totalScore < lowest.totalScore ? current : lowest
-    );
+    // Calculate winners for each competition (handle ties)
+    const front9Winners = findWinnersWithTies(playerScores.map(p => ({ ...p, totalScore: p.front9Score })));
+    const back9Winners = findWinnersWithTies(playerScores.map(p => ({ ...p, totalScore: p.back9Score })));
+    const overallWinners = findWinnersWithTies(playerScores);
 
     return {
-      front9Winner,
-      back9Winner,
-      overallWinner,
+      front9Winners,
+      back9Winners,
+      overallWinners,
       // Return overall winner as main winner for backward compatibility
-      playerId: overallWinner.playerId,
-      playerName: overallWinner.playerName,
-      totalScore: overallWinner.totalScore,
-      toPar: overallWinner.toPar
+      playerId: overallWinners[0]?.playerId,
+      playerName: overallWinners[0]?.playerName,
+      totalScore: overallWinners[0]?.totalScore,
+      toPar: overallWinners[0]?.toPar
     };
   };
 
@@ -401,19 +439,21 @@ export const useScorecardActions = (
       }
     });
 
-    // Find player with most skins
-    const winnerEntry = Object.entries(skinsCounts).reduce((max, [playerId, count]) => 
-      count > max.count ? { playerId, count } : max
-    , { playerId: '', count: 0 });
+    // Find players with most skins (handle ties)
+    const maxSkins = Math.max(...Object.values(skinsCounts));
+    const winners = Object.entries(skinsCounts)
+      .filter(([, count]) => count === maxSkins)
+      .map(([playerId, count]) => {
+        const winner = players.find(p => p.profiles.id === playerId);
+        return {
+          playerId,
+          playerName: winner?.profiles.full_name || '',
+          totalScore: count,
+          toPar: `${count} skins won${count === maxSkins && Object.values(skinsCounts).filter(c => c === maxSkins).length > 1 ? ' (tied)' : ''}`
+        };
+      });
 
-    const winner = players.find(p => p.profiles.id === winnerEntry.playerId);
-    
-    return {
-      playerId: winnerEntry.playerId,
-      playerName: winner?.profiles.full_name || '',
-      totalScore: winnerEntry.count,
-      toPar: `${winnerEntry.count} skins won`
-    };
+    return winners.length === 1 ? winners[0] : winners;
   };
 
   const calculateWinner = (match: any) => {
@@ -458,73 +498,117 @@ export const useScorecardActions = (
     try {
       console.log('Dispersing credits:', { winner, wagerAmount });
       
-      // Handle Nassau format with multiple winners
-      if (match.format === 'nassau' && winner.front9Winner) {
+      // Handle Nassau format with multiple winners (ties possible)
+      if (match.format === 'nassau' && winner.front9Winners) {
         const front9Amount = Math.floor(wagerAmount * 0.25 * players.length);
         const back9Amount = Math.floor(wagerAmount * 0.25 * players.length);
         const overallAmount = Math.floor(wagerAmount * 0.5 * players.length);
 
-        // Add credits to front 9 winner
-        const { error: front9Error } = await supabase.rpc('add_credits', {
-          user_id: winner.front9Winner.playerId,
-          amount: front9Amount
-        });
-
-        if (front9Error) {
-          console.error('Error adding front 9 credits:', front9Error);
-          throw front9Error;
+        // Handle front 9 winners (split if tied)
+        const front9WinAmount = Math.floor(front9Amount / winner.front9Winners.length);
+        for (const front9Winner of winner.front9Winners) {
+          const { error: front9Error } = await supabase.rpc('add_credits', {
+            user_id: front9Winner.playerId,
+            amount: front9WinAmount
+          });
+          if (front9Error) throw front9Error;
         }
 
-        // Add credits to back 9 winner
-        const { error: back9Error } = await supabase.rpc('add_credits', {
-          user_id: winner.back9Winner.playerId,
-          amount: back9Amount
-        });
-
-        if (back9Error) {
-          console.error('Error adding back 9 credits:', back9Error);
-          throw back9Error;
+        // Handle back 9 winners (split if tied)
+        const back9WinAmount = Math.floor(back9Amount / winner.back9Winners.length);
+        for (const back9Winner of winner.back9Winners) {
+          const { error: back9Error } = await supabase.rpc('add_credits', {
+            user_id: back9Winner.playerId,
+            amount: back9WinAmount
+          });
+          if (back9Error) throw back9Error;
         }
 
-        // Add credits to overall winner
-        const { error: overallError } = await supabase.rpc('add_credits', {
-          user_id: winner.overallWinner.playerId,
-          amount: overallAmount
-        });
-
-        if (overallError) {
-          console.error('Error adding overall credits:', overallError);
-          throw overallError;
+        // Handle overall winners (split if tied)
+        const overallWinAmount = Math.floor(overallAmount / winner.overallWinners.length);
+        for (const overallWinner of winner.overallWinners) {
+          const { error: overallError } = await supabase.rpc('add_credits', {
+            user_id: overallWinner.playerId,
+            amount: overallWinAmount
+          });
+          if (overallError) throw overallError;
         }
 
-        // Deduct credits from all players
+        // Calculate refunds for tied portions
+        const front9Refund = winner.front9Winners.length > 1 ? Math.floor((front9Amount - front9WinAmount * winner.front9Winners.length) / players.length) : 0;
+        const back9Refund = winner.back9Winners.length > 1 ? Math.floor((back9Amount - back9WinAmount * winner.back9Winners.length) / players.length) : 0;
+        const overallRefund = winner.overallWinners.length > 1 ? Math.floor((overallAmount - overallWinAmount * winner.overallWinners.length) / players.length) : 0;
+
+        // Deduct wager from all players and add refunds for tied portions
+        for (const player of players) {
+          const refundAmount = front9Refund + back9Refund + overallRefund;
+          const netDeduction = -wagerAmount + refundAmount;
+          
+          const { error: deductError } = await supabase.rpc('add_credits', {
+            user_id: player.profiles.id,
+            amount: netDeduction
+          });
+          if (deductError) throw deductError;
+        }
+
+      } else if (Array.isArray(winner)) {
+        // Handle ties in other formats (split the pot)
+        const totalPot = wagerAmount * players.length;
+        const isTeamFormat = (match.format === 'scramble' || match.format === 'better-ball') && winner[0]?.teamPlayers;
+        
+        if (isTeamFormat) {
+          // Team format with ties - split among winning teams
+          const totalWinningPlayers = winner.reduce((sum, team) => sum + team.teamPlayers.length, 0);
+          const perPlayerWinning = Math.floor(totalPot / totalWinningPlayers);
+          
+          for (const winningTeam of winner) {
+            for (const teamPlayer of winningTeam.teamPlayers) {
+              const { error: addError } = await supabase.rpc('add_credits', {
+                user_id: teamPlayer.profiles.id,
+                amount: perPlayerWinning
+              });
+              if (addError) throw addError;
+            }
+          }
+        } else {
+          // Individual format with ties - split among tied players
+          const perPlayerWinning = Math.floor(totalPot / winner.length);
+          
+          for (const tiedWinner of winner) {
+            const { error: addError } = await supabase.rpc('add_credits', {
+              user_id: tiedWinner.playerId,
+              amount: perPlayerWinning
+            });
+            if (addError) throw addError;
+          }
+        }
+
+        // Calculate refund for remainder due to ties
+        const totalDistributed = isTeamFormat 
+          ? Math.floor(totalPot / winner.reduce((sum, team) => sum + team.teamPlayers.length, 0)) * winner.reduce((sum, team) => sum + team.teamPlayers.length, 0)
+          : Math.floor(totalPot / winner.length) * winner.length;
+        const refundPerPlayer = Math.floor((totalPot - totalDistributed) / players.length);
+
+        // Deduct wager from all players and add tie refund
         for (const player of players) {
           const { error: deductError } = await supabase.rpc('add_credits', {
             user_id: player.profiles.id,
-            amount: -wagerAmount
+            amount: -wagerAmount + refundPerPlayer
           });
-
-          if (deductError) {
-            console.error('Error deducting credits from player:', deductError);
-            throw deductError;
-          }
+          if (deductError) throw deductError;
         }
+
       } else if ((match.format === 'scramble' || match.format === 'better-ball') && winner.teamPlayers) {
-        // For team formats, distribute winnings to all team members
+        // Single winning team - distribute winnings to all team members
         const totalPot = wagerAmount * players.length;
         const perPlayerWinning = Math.floor(totalPot / winner.teamPlayers.length);
 
-        // Add credits to each winning team member
         for (const teamPlayer of winner.teamPlayers) {
           const { error: addError } = await supabase.rpc('add_credits', {
             user_id: teamPlayer.profiles.id,
             amount: perPlayerWinning
           });
-
-          if (addError) {
-            console.error('Error adding credits to team member:', addError);
-            throw addError;
-          }
+          if (addError) throw addError;
         }
 
         // Deduct credits from all players
@@ -533,35 +617,23 @@ export const useScorecardActions = (
             user_id: player.profiles.id,
             amount: -wagerAmount
           });
-
-          if (deductError) {
-            console.error('Error deducting credits from player:', deductError);
-            throw deductError;
-          }
+          if (deductError) throw deductError;
         }
       } else {
-        // Standard format - winner gets total pot
+        // Standard single winner format
         const { error: addError } = await supabase.rpc('add_credits', {
           user_id: winner.playerId,
           amount: wagerAmount * players.length
         });
+        if (addError) throw addError;
 
-        if (addError) {
-          console.error('Error adding credits to winner:', addError);
-          throw addError;
-        }
-
-        // Deduct credits from all players (including winner, so winner gets net positive)
+        // Deduct credits from all players
         for (const player of players) {
           const { error: deductError } = await supabase.rpc('add_credits', {
             user_id: player.profiles.id,
             amount: -wagerAmount
           });
-
-          if (deductError) {
-            console.error('Error deducting credits from player:', deductError);
-            throw deductError;
-          }
+          if (deductError) throw deductError;
         }
       }
 
@@ -579,9 +651,11 @@ export const useScorecardActions = (
       const winner = calculateWinner(match);
       
       // Update match with winner and completion status
-      const winnerId = match.format === 'nassau' && winner.overallWinner 
-        ? winner.overallWinner.playerId 
-        : winner.playerId;
+      const winnerId = match.format === 'nassau' && winner.overallWinners 
+        ? winner.overallWinners[0]?.playerId 
+        : Array.isArray(winner) 
+          ? winner[0]?.playerId 
+          : winner.playerId;
 
       const { error: updateError } = await supabase
         .from('matches')
@@ -602,11 +676,14 @@ export const useScorecardActions = (
 
       // Create appropriate toast message
       let toastMessage = '';
-      if (match.format === 'nassau' && winner.front9Winner) {
-        const front9Name = winner.front9Winner.playerName;
-        const back9Name = winner.back9Winner.playerName;
-        const overallName = winner.overallWinner.playerName;
-        toastMessage = `Nassau Complete! Front 9: ${front9Name}, Back 9: ${back9Name}, Overall: ${overallName}`;
+      if (match.format === 'nassau' && winner.front9Winners) {
+        const front9Names = winner.front9Winners.map(w => w.playerName).join(', ');
+        const back9Names = winner.back9Winners.map(w => w.playerName).join(', ');
+        const overallNames = winner.overallWinners.map(w => w.playerName).join(', ');
+        toastMessage = `Nassau Complete! Front 9: ${front9Names}, Back 9: ${back9Names}, Overall: ${overallNames}`;
+      } else if (Array.isArray(winner)) {
+        const winnerNames = winner.map(w => w.playerName).join(', ');
+        toastMessage = `Tie! ${winnerNames} split the pot. Credits have been distributed.`;
       } else {
         toastMessage = `${winner.playerName} wins! Credits have been distributed.`;
       }

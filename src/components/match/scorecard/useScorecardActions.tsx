@@ -206,27 +206,30 @@ export const useScorecardActions = (
     const teamScores = Object.entries(teams).map(([teamNumber, teamPlayers]) => {
       let teamTotal = 0;
       
-      holeScores.forEach(hole => {
-        const holeScores: number[] = [];
-        
-        teamPlayers.forEach(player => {
-          const grossScore = hole.scores[player.profiles.id] || 0;
-          if (grossScore > 0) {
-            let score = grossScore;
-            if (match.scoring_type === 'net') {
-              const relativeHandicap = getRelativeHandicap(player.profiles.handicap || 0);
-              const strokes = Math.floor(relativeHandicap / 18) + (relativeHandicap % 18 >= hole.handicap_rating ? 1 : 0);
-              score = grossScore - strokes;
+      // Ensure holeScores is properly typed and available
+      if (Array.isArray(holeScores)) {
+        holeScores.forEach(hole => {
+          const holeScores: number[] = [];
+          
+          teamPlayers.forEach(player => {
+            const grossScore = hole.scores[player.profiles.id] || 0;
+            if (grossScore > 0) {
+              let score = grossScore;
+              if (match.scoring_type === 'net') {
+                const relativeHandicap = getRelativeHandicap(player.profiles.handicap || 0);
+                const strokes = Math.floor(relativeHandicap / 18) + (relativeHandicap % 18 >= hole.handicap_rating ? 1 : 0);
+                score = grossScore - strokes;
+              }
+              holeScores.push(score);
             }
-            holeScores.push(score);
+          });
+
+          // Use the best (lowest) score for the team on this hole
+          if (holeScores.length > 0) {
+            teamTotal += Math.min(...holeScores);
           }
         });
-
-        // Use the best (lowest) score for the team on this hole
-        if (holeScores.length > 0) {
-          teamTotal += Math.min(...holeScores);
-        }
-      });
+      }
 
       const teamName = `Team ${['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'][parseInt(teamNumber) - 1]}`;
       
@@ -235,7 +238,7 @@ export const useScorecardActions = (
         teamName,
         players: teamPlayers,
         totalScore: teamTotal,
-        toPar: teamTotal - holeScores.reduce((sum, hole) => sum + hole.par, 0)
+        toPar: teamTotal - (Array.isArray(holeScores) ? holeScores.reduce((sum, hole) => sum + hole.par, 0) : 0)
       };
     });
 
@@ -266,7 +269,9 @@ export const useScorecardActions = (
 
     const teamScores = Object.entries(teams).map(([teamNumber, teamPlayers]) => {
       const teamScoreId = `team_${teamNumber}`;
-      const teamTotal = holeScores.reduce((total, hole) => total + (hole.scores[teamScoreId] || 0), 0);
+      const teamTotal = Array.isArray(holeScores) 
+        ? holeScores.reduce((total, hole) => total + (hole.scores[teamScoreId] || 0), 0)
+        : 0;
       
       const teamName = `Team ${['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'][parseInt(teamNumber) - 1]}`;
       
@@ -275,7 +280,7 @@ export const useScorecardActions = (
         teamName,
         players: teamPlayers,
         totalScore: teamTotal,
-        toPar: teamTotal - holeScores.reduce((sum, hole) => sum + hole.par, 0)
+        toPar: teamTotal - (Array.isArray(holeScores) ? holeScores.reduce((sum, hole) => sum + hole.par, 0) : 0)
       };
     });
 

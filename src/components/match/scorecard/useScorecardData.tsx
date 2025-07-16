@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -26,7 +25,136 @@ export const useScorecardData = (matchId: string, match: any, players: any[]) =>
     fetchHolesData();
     fetchExistingScores();
     fetchConfirmations();
+    
+    // Set up realtime subscriptions
+    const scoreChannel = supabase
+      .channel(`match-scores-${matchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'hole_scores',
+          filter: `match_id=eq.${matchId}`
+        },
+        (payload) => {
+          console.log('Real-time score update:', payload);
+          handleRealtimeScoreUpdate(payload);
+        }
+      )
+      .subscribe();
+
+    const confirmationChannel = supabase
+      .channel(`match-confirmations-${matchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'match_confirmations',
+          filter: `match_id=eq.${matchId}`
+        },
+        (payload) => {
+          console.log('Real-time confirmation update:', payload);
+          handleRealtimeConfirmationUpdate(payload);
+        }
+      )
+      .subscribe();
+
+    const matchChannel = supabase
+      .channel(`match-status-${matchId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'matches',
+          filter: `id=eq.${matchId}`
+        },
+        (payload) => {
+          console.log('Real-time match update:', payload);
+          if (payload.new?.status === 'completed') {
+            toast({
+              title: "Match Completed!",
+              description: "The match has been completed by all players.",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup function
+    return () => {
+      supabase.removeChannel(scoreChannel);
+      supabase.removeChannel(confirmationChannel);
+      supabase.removeChannel(matchChannel);
+    };
   }, [matchId, players, match.course_id]);
+
+  const handleRealtimeScoreUpdate = (payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    if (eventType === 'INSERT' || eventType === 'UPDATE') {
+      setHoleScores(prev => prev.map(hole => 
+        hole.hole === newRecord.hole_number 
+          ? { 
+              ...hole, 
+              scores: { 
+                ...hole.scores, 
+                [newRecord.player_id]: newRecord.score || 0 
+              } 
+            }
+          : hole
+      ));
+
+      // Show toast notification for other players' score updates
+      const player = players.find(p => p.profiles.id === newRecord.player_id);
+      if (player) {
+        toast({
+          title: "Score Updated",
+          description: `${player.profiles.full_name} scored ${newRecord.score} on hole ${newRecord.hole_number}`,
+        });
+      }
+    } else if (eventType === 'DELETE') {
+      setHoleScores(prev => prev.map(hole => 
+        hole.hole === oldRecord.hole_number 
+          ? { 
+              ...hole, 
+              scores: { 
+                ...hole.scores, 
+                [oldRecord.player_id]: 0 
+              } 
+            }
+          : hole
+      ));
+    }
+  };
+
+  const handleRealtimeConfirmationUpdate = (payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    if (eventType === 'INSERT') {
+      setConfirmations(prev => ({
+        ...prev,
+        [newRecord.player_id]: true
+      }));
+
+      // Show toast notification for confirmations
+      const player = players.find(p => p.profiles.id === newRecord.player_id);
+      if (player) {
+        toast({
+          title: "Scorecard Confirmed",
+          description: `${player.profiles.full_name} has confirmed their scorecard`,
+        });
+      }
+    } else if (eventType === 'DELETE') {
+      setConfirmations(prev => {
+        const updated = { ...prev };
+        delete updated[oldRecord.player_id];
+        return updated;
+      });
+    }
+  };
 
   const fetchHolesData = async () => {
     if (!match.course_id) {

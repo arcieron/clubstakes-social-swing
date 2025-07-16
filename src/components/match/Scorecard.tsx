@@ -5,6 +5,7 @@ import { PlayersHeader } from './scorecard/PlayersHeader';
 import { ScorecardTable } from './scorecard/ScorecardTable';
 import { TeamScorecardTable } from './scorecard/TeamScorecardTable';
 import { ActionButtons } from './scorecard/ActionButtons';
+import { OnlinePlayersIndicator } from './scorecard/OnlinePlayersIndicator';
 import { useScorecardData } from './scorecard/useScorecardData';
 import { useScorecardActions } from './scorecard/useScorecardActions';
 import { useState } from 'react';
@@ -48,6 +49,8 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
     return (
       <div className="space-y-4 pb-6">
         <ScorecardHeader match={match} isTeamFormat={isTeamFormat} />
+        
+        <OnlinePlayersIndicator matchId={matchId} players={players} />
 
         <TeamScorecardTable
           title="Front 9"
@@ -89,6 +92,8 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
   return (
     <div className="space-y-4 pb-6">
       <ScorecardHeader match={match} isTeamFormat={isTeamFormat} />
+      
+      <OnlinePlayersIndicator matchId={matchId} players={players} />
 
       <PlayersHeader 
         players={players}

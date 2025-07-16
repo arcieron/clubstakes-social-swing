@@ -32,7 +32,11 @@ export const useRealtimePresence = (matchId: string) => {
         const users: Record<string, PlayerPresence> = {};
         Object.entries(state).forEach(([userId, presences]) => {
           if (Array.isArray(presences) && presences.length > 0) {
-            users[userId] = presences[0] as PlayerPresence;
+            const presence = presences[0];
+            // Check if the presence object has the expected structure
+            if (presence && typeof presence === 'object' && 'user_id' in presence) {
+              users[userId] = presence as PlayerPresence;
+            }
           }
         });
         setOnlineUsers(users);

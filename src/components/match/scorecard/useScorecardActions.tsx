@@ -249,38 +249,29 @@ export const useScorecardActions = (
       let teamTotal = 0;
       
       // Ensure we're working with the holeScores array
-      if (!Array.isArray(holeScores)) {
-        console.error('holeScores is not an array:', holeScores);
-        return {
-          teamNumber: parseInt(teamNumber),
-          teamName: `Team ${['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'][parseInt(teamNumber) - 1]}`,
-          players: teamPlayers,
-          totalScore: 0,
-          toPar: 0
-        };
+      if (Array.isArray(holeScores)) {
+        holeScores.forEach(hole => {
+          const teamHoleScores: number[] = [];
+          
+          // Ensure teamPlayers is an array before calling forEach
+          if (Array.isArray(teamPlayers)) {
+            teamPlayers.forEach(player => {
+              const grossScore = hole.scores[player.profiles.id] || 0;
+              if (grossScore > 0) {
+                let score = grossScore;
+                // Always use net scoring for better ball
+                score = getNetScoreOnHole(grossScore, player.profiles.handicap || 0, hole.handicap_rating);
+                teamHoleScores.push(score);
+              }
+            });
+          }
+
+          // Use the best (lowest) score for the team on this hole
+          if (teamHoleScores.length > 0) {
+            teamTotal += Math.min(...teamHoleScores);
+          }
+        });
       }
-
-      holeScores.forEach(hole => {
-        const teamHoleScores: number[] = [];
-        
-        // Ensure teamPlayers is an array before calling forEach
-        if (Array.isArray(teamPlayers)) {
-          teamPlayers.forEach(player => {
-            const grossScore = hole.scores[player.profiles.id] || 0;
-            if (grossScore > 0) {
-              let score = grossScore;
-              // Always use net scoring for better ball
-              score = getNetScoreOnHole(grossScore, player.profiles.handicap || 0, hole.handicap_rating);
-              teamHoleScores.push(score);
-            }
-          });
-        }
-
-        // Use the best (lowest) score for the team on this hole
-        if (teamHoleScores.length > 0) {
-          teamTotal += Math.min(...teamHoleScores);
-        }
-      });
 
       const teamName = `Team ${['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'][parseInt(teamNumber) - 1]}`;
       
@@ -289,7 +280,7 @@ export const useScorecardActions = (
         teamName,
         players: teamPlayers,
         totalScore: teamTotal,
-        toPar: teamTotal - holeScores.reduce((sum, hole) => sum + hole.par, 0)
+        toPar: Array.isArray(holeScores) ? teamTotal - holeScores.reduce((sum, hole) => sum + hole.par, 0) : 0
       };
     });
 
@@ -341,7 +332,9 @@ export const useScorecardActions = (
             // For scramble, typically use team handicap which is a percentage of combined handicaps
             if (match.scoring_type === 'net') {
               // Calculate team handicap as average of team members
-              const teamHandicap = teamPlayers.reduce((sum, player) => sum + (player.profiles.handicap || 0), 0) / teamPlayers.length;
+              const teamHandicap = Array.isArray(teamPlayers) 
+                ? teamPlayers.reduce((sum, player) => sum + (player.profiles.handicap || 0), 0) / teamPlayers.length 
+                : 0;
               score = getNetScoreOnHole(grossScore, teamHandicap, hole.handicap_rating);
             }
             teamTotal += score;

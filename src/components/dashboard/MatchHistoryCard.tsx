@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Award, Calendar, Eye, Trophy, Crown } from 'lucide-react';
+import { useState } from 'react';
+import { MatchDetails } from './MatchDetails';
 
 interface MatchHistoryCardProps {
   matchHistory: any[];
@@ -10,6 +12,8 @@ interface MatchHistoryCardProps {
 }
 
 export const MatchHistoryCard = ({ matchHistory, onChallenge }: MatchHistoryCardProps) => {
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+
   const formatGameType = (format: string) => {
     switch (format) {
       case 'match-play': return 'Match Play';
@@ -30,6 +34,23 @@ export const MatchHistoryCard = ({ matchHistory, onChallenge }: MatchHistoryCard
     if (diffInHours < 24) return `${diffInHours}h ago`;
     return `${Math.floor(diffInHours / 24)}d ago`;
   };
+
+  const handleDetailsClick = (match: any) => {
+    setSelectedMatch(match);
+  };
+
+  const handleBackToHistory = () => {
+    setSelectedMatch(null);
+  };
+
+  if (selectedMatch) {
+    return (
+      <MatchDetails 
+        match={selectedMatch} 
+        onBack={handleBackToHistory} 
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -93,7 +114,11 @@ export const MatchHistoryCard = ({ matchHistory, onChallenge }: MatchHistoryCard
                       )}
                     </div>
                     
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDetailsClick(match)}
+                    >
                       <Eye className="w-4 h-4 mr-1" />
                       Details
                     </Button>

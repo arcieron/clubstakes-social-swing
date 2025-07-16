@@ -34,8 +34,16 @@ export const useRealtimePresence = (matchId: string) => {
           if (Array.isArray(presences) && presences.length > 0) {
             const presence = presences[0];
             // Check if the presence object has the expected structure
-            if (presence && typeof presence === 'object' && 'user_id' in presence) {
-              users[userId] = presence as PlayerPresence;
+            if (presence && 
+                typeof presence === 'object' && 
+                'user_id' in presence &&
+                'full_name' in presence &&
+                'online_at' in presence) {
+              users[userId] = {
+                user_id: presence.user_id as string,
+                full_name: presence.full_name as string,
+                online_at: presence.online_at as string,
+              };
             }
           }
         });

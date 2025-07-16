@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ScorecardHeader } from './scorecard/ScorecardHeader';
 import { PlayersHeader } from './scorecard/PlayersHeader';
 import { ScorecardTable } from './scorecard/ScorecardTable';
+import { TeamScorecardTable } from './scorecard/TeamScorecardTable';
 import { ActionButtons } from './scorecard/ActionButtons';
 import { useScorecardData } from './scorecard/useScorecardData';
 import { useScorecardActions } from './scorecard/useScorecardActions';
@@ -36,11 +37,55 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
   } = useScorecardActions(matchId, holeScores, setHoleScores, fetchConfirmations, players, confirmations, match);
 
   const isTeamFormat = match.team_format === 'teams';
+  const isScramble = match.format === 'scramble';
   const userConfirmed = confirmations[user?.id || ''];
   const confirmedCount = Object.keys(confirmations).length;
   const totalNeeded = players.length;
   const allConfirmed = confirmedCount === totalNeeded;
 
+  // For scramble, show team-based scorecard
+  if (isTeamFormat && isScramble) {
+    return (
+      <div className="space-y-4 pb-6">
+        <ScorecardHeader match={match} isTeamFormat={isTeamFormat} />
+
+        <TeamScorecardTable
+          title="Front 9"
+          holeScores={holeScores}
+          players={players}
+          match={match}
+          editingHole={editingHole}
+          setEditingHole={setEditingHole}
+          handleScoreChange={handleScoreChange}
+          getDisplayScore={getDisplayScore}
+        />
+
+        <TeamScorecardTable
+          title="Back 9"
+          holeScores={holeScores}
+          players={players}
+          match={match}
+          editingHole={editingHole}
+          setEditingHole={setEditingHole}
+          handleScoreChange={handleScoreChange}
+          getDisplayScore={getDisplayScore}
+          showTotal={true}
+          calculateTotal={calculateTotal}
+        />
+
+        <ActionButtons
+          userConfirmed={userConfirmed}
+          loading={loading}
+          confirmedCount={confirmedCount}
+          totalNeeded={totalNeeded}
+          allConfirmed={allConfirmed}
+          onConfirmScores={confirmScores}
+        />
+      </div>
+    );
+  }
+
+  // Standard individual scorecard for better-ball and other formats
   return (
     <div className="space-y-4 pb-6">
       <ScorecardHeader match={match} isTeamFormat={isTeamFormat} />

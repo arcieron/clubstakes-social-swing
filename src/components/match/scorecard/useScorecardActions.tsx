@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -193,6 +192,107 @@ export const useScorecardActions = (
     );
   };
 
+  const calculateBetterBallWinner = (match: any) => {
+    // Group players by team
+    const teams = players.reduce((acc, player) => {
+      const teamNumber = player.team_number || 1;
+      if (!acc[teamNumber]) {
+        acc[teamNumber] = [];
+      }
+      acc[teamNumber].push(player);
+      return acc;
+    }, {} as Record<number, any[]>);
+
+    const teamScores = Object.entries(teams).map(([teamNumber, teamPlayers]) => {
+      let teamTotal = 0;
+      
+      holeScores.forEach(hole => {
+        const holeScores: number[] = [];
+        
+        teamPlayers.forEach(player => {
+          const grossScore = hole.scores[player.profiles.id] || 0;
+          if (grossScore > 0) {
+            let score = grossScore;
+            if (match.scoring_type === 'net') {
+              const relativeHandicap = getRelativeHandicap(player.profiles.handicap || 0);
+              const strokes = Math.floor(relativeHandicap / 18) + (relativeHandicap % 18 >= hole.handicap_rating ? 1 : 0);
+              score = grossScore - strokes;
+            }
+            holeScores.push(score);
+          }
+        });
+
+        // Use the best (lowest) score for the team on this hole
+        if (holeScores.length > 0) {
+          teamTotal += Math.min(...holeScores);
+        }
+      });
+
+      const teamName = `Team ${['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'][parseInt(teamNumber) - 1]}`;
+      
+      return {
+        teamNumber: parseInt(teamNumber),
+        teamName,
+        players: teamPlayers,
+        totalScore: teamTotal,
+        toPar: teamTotal - holeScores.reduce((sum, hole) => sum + hole.par, 0)
+      };
+    });
+
+    const winningTeam = teamScores.reduce((lowest, current) => 
+      current.totalScore < lowest.totalScore ? current : lowest
+    );
+
+    return {
+      playerId: winningTeam.players[0].profiles.id, // Use first player's ID for compatibility
+      playerName: winningTeam.teamName,
+      totalScore: winningTeam.totalScore,
+      toPar: winningTeam.toPar === 0 ? 'E' : winningTeam.toPar > 0 ? `+${winningTeam.toPar}` : winningTeam.toPar.toString(),
+      teamNumber: winningTeam.teamNumber,
+      teamPlayers: winningTeam.players
+    };
+  };
+
+  const calculateScrambleWinner = (match: any) => {
+    // Group players by team
+    const teams = players.reduce((acc, player) => {
+      const teamNumber = player.team_number || 1;
+      if (!acc[teamNumber]) {
+        acc[teamNumber] = [];
+      }
+      acc[teamNumber].push(player);
+      return acc;
+    }, {} as Record<number, any[]>);
+
+    const teamScores = Object.entries(teams).map(([teamNumber, teamPlayers]) => {
+      const teamScoreId = `team_${teamNumber}`;
+      const teamTotal = holeScores.reduce((total, hole) => total + (hole.scores[teamScoreId] || 0), 0);
+      
+      const teamName = `Team ${['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'][parseInt(teamNumber) - 1]}`;
+      
+      return {
+        teamNumber: parseInt(teamNumber),
+        teamName,
+        players: teamPlayers,
+        totalScore: teamTotal,
+        toPar: teamTotal - holeScores.reduce((sum, hole) => sum + hole.par, 0)
+      };
+    });
+
+    const winningTeam = teamScores.reduce((lowest, current) => 
+      current.totalScore < lowest.totalScore ? current : lowest
+    );
+
+    return {
+      playerId: winningTeam.players[0].profiles.id, // Use first player's ID for compatibility
+      playerName: winningTeam.teamName,
+      totalScore: winningTeam.totalScore,
+      toPar: winningTeam.toPar === 0 ? 'E' : winningTeam.toPar > 0 ? `+${winningTeam.toPar}` : winningTeam.toPar.toString(),
+      teamNumber: winningTeam.teamNumber,
+      teamPlayers: winningTeam.players
+    };
+  };
+
   const calculateNassauWinner = (match: any) => {
     const front9 = holeScores.slice(0, 9);
     const back9 = holeScores.slice(9, 18);
@@ -330,9 +430,11 @@ export const useScorecardActions = (
         break;
       
       case 'scramble':
+        winner = calculateScrambleWinner(match);
+        break;
+      
       case 'better-ball':
-        // For team formats, use stroke play logic
-        winner = calculateStrokePlayWinner(match);
+        winner = calculateBetterBallWinner(match);
         break;
       
       default:
@@ -384,6 +486,36 @@ export const useScorecardActions = (
         if (overallError) {
           console.error('Error adding overall credits:', overallError);
           throw overallError;
+        }
+
+        // Deduct credits from all players
+        for (const player of players) {
+          const { error: deductError } = await supabase.rpc('add_credits', {
+            user_id: player.profiles.id,
+            amount: -wagerAmount
+          });
+
+          if (deductError) {
+            console.error('Error deducting credits from player:', deductError);
+            throw deductError;
+          }
+        }
+      } else if ((match.format === 'scramble' || match.format === 'better-ball') && winner.teamPlayers) {
+        // For team formats, distribute winnings to all team members
+        const totalPot = wagerAmount * players.length;
+        const perPlayerWinning = Math.floor(totalPot / winner.teamPlayers.length);
+
+        // Add credits to each winning team member
+        for (const teamPlayer of winner.teamPlayers) {
+          const { error: addError } = await supabase.rpc('add_credits', {
+            user_id: teamPlayer.profiles.id,
+            amount: perPlayerWinning
+          });
+
+          if (addError) {
+            console.error('Error adding credits to team member:', addError);
+            throw addError;
+          }
         }
 
         // Deduct credits from all players

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -209,7 +210,7 @@ export const useScorecardActions = (
       // Ensure holeScores is properly typed and available
       if (Array.isArray(holeScores)) {
         holeScores.forEach(hole => {
-          const holeScores: number[] = [];
+          const teamHoleScores: number[] = [];
           
           teamPlayers.forEach(player => {
             const grossScore = hole.scores[player.profiles.id] || 0;
@@ -220,13 +221,13 @@ export const useScorecardActions = (
                 const strokes = Math.floor(relativeHandicap / 18) + (relativeHandicap % 18 >= hole.handicap_rating ? 1 : 0);
                 score = grossScore - strokes;
               }
-              holeScores.push(score);
+              teamHoleScores.push(score);
             }
           });
 
           // Use the best (lowest) score for the team on this hole
-          if (holeScores.length > 0) {
-            teamTotal += Math.min(...holeScores);
+          if (teamHoleScores.length > 0) {
+            teamTotal += Math.min(...teamHoleScores);
           }
         });
       }

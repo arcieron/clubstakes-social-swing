@@ -6,6 +6,7 @@ import { ChallengeFlow } from '@/components/challenge/ChallengeFlow';
 import { Leaderboard } from '@/components/leaderboard/Leaderboard';
 import { SocialFeed } from '@/components/social/SocialFeed';
 import { AdminPanel } from '@/components/admin/AdminPanel';
+import { SuperAdminPanel } from '@/components/admin/SuperAdminPanel';
 import { MockAccountCreator } from '@/components/dev/MockAccountCreator';
 import { Navigation } from '@/components/layout/Navigation';
 import { LandingPage } from '@/components/landing/LandingPage';
@@ -68,6 +69,7 @@ const Index = () => {
         // Only render admin panel if user is actually an admin
         if (profile?.is_admin) {
           return <div className="p-4 space-y-6">
+              <SuperAdminPanel user={profile} />
               <AdminPanel user={profile} />
               <MockAccountCreator />
             </div>;

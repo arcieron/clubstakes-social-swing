@@ -66,7 +66,9 @@ export type Database = {
         Row: {
           club_id: string | null
           created_at: string
+          description: string | null
           id: string
+          location: string | null
           name: string
           rating: number
           slope: number
@@ -74,7 +76,9 @@ export type Database = {
         Insert: {
           club_id?: string | null
           created_at?: string
+          description?: string | null
           id?: string
+          location?: string | null
           name: string
           rating: number
           slope: number
@@ -82,7 +86,9 @@ export type Database = {
         Update: {
           club_id?: string | null
           created_at?: string
+          description?: string | null
           id?: string
+          location?: string | null
           name?: string
           rating?: number
           slope?: number
@@ -399,6 +405,14 @@ export type Database = {
       add_credits: {
         Args: { user_id: string; amount: number }
         Returns: undefined
+      }
+      generate_unique_invite_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_next_id_number: {
+        Args: { club_uuid: string }
+        Returns: number
       }
       get_user_club_id: {
         Args: Record<PropertyKey, never>

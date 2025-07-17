@@ -1,6 +1,5 @@
 
 import { useAuth } from '@/hooks/useAuth';
-import { AuthPage } from '@/components/auth/AuthPage';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { ChallengeFlow } from '@/components/challenge/ChallengeFlow';
 import { Leaderboard } from '@/components/leaderboard/Leaderboard';
@@ -10,7 +9,8 @@ import { SuperAdminPanel } from '@/components/admin/SuperAdminPanel';
 import { MockAccountCreator } from '@/components/dev/MockAccountCreator';
 import { Navigation } from '@/components/layout/Navigation';
 import { LandingPage } from '@/components/landing/LandingPage';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
   const {
@@ -21,11 +21,14 @@ const Index = () => {
   } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
   const [showChallenge, setShowChallenge] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await signOut();
-    setShowAuth(false);
+  };
+
+  const handleGetStarted = () => {
+    navigate('/signin');
   };
 
   const handleViewChange = (view: string) => {
@@ -48,10 +51,7 @@ const Index = () => {
   }
 
   if (!user || !profile) {
-    if (showAuth) {
-      return <AuthPage />;
-    }
-    return <LandingPage onGetStarted={() => setShowAuth(true)} />;
+    return <LandingPage onGetStarted={handleGetStarted} />;
   }
 
   const renderView = () => {

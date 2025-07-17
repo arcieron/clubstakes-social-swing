@@ -33,6 +33,17 @@ export const useScorecardActions = (
     }
   }, [confirmations, players.length, match?.status]);
 
+  // Helper function to get relative handicap
+  const getRelativeHandicap = (player: any, lowestHandicap: number): number => {
+    const playerHandicap = player.profiles?.handicap || 0;
+    return playerHandicap - lowestHandicap;
+  };
+
+  // Helper function to get lowest handicap among all players
+  const getLowestHandicap = (): number => {
+    return Math.min(...players.map(player => player.profiles?.handicap || 0));
+  };
+
   const updateScore = async (hole: number, playerId: string, score: number) => {
     try {
       console.log('Updating score:', { hole, playerId, score, matchId });
@@ -80,12 +91,14 @@ export const useScorecardActions = (
     }
   };
 
-  // Calculate strokes received for a player on a specific hole based on handicap
-  const getStrokesOnHole = (playerHandicap: number, holeHandicapRating: number) => {
-    const handicap = Math.round(playerHandicap);
+  // Calculate strokes received for a player on a specific hole using relative handicapping
+  const getStrokesOnHole = (player: any, holeHandicapRating: number) => {
+    const lowestHandicap = getLowestHandicap();
+    const relativeHandicap = getRelativeHandicap(player, lowestHandicap);
+    const handicap = Math.round(relativeHandicap);
     
-    // For positive handicaps (higher handicap players get strokes)
-    if (handicap >= 0) {
+    // Only positive relative handicaps get strokes (higher handicap players relative to lowest)
+    if (handicap > 0) {
       const strokesPerHole = Math.floor(handicap / 18);
       const extraStrokes = handicap % 18;
       
@@ -97,28 +110,17 @@ export const useScorecardActions = (
       }
       
       return strokes;
-    } else {
-      // For negative handicaps (scratch or better players give strokes)
-      const absHandicap = Math.abs(handicap);
-      const strokesPerHole = Math.floor(absHandicap / 18);
-      const extraStrokes = absHandicap % 18;
-      
-      let strokes = strokesPerHole;
-      
-      // Add extra stroke if this hole's handicap rating is within the remainder
-      if (extraStrokes >= holeHandicapRating) {
-        strokes += 1;
-      }
-      
-      return -strokes; // Negative because they give strokes
     }
+    
+    // Players at or below the lowest handicap get no strokes
+    return 0;
   };
 
-  // Calculate net score for a player on a specific hole
-  const getNetScoreOnHole = (grossScore: number, playerHandicap: number, holeHandicapRating: number) => {
+  // Calculate net score for a player on a specific hole using relative handicapping
+  const getNetScoreOnHole = (grossScore: number, player: any, holeHandicapRating: number) => {
     if (grossScore === 0) return 0; // No score entered
     
-    const strokes = getStrokesOnHole(playerHandicap, holeHandicapRating);
+    const strokes = getStrokesOnHole(player, holeHandicapRating);
     return grossScore - strokes;
   };
 
@@ -126,12 +128,15 @@ export const useScorecardActions = (
     return holeScores.reduce((total, hole) => total + (hole.scores[playerId] || 0), 0);
   };
 
-  const calculateNetTotal = (playerId: string, handicap: number) => {
+  const calculateNetTotal = (playerId: string) => {
+    const player = players.find(p => p.profiles.id === playerId);
+    if (!player) return 0;
+
     return holeScores.reduce((total, hole) => {
       const grossScore = hole.scores[playerId] || 0;
       if (grossScore === 0) return total;
       
-      const netScore = getNetScoreOnHole(grossScore, handicap, hole.handicap_rating);
+      const netScore = getNetScoreOnHole(grossScore, player, hole.handicap_rating);
       return total + netScore;
     }, 0);
   };
@@ -175,9 +180,9 @@ export const useScorecardActions = (
       let score2 = hole.scores[player2.profiles.id] || 0;
 
       if (score1 > 0 && score2 > 0) {
-        // Always use net scoring for match play
-        score1 = getNetScoreOnHole(score1, player1.profiles.handicap || 0, hole.handicap_rating);
-        score2 = getNetScoreOnHole(score2, player2.profiles.handicap || 0, hole.handicap_rating);
+        // Always use net scoring for match play with relative handicapping
+        score1 = getNetScoreOnHole(score1, player1, hole.handicap_rating);
+        score2 = getNetScoreOnHole(score2, player2, hole.handicap_rating);
 
         if (score1 < score2) player1Holes++;
         else if (score2 < score1) player2Holes++;
@@ -218,7 +223,7 @@ export const useScorecardActions = (
   const calculateStrokePlayWinner = (match: any) => {
     const playerScores = players.map(player => {
       const grossTotal = calculateGrossTotal(player.profiles.id);
-      const netTotal = calculateNetTotal(player.profiles.id, player.profiles.handicap || 0);
+      const netTotal = calculateNetTotal(player.profiles.id);
       
       // Use net scoring for net matches, gross for gross matches
       const scoreToUse = match.scoring_type === 'net' ? netTotal : grossTotal;
@@ -259,8 +264,8 @@ export const useScorecardActions = (
               const grossScore = hole.scores[player.profiles.id] || 0;
               if (grossScore > 0) {
                 let score = grossScore;
-                // Always use net scoring for better ball
-                score = getNetScoreOnHole(grossScore, player.profiles.handicap || 0, hole.handicap_rating);
+                // Always use net scoring for better ball with relative handicapping
+                score = getNetScoreOnHole(grossScore, player, hole.handicap_rating);
                 teamHoleScores.push(score);
               }
             });
@@ -331,11 +336,26 @@ export const useScorecardActions = (
             let score = grossScore;
             // For scramble, typically use team handicap which is a percentage of combined handicaps
             if (match.scoring_type === 'net') {
-              // Calculate team handicap as average of team members
+              // Calculate team handicap as average of team members, then apply relative handicapping
+              const lowestHandicap = getLowestHandicap();
               const teamHandicap = Array.isArray(teamPlayers) 
                 ? teamPlayers.reduce((sum, player) => sum + (player.profiles.handicap || 0), 0) / teamPlayers.length 
                 : 0;
-              score = getNetScoreOnHole(grossScore, teamHandicap, hole.handicap_rating);
+              const relativeTeamHandicap = teamHandicap - lowestHandicap;
+              
+              // Apply strokes based on relative team handicap
+              if (relativeTeamHandicap > 0) {
+                const handicap = Math.round(relativeTeamHandicap);
+                const strokesPerHole = Math.floor(handicap / 18);
+                const extraStrokes = handicap % 18;
+                
+                let strokes = strokesPerHole;
+                if (extraStrokes >= hole.handicap_rating) {
+                  strokes += 1;
+                }
+                
+                score = grossScore - strokes;
+              }
             }
             teamTotal += score;
           }
@@ -384,17 +404,15 @@ export const useScorecardActions = (
     
     const playerScores = players.map(player => {
       const grossTotal = calculateGrossTotal(player.profiles.id);
-      const netTotal = calculateNetTotal(player.profiles.id, player.profiles.handicap || 0);
-      
-      const playerHandicap = player.profiles.handicap || 0;
+      const netTotal = calculateNetTotal(player.profiles.id);
       
       const front9Score = front9.reduce((sum, hole) => {
         const grossScore = hole.scores[player.profiles.id] || 0;
         if (grossScore === 0) return sum;
         
         let holeScore = grossScore;
-        // Always use net scoring for Nassau
-        holeScore = getNetScoreOnHole(grossScore, playerHandicap, hole.handicap_rating);
+        // Always use net scoring for Nassau with relative handicapping
+        holeScore = getNetScoreOnHole(grossScore, player, hole.handicap_rating);
         return sum + holeScore;
       }, 0);
 
@@ -403,8 +421,8 @@ export const useScorecardActions = (
         if (grossScore === 0) return sum;
         
         let holeScore = grossScore;
-        // Always use net scoring for Nassau
-        holeScore = getNetScoreOnHole(grossScore, playerHandicap, hole.handicap_rating);
+        // Always use net scoring for Nassau with relative handicapping
+        holeScore = getNetScoreOnHole(grossScore, player, hole.handicap_rating);
         return sum + holeScore;
       }, 0);
 
@@ -454,8 +472,8 @@ export const useScorecardActions = (
         const grossScore = hole.scores[player.profiles.id] || 0;
         if (grossScore > 0) {
           let score = grossScore;
-          // Always use net scoring for skins
-          score = getNetScoreOnHole(grossScore, player.profiles.handicap || 0, hole.handicap_rating);
+          // Always use net scoring for skins with relative handicapping
+          score = getNetScoreOnHole(grossScore, player, hole.handicap_rating);
           holeScores.push({ playerId: player.profiles.id, score });
         }
       });

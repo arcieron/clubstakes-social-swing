@@ -23,12 +23,17 @@ interface ScorecardTableProps {
   calculateTotal?: (playerId: string) => number;
 }
 
-// Helper function to calculate strokes received on a hole
-const getStrokesOnHole = (playerHandicap: number, holeHandicapRating: number): number => {
-  const handicap = Math.round(playerHandicap);
+// Helper function to calculate relative handicap
+const getRelativeHandicap = (playerHandicap: number, lowestHandicap: number): number => {
+  return playerHandicap - lowestHandicap;
+};
+
+// Helper function to calculate strokes received on a hole using relative handicapping
+const getStrokesOnHole = (relativeHandicap: number, holeHandicapRating: number): number => {
+  const handicap = Math.round(relativeHandicap);
   
-  // For positive handicaps (higher handicap players get strokes)
-  if (handicap >= 0) {
+  // Only positive relative handicaps get strokes (higher handicap players relative to lowest)
+  if (handicap > 0) {
     const strokesPerHole = Math.floor(handicap / 18);
     const extraStrokes = handicap % 18;
     
@@ -40,21 +45,10 @@ const getStrokesOnHole = (playerHandicap: number, holeHandicapRating: number): n
     }
     
     return strokes;
-  } else {
-    // For negative handicaps (scratch or better players give strokes)
-    const absHandicap = Math.abs(handicap);
-    const strokesPerHole = Math.floor(absHandicap / 18);
-    const extraStrokes = absHandicap % 18;
-    
-    let strokes = strokesPerHole;
-    
-    // Add extra stroke if this hole's handicap rating is within the remainder
-    if (extraStrokes >= holeHandicapRating) {
-      strokes += 1;
-    }
-    
-    return -strokes; // Negative because they give strokes
   }
+  
+  // Players at or below the lowest handicap get no strokes
+  return 0;
 };
 
 export const ScorecardTable = ({
@@ -74,6 +68,9 @@ export const ScorecardTable = ({
 
   const holeRange = title === 'Front 9' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
   const startHole = title === 'Front 9' ? 1 : 10;
+
+  // Calculate the lowest handicap among all players for relative handicapping
+  const lowestHandicap = Math.min(...players.map(player => player.profiles.handicap || 0));
 
   const handleScoreClick = (hole: HoleScore, player: any) => {
     setSelectedHole(hole);
@@ -150,7 +147,8 @@ export const ScorecardTable = ({
                   </td>
                   {holeRange.map((hole) => {
                     const playerHandicap = player.profiles.handicap || 0;
-                    const receivesStroke = getStrokesOnHole(playerHandicap, hole.handicap_rating) > 0;
+                    const relativeHandicap = getRelativeHandicap(playerHandicap, lowestHandicap);
+                    const receivesStroke = getStrokesOnHole(relativeHandicap, hole.handicap_rating) > 0;
                     
                     return (
                       <td key={hole.hole} className="p-1 text-center">

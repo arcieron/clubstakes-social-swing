@@ -225,7 +225,7 @@ export const GameDetailsStep = ({
 
           <div className="space-y-3">
             <Label>
-              Wager Amount{isSkinsGame && <span className="text-sm text-gray-600 ml-1">(per hole)</span>}
+              Wager Amount
             </Label>
             <div className="space-y-4">
               <Slider

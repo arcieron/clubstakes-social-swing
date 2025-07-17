@@ -2,18 +2,20 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { MapPin, Plus, Building } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { CourseForm } from './course/CourseForm';
+
+const holeSchema = z.object({
+  par: z.number().min(3).max(6),
+  handicap_rating: z.number().min(1).max(18),
+  yardage: z.number().nullable(),
+});
 
 const courseFormSchema = z.object({
   name: z.string().min(1, 'Course name is required'),
@@ -22,6 +24,14 @@ const courseFormSchema = z.object({
   description: z.string().optional(),
   rating: z.number().min(60).max(80),
   slope: z.number().min(55).max(155),
+  holes: z.array(holeSchema).length(18, 'All 18 holes must be configured'),
+}).refine((data) => {
+  const handicaps = data.holes.map(h => h.handicap_rating);
+  const uniqueHandicaps = new Set(handicaps);
+  return uniqueHandicaps.size === 18 && handicaps.every(h => h >= 1 && h <= 18);
+}, {
+  message: "All handicap ratings 1-18 must be used exactly once",
+  path: ["holes"]
 });
 
 interface CourseManagerProps {
@@ -43,6 +53,11 @@ export const CourseManager = ({ user }: CourseManagerProps) => {
       description: '',
       rating: 72,
       slope: 113,
+      holes: Array.from({ length: 18 }, (_, i) => ({
+        par: 4,
+        handicap_rating: i + 1,
+        yardage: null,
+      })),
     },
   });
 
@@ -57,7 +72,8 @@ export const CourseManager = ({ user }: CourseManagerProps) => {
           .from('courses')
           .select(`
             *,
-            clubs(name)
+            clubs(name),
+            holes(*)
           `),
         supabase
           .from('clubs')
@@ -79,7 +95,8 @@ export const CourseManager = ({ user }: CourseManagerProps) => {
 
   const onSubmit = async (values: z.infer<typeof courseFormSchema>) => {
     try {
-      const { error } = await supabase
+      // Create the course first
+      const { data: courseData, error: courseError } = await supabase
         .from('courses')
         .insert({
           name: values.name,
@@ -88,11 +105,28 @@ export const CourseManager = ({ user }: CourseManagerProps) => {
           description: values.description,
           rating: values.rating,
           slope: values.slope,
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (courseError) throw courseError;
 
-      toast({ title: "Success", description: "Course created successfully" });
+      // Create all holes for the course
+      const holesData = values.holes.map((hole, index) => ({
+        course_id: courseData.id,
+        hole_number: index + 1,
+        par: hole.par,
+        handicap_rating: hole.handicap_rating,
+        yardage: hole.yardage,
+      }));
+
+      const { error: holesError } = await supabase
+        .from('holes')
+        .insert(holesData);
+
+      if (holesError) throw holesError;
+
+      toast({ title: "Success", description: "Course and holes created successfully" });
       form.reset();
       setOpen(false);
       fetchData();
@@ -112,7 +146,7 @@ export const CourseManager = ({ user }: CourseManagerProps) => {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold">Course Management</h3>
-          <p className="text-gray-500">Create and manage golf courses</p>
+          <p className="text-gray-500">Create and manage golf courses with hole details</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -121,133 +155,19 @@ export const CourseManager = ({ user }: CourseManagerProps) => {
               Add Course
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Course</DialogTitle>
               <DialogDescription>
-                Add a new golf course to a club
+                Add a new golf course with detailed hole information
               </DialogDescription>
             </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Course Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter course name..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="club_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Club</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a club" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {clubs.map((club) => (
-                              <SelectItem key={club.id} value={club.id}>
-                                {club.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter location..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="rating"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Course Rating</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.1"
-                            min="60" 
-                            max="80"
-                            {...field} 
-                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="slope"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Slope Rating</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            min="55" 
-                            max="155"
-                            {...field} 
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Enter course description..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">Create Course</Button>
-                </div>
-              </form>
-            </Form>
+            <CourseForm 
+              form={form}
+              clubs={clubs}
+              onSubmit={onSubmit}
+              onCancel={() => setOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -277,9 +197,15 @@ export const CourseManager = ({ user }: CourseManagerProps) => {
               <div className="flex gap-4 text-sm">
                 <span>Rating: {course.rating}</span>
                 <span>Slope: {course.slope}</span>
+                <span>Holes: {course.holes?.length || 0}/18</span>
               </div>
               {course.description && (
                 <p className="text-sm text-gray-500 line-clamp-2">{course.description}</p>
+              )}
+              {course.holes && course.holes.length > 0 && (
+                <div className="text-xs text-gray-500">
+                  Par: {course.holes.reduce((sum: number, hole: any) => sum + hole.par, 0)}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -290,7 +216,7 @@ export const CourseManager = ({ user }: CourseManagerProps) => {
         <Card className="p-8 text-center">
           <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-600 mb-2">No courses found</h3>
-          <p className="text-gray-500 mb-4">Get started by creating your first course</p>
+          <p className="text-gray-500 mb-4">Get started by creating your first course with detailed hole information</p>
         </Card>
       )}
     </div>

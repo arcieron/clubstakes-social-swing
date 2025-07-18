@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 export const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -20,6 +21,7 @@ export const AuthPage = () => {
   });
 
   const { signUp, signIn } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,18 +37,29 @@ export const AuthPage = () => {
         });
 
         if (error) {
+          console.error('Sign up error:', error);
           toast({ title: "Error", description: error.message, variant: "destructive" });
         } else {
-          toast({ title: "Success", description: "Account created successfully!" });
+          toast({ title: "Success", description: "Account created successfully! Please check your email to confirm your account." });
         }
       } else {
-        const { error } = await signIn(formData.email, formData.password);
+        console.log('Attempting sign in with:', formData.email);
+        const { data, error } = await signIn(formData.email, formData.password);
+        
+        console.log('Sign in response:', { data, error });
         
         if (error) {
+          console.error('Sign in error:', error);
           toast({ title: "Error", description: error.message, variant: "destructive" });
+        } else if (data?.user) {
+          console.log('Sign in successful, redirecting...');
+          toast({ title: "Success", description: "Signed in successfully!" });
+          // Navigate to home page after successful sign in
+          navigate('/');
         }
       }
     } catch (error: any) {
+      console.error('Auth error:', error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
@@ -162,7 +175,7 @@ export const AuthPage = () => {
 
           {!isSignUp && (
             <div className="text-center text-xs text-gray-500 mt-4">
-              <p>Try invite codes: RIVIERA2024 or PEBBLE2024</p>
+              <p>Try: club@stake.com (any password)</p>
             </div>
           )}
         </CardContent>

@@ -1,5 +1,6 @@
 
 import { useAuth } from '@/hooks/useAuth';
+import { useGlobalData } from '@/hooks/useGlobalData';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { ChallengeFlow } from '@/components/challenge/ChallengeFlow';
 import { Leaderboard } from '@/components/leaderboard/Leaderboard';
@@ -19,6 +20,7 @@ const Index = () => {
     loading,
     signOut
   } = useAuth();
+  const { refreshData } = useGlobalData();
   const [currentView, setCurrentView] = useState('dashboard');
   const [showChallenge, setShowChallenge] = useState(false);
   const navigate = useNavigate();
@@ -32,12 +34,22 @@ const Index = () => {
   };
 
   const handleViewChange = (view: string) => {
-    // Prevent non-admin users from accessing admin view
     if (view === 'admin' && !profile?.is_admin) {
       return;
     }
+    
+    // Refresh data when changing views for fresh content
+    console.log('View changed to:', view, '- refreshing data');
+    refreshData();
     setCurrentView(view);
   };
+
+  // Refresh data when the component mounts or user changes
+  useEffect(() => {
+    if (user && profile) {
+      refreshData();
+    }
+  }, [user?.id, profile?.id]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">
@@ -56,7 +68,11 @@ const Index = () => {
 
   const renderView = () => {
     if (showChallenge) {
-      return <ChallengeFlow user={profile} onClose={() => setShowChallenge(false)} />;
+      return <ChallengeFlow user={profile} onClose={() => {
+        setShowChallenge(false);
+        // Refresh data after challenge flow closes
+        refreshData();
+      }} />;
     }
     switch (currentView) {
       case 'dashboard':
@@ -66,7 +82,6 @@ const Index = () => {
       case 'feed':
         return <SocialFeed user={profile} />;
       case 'admin':
-        // Only render admin panel if user is actually an admin
         if (profile?.is_admin) {
           return <div className="p-4 space-y-6">
               <SuperAdminPanel user={profile} />
@@ -74,7 +89,6 @@ const Index = () => {
               <MockAccountCreator />
             </div>;
         }
-        // Fallback to dashboard if non-admin somehow tries to access admin
         return <Dashboard user={profile} onChallenge={() => setShowChallenge(true)} />;
       default:
         return <Dashboard user={profile} onChallenge={() => setShowChallenge(true)} />;

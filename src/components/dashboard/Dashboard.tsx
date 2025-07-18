@@ -2,16 +2,14 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
+import { useGlobalData } from '@/hooks/useGlobalData';
 import { supabase } from '@/integrations/supabase/client';
-import { AdminPanel } from '@/components/admin/AdminPanel';
 import { ActiveMatch } from '@/components/match/ActiveMatch';
-import { MockAccountCreator } from '@/components/dev/MockAccountCreator';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardStats } from './DashboardStats';
 import { LeaderboardCard } from './LeaderboardCard';
 import { ActiveMatchesList } from './ActiveMatchesList';
 import { MatchHistoryCard } from './MatchHistoryCard';
-import { TestTube } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface DashboardProps {
@@ -21,45 +19,14 @@ interface DashboardProps {
 
 export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   const { user: authUser, profile, loading } = useAuth();
-  const [activeMatches, setActiveMatches] = useState<any[]>([]);
+  const { matches, refreshData } = useGlobalData();
   const [matchHistory, setMatchHistory] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+  const [currentTab, setCurrentTab] = useState('overview');
 
-  const fetchActiveMatches = async () => {
-    if (!authUser || !user?.club_id) return;
-    
-    console.log('Fetching active matches for club:', user.club_id);
-    
-    try {
-      // Get ALL matches in the club that are in_progress, regardless of user participation
-      const { data: matches, error: matchError } = await supabase
-        .from('matches')
-        .select(`
-          *,
-          courses(name),
-          profiles!matches_creator_id_fkey(full_name),
-          match_players(
-            player_id,
-            team_number,
-            profiles(full_name, handicap)
-          )
-        `)
-        .eq('club_id', user.club_id)
-        .eq('status', 'in_progress');
-
-      if (matchError) {
-        console.error('Error fetching match details:', matchError);
-        toast({ title: "Error", description: matchError.message, variant: "destructive" });
-      } else {
-        console.log('Fetched active matches with details:', matches);
-        setActiveMatches(matches || []);
-      }
-    } catch (error) {
-      console.error('Error in fetchActiveMatches:', error);
-      toast({ title: "Error", description: "Failed to fetch active matches", variant: "destructive" });
-    }
-  };
+  // Filter matches by status
+  const activeMatches = matches.filter(m => m.status === 'in_progress');
 
   const fetchMatchHistory = async () => {
     if (!authUser || !user?.club_id) return;
@@ -67,7 +34,6 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
     console.log('Fetching match history for user:', authUser.id);
     
     try {
-      // Get completed matches where the user was a participant
       const { data: matchPlayers, error } = await supabase
         .from('match_players')
         .select(`
@@ -102,53 +68,6 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
     }
   };
 
-  useEffect(() => {
-    if (authUser && user?.club_id) {
-      fetchActiveMatches();
-      fetchMatchHistory();
-    }
-  }, [authUser, user?.club_id]);
-
-  // Set up real-time subscription for match updates
-  useEffect(() => {
-    if (!authUser || !user?.club_id) return;
-
-    console.log('Setting up real-time subscription for match updates');
-    
-    const channel = supabase
-      .channel('match-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'matches'
-        },
-        (payload) => {
-          console.log('Match update received:', payload);
-          fetchActiveMatches();
-          fetchMatchHistory();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'match_players'
-        },
-        (payload) => {
-          console.log('Match players update received:', payload);
-          fetchActiveMatches();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [authUser, user?.club_id]);
-
   const fetchLeaderboard = async () => {
     if (user?.club_id) {
       const { data, error } = await supabase
@@ -165,7 +84,7 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
           id: profile.id,
           name: profile.full_name,
           credits: profile.credits || 0,
-          wins: 0, // TODO: Calculate actual wins from matches
+          wins: 0,
           handicap: profile.handicap || 0
         })) || [];
         setLeaderboard(transformedData);
@@ -173,8 +92,23 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
     }
   };
 
+  // Refresh data when tab changes
   useEffect(() => {
-    fetchLeaderboard();
+    console.log('Tab changed to:', currentTab);
+    if (currentTab === 'active') {
+      refreshData();
+    } else if (currentTab === 'history') {
+      fetchMatchHistory();
+    } else if (currentTab === 'overview') {
+      fetchLeaderboard();
+    }
+  }, [currentTab]);
+
+  useEffect(() => {
+    if (authUser && user?.club_id) {
+      fetchMatchHistory();
+      fetchLeaderboard();
+    }
   }, [authUser, user?.club_id]);
 
   if (loading) {
@@ -188,15 +122,13 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
     );
   }
 
-  // If a match is selected, show the ActiveMatch component
   if (selectedMatchId) {
     return (
       <ActiveMatch 
         matchId={selectedMatchId} 
         onBack={() => {
           setSelectedMatchId(null);
-          // Refresh data when returning from match
-          fetchActiveMatches();
+          refreshData();
           fetchMatchHistory();
         }} 
       />
@@ -208,7 +140,7 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
       <div className="max-w-6xl mx-auto p-4 space-y-6">
         <DashboardHeader profile={profile} onChallenge={onChallenge} />
 
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 bg-white shadow-sm border border-gray-200">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-white">
               Overview

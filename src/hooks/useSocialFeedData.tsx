@@ -1,8 +1,8 @@
 
-import { useMatches } from '@/hooks/useMatches';
+import { useGlobalData } from '@/hooks/useGlobalData';
 
 export const useSocialFeedData = (user: any) => {
-  const { matches, loading, joinMatch } = useMatches(user);
+  const { matches, loading, joinMatch } = useGlobalData();
 
   const completedMatches = matches.filter(m => 
     m.status === 'completed' || m.status === 'tied'

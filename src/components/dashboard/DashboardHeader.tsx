@@ -2,6 +2,7 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Trophy } from 'lucide-react';
+import { HandicapEditor } from './HandicapEditor';
 
 interface DashboardHeaderProps {
   profile: any;
@@ -21,9 +22,17 @@ export const DashboardHeader = ({ profile, onChallenge }: DashboardHeaderProps) 
           <h1 className="text-2xl font-bold text-gray-800">
             {profile?.full_name}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            ID: {profile?.id_number ? getDisplayId(profile.id_number) : 'N/A'}
-          </p>
+          <div className="flex items-center justify-center gap-4 mt-2">
+            <p className="text-sm text-gray-500">
+              ID: {profile?.id_number ? getDisplayId(profile.id_number) : 'N/A'}
+            </p>
+            {profile && (
+              <HandicapEditor
+                profileId={profile.id}
+                currentHandicap={profile.handicap || 0}
+              />
+            )}
+          </div>
           <p className="text-sm text-primary font-medium mt-1">
             {profile?.clubs?.name}
           </p>

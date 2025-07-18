@@ -272,12 +272,14 @@ export type Database = {
           created_at: string
           creator_id: string
           format: Database["public"]["Enums"]["match_format"]
+          holes: number | null
           id: string
           is_public: boolean | null
           match_date: string
           max_players: number | null
           status: Database["public"]["Enums"]["match_status"] | null
           team_format: Database["public"]["Enums"]["team_format"] | null
+          tee_time: string | null
           updated_at: string
           wager_amount: number
           winner_id: string | null
@@ -289,12 +291,14 @@ export type Database = {
           created_at?: string
           creator_id: string
           format: Database["public"]["Enums"]["match_format"]
+          holes?: number | null
           id?: string
           is_public?: boolean | null
           match_date: string
           max_players?: number | null
           status?: Database["public"]["Enums"]["match_status"] | null
           team_format?: Database["public"]["Enums"]["team_format"] | null
+          tee_time?: string | null
           updated_at?: string
           wager_amount: number
           winner_id?: string | null
@@ -306,12 +310,14 @@ export type Database = {
           created_at?: string
           creator_id?: string
           format?: Database["public"]["Enums"]["match_format"]
+          holes?: number | null
           id?: string
           is_public?: boolean | null
           match_date?: string
           max_players?: number | null
           status?: Database["public"]["Enums"]["match_status"] | null
           team_format?: Database["public"]["Enums"]["team_format"] | null
+          tee_time?: string | null
           updated_at?: string
           wager_amount?: number
           winner_id?: string | null

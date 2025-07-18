@@ -7,7 +7,7 @@ import { Clock, MapPin, Users, Target } from 'lucide-react';
 
 interface OpenChallenge {
   id: string;
-  creator: {
+  creator?: {
     full_name: string;
     id: string;
   };
@@ -19,7 +19,7 @@ interface OpenChallenge {
   courses?: {
     name: string;
   };
-  match_players: Array<{
+  match_players?: Array<{
     player_id: string;
   }>;
   max_players: number;
@@ -91,9 +91,9 @@ export const OpenChallengesSection = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {openChallenges.map((challenge) => {
-          const isCreator = challenge.creator.id === user.id;
-          const isAlreadyJoined = challenge.match_players.some(p => p.player_id === user.id);
-          const spotsLeft = challenge.max_players - challenge.match_players.length;
+          const isCreator = challenge.creator?.id === user.id;
+          const isAlreadyJoined = challenge.match_players?.some(p => p.player_id === user.id);
+          const spotsLeft = challenge.max_players - (challenge.match_players?.length || 0);
           
           return (
             <div key={challenge.id} className="border rounded-lg p-4 space-y-3">
@@ -102,11 +102,11 @@ export const OpenChallengesSection = ({
                   <div className="flex items-center gap-2">
                     <Avatar className="w-8 h-8">
                       <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
-                        {challenge.creator.full_name.split(' ').map(n => n[0]).join('')}
+                        {challenge.creator?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium text-sm">{challenge.creator.full_name}</p>
+                      <p className="font-medium text-sm">{challenge.creator?.full_name || 'Unknown User'}</p>
                       <p className="text-xs text-gray-500">created a challenge</p>
                     </div>
                   </div>

@@ -16,11 +16,17 @@ interface Match {
   status: string;
   is_public: boolean;
   max_players?: number;
+  holes?: number;
+  tee_time?: string;
   created_at: string;
   completed_at?: string;
   winner_id?: string;
   courses?: {
     name: string;
+  };
+  creator?: {
+    full_name: string;
+    id: string;
   };
   profiles?: {
     full_name: string;
@@ -60,7 +66,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
         .select(`
           *,
           courses (name),
-          profiles!matches_creator_id_fkey (full_name),
+          creator:profiles!matches_creator_id_fkey (full_name, id),
           match_players (
             player_id, 
             team_number,

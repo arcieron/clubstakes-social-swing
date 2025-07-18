@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
@@ -70,24 +69,47 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
 
   const fetchLeaderboard = async () => {
     if (user?.club_id) {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, credits, handicap')
-        .eq('club_id', user.club_id)
-        .order('credits', { ascending: false })
-        .limit(10);
+      try {
+        // First get all profiles in the club
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, credits, handicap')
+          .eq('club_id', user.club_id)
+          .order('credits', { ascending: false })
+          .limit(10);
 
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      } else {
-        const transformedData = data?.map(profile => ({
-          id: profile.id,
-          name: profile.full_name,
-          credits: profile.credits || 0,
-          wins: 0,
-          handicap: profile.handicap || 0
-        })) || [];
-        setLeaderboard(transformedData);
+        if (profilesError) {
+          toast({ title: "Error", description: profilesError.message, variant: "destructive" });
+          return;
+        }
+
+        // Then get win counts for each profile
+        const leaderboardWithWins = await Promise.all(
+          (profiles || []).map(async (profile) => {
+            const { data: winCount, error: winError } = await supabase
+              .from('matches')
+              .select('id')
+              .eq('winner_id', profile.id)
+              .eq('status', 'completed');
+
+            if (winError) {
+              console.error('Error fetching wins for profile:', profile.id, winError);
+            }
+
+            return {
+              id: profile.id,
+              name: profile.full_name,
+              credits: profile.credits || 0,
+              wins: winCount?.length || 0,
+              handicap: profile.handicap || 0
+            };
+          })
+        );
+
+        setLeaderboard(leaderboardWithWins);
+      } catch (error) {
+        console.error('Error in fetchLeaderboard:', error);
+        toast({ title: "Error", description: "Failed to fetch leaderboard", variant: "destructive" });
       }
     }
   };

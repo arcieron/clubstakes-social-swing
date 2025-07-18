@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Trophy, Users, Shield, Target, CheckCircle, ArrowRight, Zap, MessageCircle, Award, RefreshCw } from 'lucide-react';
@@ -46,7 +45,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
   ];
 
   const included = [
-    "GHIN handicap syncing",
+    "GHIN Handicap Scoring",
     "Course data + auto scoring", 
     "Social leaderboard and feed",
     "Admin panel for your club",
@@ -199,13 +198,14 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
       {/* Pricing */}
       <section className="py-20 bg-primary text-white">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-8">Pricing</h2>
+          <h2 className="text-3xl font-bold mb-8">Simple, Fair Pricing</h2>
           <Card className="bg-white text-gray-900 p-8 max-w-md mx-auto animate-scale-in">
-            <div className="text-4xl font-bold text-primary mb-4">$1,500/year</div>
+            <div className="text-4xl font-bold text-primary mb-4">One Low Annual Fee</div>
             <p className="text-xl text-gray-600 mb-6">per club</p>
-            <p className="text-gray-700 mb-6">Unlimited members.</p>
+            <p className="text-gray-700 mb-4">Unlimited members.</p>
+            <p className="text-gray-700 mb-6">Unlimited games.</p>
             <p className="text-sm text-primary font-medium">
-              First 5 clubs get Founding Status and early feature input.
+              No per-user fees. No hidden costs. Just pure golf competition.
             </p>
           </Card>
         </div>

@@ -97,20 +97,49 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('Joining match:', matchId, 'with team:', teamNumber);
       
-      const match = matches.find(m => m.id === matchId);
-      if (!match) {
-        console.error('Match not found');
+      // First, get the current match details and player count from database
+      const { data: matchData, error: matchError } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          match_players (player_id)
+        `)
+        .eq('id', matchId)
+        .single();
+
+      if (matchError || !matchData) {
+        console.error('Error fetching match data:', matchError);
         return false;
       }
 
-      const currentPlayers = match.match_players?.length || 0;
-      const maxPlayers = match.max_players || 8;
+      const currentPlayers = matchData.match_players?.length || 0;
+      const maxPlayers = matchData.max_players || 8;
+      
+      console.log(`Match ${matchId} currently has ${currentPlayers}/${maxPlayers} players`);
       
       if (currentPlayers >= maxPlayers) {
         console.error('Match is full');
+        toast({
+          title: "Match Full",
+          description: "This match is already full",
+          variant: "destructive"
+        });
         return false;
       }
 
+      // Check if user is already in the match
+      const isAlreadyJoined = matchData.match_players?.some(mp => mp.player_id === user.id);
+      if (isAlreadyJoined) {
+        console.error('User already joined this match');
+        toast({
+          title: "Already Joined",
+          description: "You are already in this match",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Add the player to the match
       const { error: insertError } = await supabase
         .from('match_players')
         .insert({
@@ -142,7 +171,9 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // Data will be refreshed automatically via real-time subscription
+      console.log('Successfully joined match, refreshing data...');
+      // Refresh data to get the latest state
+      await fetchMatches();
       return true;
     } catch (error) {
       console.error('Error in joinMatch:', error);
@@ -176,6 +207,14 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
             toast({
               title: "New Match Created",
               description: `A new ${payload.new.format} match has been created`,
+            });
+          }
+          
+          // Show notification for status changes
+          if (payload.eventType === 'UPDATE' && payload.new?.status === 'in_progress' && payload.old?.status === 'open') {
+            toast({
+              title: "Match Started",
+              description: "A match is now in progress",
             });
           }
         }

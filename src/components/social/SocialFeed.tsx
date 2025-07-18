@@ -39,9 +39,6 @@ export const SocialFeed = ({ user }: SocialFeedProps) => {
         title: "Joined Challenge!",
         description: "You've successfully joined the challenge. Check your Active Matches tab to see if the match is ready to start."
       });
-      
-      // Force a page refresh to update all components
-      window.location.reload();
     } else {
       toast({
         title: "Error",

@@ -1,134 +1,173 @@
 
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Calendar, MapPin } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Clock, MapPin, Users, Target } from 'lucide-react';
 
-interface Match {
+interface OpenChallenge {
   id: string;
-  creator_id: string;
+  creator: {
+    full_name: string;
+    id: string;
+  };
   format: string;
   wager_amount: number;
   match_date: string;
-  max_players?: number;
+  tee_time?: string;
+  holes?: number;
   courses?: {
     name: string;
   };
-  profiles?: {
-    full_name: string;
-  };
-  match_players?: Array<{
+  match_players: Array<{
     player_id: string;
-    team_number?: number;
   }>;
+  max_players: number;
 }
 
 interface OpenChallengesSectionProps {
-  openChallenges: Match[];
+  openChallenges: OpenChallenge[];
   user: any;
-  onJoinChallenge: (matchId: string, wagerAmount: number) => Promise<void>;
+  onJoinChallenge: (matchId: string, wagerAmount: number) => void;
   formatGameType: (format: string) => string;
 }
 
-export const OpenChallengesSection = ({
-  openChallenges,
-  user,
+export const OpenChallengesSection = ({ 
+  openChallenges, 
+  user, 
   onJoinChallenge,
-  formatGameType
+  formatGameType 
 }: OpenChallengesSectionProps) => {
-  if (openChallenges.length === 0) return null;
-
-  const handleJoinChallenge = async (matchId: string, wagerAmount: number) => {
-    // Check if user has enough credits
-    const userCredits = user.credits || 0;
-    if (userCredits < wagerAmount) {
-      toast({
-        title: "Insufficient Credits",
-        description: `You need ${wagerAmount.toLocaleString()} credits to join this challenge. You have ${userCredits.toLocaleString()} credits.`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    await onJoinChallenge(matchId, wagerAmount);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
+  const formatTeeTime = (timeString?: string) => {
+    if (!timeString) return null;
+    
+    const [hours, minutes] = timeString.split(':');
+    const date = new Date();
+    date.setHours(parseInt(hours, 10), parseInt(minutes, 10));
+    
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  if (openChallenges.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-primary" />
+            Open Challenges
+          </CardTitle>
+          <CardDescription>Challenges posted to the club feed</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-gray-500 py-4">
+            No open challenges at the moment. Create one to get started!
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-        <Users className="w-5 h-5 text-primary" />
-        Open Challenges
-      </h3>
-      <div className="space-y-3">
-        {openChallenges.map(challenge => {
-          // Calculate open spots available for joining
-          // max_players represents: creator + selected players + open spots added during creation
-          // match_players contains: creator + selected players + anyone who joined open spots
-          const currentPlayers = challenge.match_players?.length || 0;
-          const totalMatchSize = challenge.max_players || 8;
-          
-          // Available open spots = total match size minus current players
-          const openSpots = totalMatchSize - currentPlayers;
-          
-          const isUserInMatch = challenge.match_players?.some(p => p.player_id === user.id);
-          const hasAvailableSpots = openSpots > 0;
-          const userCredits = user.credits || 0;
-          const hasEnoughCredits = userCredits >= challenge.wager_amount;
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Target className="w-5 h-5 text-primary" />
+          Open Challenges
+        </CardTitle>
+        <CardDescription>Join challenges posted by other members</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {openChallenges.map((challenge) => {
+          const isCreator = challenge.creator.id === user.id;
+          const isAlreadyJoined = challenge.match_players.some(p => p.player_id === user.id);
+          const spotsLeft = challenge.max_players - challenge.match_players.length;
           
           return (
-            <Card key={challenge.id} className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h4 className="font-semibold text-gray-800">
-                      {formatGameType(challenge.format)}
-                    </h4>
-                    <p className="text-sm text-gray-600">Created by {challenge.profiles?.full_name}</p>
+            <div key={challenge.id} className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="w-8 h-8">
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
+                        {challenge.creator.full_name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium text-sm">{challenge.creator.full_name}</p>
+                      <p className="text-xs text-gray-500">created a challenge</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-accent">{challenge.wager_amount.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">credits</p>
+                  
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                    <Badge variant="outline">{formatGameType(challenge.format)}</Badge>
+                    {challenge.holes && (
+                      <Badge variant="secondary" className="text-xs">
+                        {challenge.holes} holes
+                      </Badge>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      <span className="text-xs">{challenge.courses?.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      <span className="text-xs">
+                        {formatDate(challenge.match_date)}
+                        {challenge.tee_time && (
+                          <span className="ml-1 font-medium">
+                            @ {formatTeeTime(challenge.tee_time)}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      <span>{spotsLeft} spot{spotsLeft !== 1 ? 's' : ''} left</span>
+                    </div>
+                    <div className="font-semibold text-accent">
+                      {challenge.wager_amount} credits
+                    </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {challenge.courses?.name || 'TBD'}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {new Date(challenge.match_date).toLocaleDateString()}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Users className="w-4 h-4" />
-                    {openSpots} open spot{openSpots !== 1 ? 's' : ''}
-                  </div>
+                <div className="flex flex-col items-end gap-2">
+                  {!isCreator && !isAlreadyJoined && spotsLeft > 0 && (
+                    <Button 
+                      size="sm" 
+                      onClick={() => onJoinChallenge(challenge.id, challenge.wager_amount)}
+                      className="bg-accent hover:bg-accent/90"
+                    >
+                      Join Challenge
+                    </Button>
+                  )}
+                  {isCreator && (
+                    <Badge variant="secondary" className="text-xs">Your Challenge</Badge>
+                  )}
+                  {isAlreadyJoined && !isCreator && (
+                    <Badge variant="default" className="text-xs">Joined</Badge>
+                  )}
                 </div>
-
-                {!hasEnoughCredits && !isUserInMatch && (
-                  <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="text-sm text-yellow-800">
-                      You need {challenge.wager_amount.toLocaleString()} credits to join. 
-                      You have {userCredits.toLocaleString()} credits.
-                    </p>
-                  </div>
-                )}
-                
-                <Button 
-                  onClick={() => handleJoinChallenge(challenge.id, challenge.wager_amount)}
-                  className="w-full bg-primary hover:bg-primary/90 text-white"
-                  disabled={!hasAvailableSpots || isUserInMatch || !hasEnoughCredits}
-                >
-                  {isUserInMatch ? 'Already Joined' : 
-                   !hasAvailableSpots ? 'Challenge Full' : 
-                   !hasEnoughCredits ? 'Insufficient Credits' : 'Join Challenge'}
-                </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           );
         })}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };

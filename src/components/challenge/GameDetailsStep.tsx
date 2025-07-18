@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,10 +8,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect } from 'react';
-import { Info } from 'lucide-react';
+import { Info, Clock } from 'lucide-react';
 
 interface ChallengeData {
   format: string;
@@ -21,6 +23,8 @@ interface ChallengeData {
   postToFeed: boolean;
   scoringType: 'gross' | 'net';
   skinsCarryover?: boolean;
+  holes: 9 | 18;
+  teeTime?: string;
 }
 
 interface GameDetailsStepProps {
@@ -92,6 +96,22 @@ export const GameDetailsStep = ({
     });
   };
 
+  const generateTeeTimeOptions = () => {
+    const times = [];
+    for (let hour = 6; hour <= 18; hour++) {
+      for (let minute = 0; minute < 60; minute += 10) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        const displayTime = new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        times.push({ value: timeString, display: displayTime });
+      }
+    }
+    return times;
+  };
+
   const gameTypeDescriptions = {
     'match-play': 'Winner determined by who wins the most holes head-to-head. Each hole is worth 1 point - lowest score wins the hole.',
     'stroke-play': 'Winner has the lowest total score for all 18 holes. Traditional golf scoring.',
@@ -102,10 +122,12 @@ export const GameDetailsStep = ({
   };
 
   // Can proceed if we have required fields
-  const canProceed = challengeData.format && challengeData.courseId && challengeData.matchDate;
+  const canProceed = challengeData.format && challengeData.courseId && challengeData.matchDate && 
+    (!challengeData.postToFeed || challengeData.teeTime);
 
   const isSkinsGame = challengeData.format === 'skins';
   const isTeamBasedFormat = ['better-ball', 'scramble'].includes(challengeData.format);
+  const isNassau = challengeData.format === 'nassau';
 
   return (
     <TooltipProvider>
@@ -184,6 +206,25 @@ export const GameDetailsStep = ({
               </SelectContent>
             </Select>
           </div>
+
+          {!isNassau && (
+            <div>
+              <Label>Number of Holes</Label>
+              <ToggleGroup 
+                type="single" 
+                value={challengeData.holes.toString()} 
+                onValueChange={(value) => value && updateChallengeData({ holes: parseInt(value) as 9 | 18 })}
+                className="justify-start mt-2"
+              >
+                <ToggleGroupItem value="9" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                  9 Holes
+                </ToggleGroupItem>
+                <ToggleGroupItem value="18" className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                  18 Holes
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          )}
 
           <div>
             <Label>Match Date</Label>
@@ -300,7 +341,7 @@ export const GameDetailsStep = ({
             )}
           </div>
 
-          <div className="border-t pt-4">
+          <div className="border-t pt-4 space-y-4">
             <div className="flex items-center space-x-2">
               <Checkbox 
                 id="postToFeed" 
@@ -313,11 +354,34 @@ export const GameDetailsStep = ({
             </div>
             
             {challengeData.postToFeed && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
-                <p className="text-sm text-blue-800">
-                  When you post to the club feed, other members can join your challenge. 
-                  You can still invite specific players in the next step.
-                </p>
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    When you post to the club feed, other members can join your challenge. 
+                    You can still invite specific players in the next step.
+                  </p>
+                </div>
+                
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Tee Time
+                  </Label>
+                  <Select value={challengeData.teeTime} onValueChange={(value) => 
+                    updateChallengeData({ teeTime: value })
+                  }>
+                    <SelectTrigger className="bg-white border-gray-200 mt-2">
+                      <SelectValue placeholder="Select tee time" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-gray-200 shadow-lg z-50 max-h-60">
+                      {generateTeeTimeOptions().map((time) => (
+                        <SelectItem key={time.value} value={time.value}>
+                          {time.display}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
           </div>

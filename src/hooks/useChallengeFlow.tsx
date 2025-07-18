@@ -18,6 +18,8 @@ interface ChallengeData {
   postToFeed: boolean;
   scoringType: 'gross' | 'net';
   skinsCarryover?: boolean;
+  holes: 9 | 18;
+  teeTime?: string;
 }
 
 export const useChallengeFlow = (user: any, onClose: () => void) => {
@@ -31,7 +33,8 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
     matchDate: new Date().toISOString().split('T')[0],
     teamFormat: 'individual',
     postToFeed: false,
-    scoringType: 'gross'
+    scoringType: 'gross',
+    holes: 18
   });
 
   const handleSubmit = async () => {
@@ -43,6 +46,16 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
       toast({
         title: "No players selected",
         description: "Please select at least one other player or post to feed.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate tee time if posting to feed
+    if (challengeData.postToFeed && !challengeData.teeTime) {
+      toast({
+        title: "Tee time required",
+        description: "Please select a tee time when posting to the club feed.",
         variant: "destructive"
       });
       return;
@@ -85,7 +98,9 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
         team_format: challengeData.teamFormat as any,
         status: initialStatus as any,
         is_public: challengeData.postToFeed,
-        max_players: maxPlayers
+        max_players: maxPlayers,
+        holes: challengeData.holes,
+        tee_time: challengeData.teeTime
       };
 
       const { data: match, error: matchError } = await supabase
@@ -158,9 +173,10 @@ export const useChallengeFlow = (user: any, onClose: () => void) => {
 
       if (challengeData.postToFeed) {
         const spotsText = totalOpenSpots > 0 ? ` with ${totalOpenSpots} open spot${totalOpenSpots > 1 ? 's' : ''}` : '';
+        const teeTimeText = challengeData.teeTime ? ` at ${challengeData.teeTime}` : '';
         toast({
           title: "Challenge Posted!",
-          description: `Your challenge has been posted to the club feed${spotsText} for others to join.`
+          description: `Your challenge has been posted to the club feed${spotsText}${teeTimeText} for others to join.`
         });
       } else {
         const playerNames = selectedPlayers.map(p => {

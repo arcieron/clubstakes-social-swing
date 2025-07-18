@@ -22,7 +22,7 @@ interface OpenChallenge {
   match_players?: Array<{
     player_id: string;
   }>;
-  max_players: number;
+  max_players?: number; // Made optional to match database schema
 }
 
 interface OpenChallengesSectionProps {
@@ -93,7 +93,7 @@ export const OpenChallengesSection = ({
         {openChallenges.map((challenge) => {
           const isCreator = challenge.creator?.id === user.id;
           const isAlreadyJoined = challenge.match_players?.some(p => p.player_id === user.id);
-          const spotsLeft = challenge.max_players - (challenge.match_players?.length || 0);
+          const spotsLeft = (challenge.max_players || 8) - (challenge.match_players?.length || 0);
           
           return (
             <div key={challenge.id} className="border rounded-lg p-4 space-y-3">

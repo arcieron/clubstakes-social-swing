@@ -127,6 +127,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
       const newPlayerCount = currentPlayers + 1;
       console.log(`Match ${matchId} now has ${newPlayerCount}/${maxPlayers} players`);
       
+      // Check if match is now full and update status if needed
       if (newPlayerCount >= maxPlayers) {
         console.log('Match is now full, updating status to in_progress');
         const { error: updateError } = await supabase
@@ -136,6 +137,8 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
 
         if (updateError) {
           console.error('Error updating match status:', updateError);
+        } else {
+          console.log('Match status successfully updated to in_progress');
         }
       }
 

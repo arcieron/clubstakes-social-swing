@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,8 +25,24 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [currentTab, setCurrentTab] = useState('overview');
 
-  // Filter matches by status
-  const activeMatches = matches.filter(m => m.status === 'in_progress');
+  // Filter matches by status with better logging
+  const activeMatches = matches.filter(m => {
+    const isActive = m.status === 'in_progress';
+    if (isActive) {
+      console.log('Found active match:', m.id, 'with status:', m.status);
+    }
+    return isActive;
+  });
+
+  // Add logging for all matches
+  useEffect(() => {
+    console.log('=== DASHBOARD MATCHES DEBUG ===');
+    console.log('All matches:', matches.length);
+    console.log('Active matches:', activeMatches.length);
+    matches.forEach(match => {
+      console.log(`Match ${match.id}: status=${match.status}, players=${match.match_players?.length || 0}/${match.max_players || 8}`);
+    });
+  }, [matches, activeMatches.length]);
 
   const fetchMatchHistory = async () => {
     if (!authUser || !user?.club_id) return;
@@ -168,7 +185,7 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
               Overview
             </TabsTrigger>
             <TabsTrigger value="active" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-              Active Matches
+              Active Matches ({activeMatches.length})
             </TabsTrigger>
             <TabsTrigger value="history" className="data-[state=active]:bg-primary data-[state=active]:text-white">
               Match History

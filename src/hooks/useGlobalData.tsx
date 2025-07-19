@@ -95,9 +95,10 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
 
   const joinMatch = async (matchId: string, teamNumber?: number) => {
     try {
-      console.log('Joining match:', matchId, 'with team:', teamNumber);
+      console.log('=== JOINING MATCH DEBUG ===');
+      console.log('Match ID:', matchId, 'Team:', teamNumber);
       
-      // First, get the current match details and player count from database
+      // First, get the current match details and FRESH player count from database
       const { data: matchData, error: matchError } = await supabase
         .from('matches')
         .select(`
@@ -116,6 +117,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
       const maxPlayers = matchData.max_players || 8;
       
       console.log(`Match ${matchId} currently has ${currentPlayers}/${maxPlayers} players`);
+      console.log('Current match status:', matchData.status);
       
       if (currentPlayers >= maxPlayers) {
         console.error('Match is full');
@@ -158,16 +160,21 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
       
       // Check if match is now full and update status if needed
       if (newPlayerCount >= maxPlayers) {
-        console.log('Match is now full, updating status to in_progress');
-        const { error: updateError } = await supabase
+        console.log('=== UPDATING MATCH STATUS TO IN_PROGRESS ===');
+        console.log('Match was:', matchData.status, 'updating to: in_progress');
+        
+        const { data: updateData, error: updateError } = await supabase
           .from('matches')
           .update({ status: 'in_progress' })
-          .eq('id', matchId);
+          .eq('id', matchId)
+          .select()
+          .single();
 
         if (updateError) {
           console.error('Error updating match status:', updateError);
         } else {
-          console.log('Match status successfully updated to in_progress');
+          console.log('Match status successfully updated:', updateData);
+          console.log('New status should be:', updateData.status);
         }
       }
 
@@ -199,7 +206,14 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
           filter: `club_id=eq.${profile.club_id}`
         },
         (payload) => {
-          console.log('Global match update received:', payload);
+          console.log('=== REAL-TIME MATCH UPDATE ===');
+          console.log('Event type:', payload.eventType);
+          console.log('Payload:', payload);
+          
+          if (payload.eventType === 'UPDATE') {
+            console.log('Match status changed from:', payload.old?.status, 'to:', payload.new?.status);
+          }
+          
           fetchMatches();
           
           // Show notification for new matches
@@ -210,11 +224,12 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
             });
           }
           
-          // Show notification for status changes
-          if (payload.eventType === 'UPDATE' && payload.new?.status === 'in_progress' && payload.old?.status === 'open') {
+          // Show notification for status changes to in_progress
+          if (payload.eventType === 'UPDATE' && payload.new?.status === 'in_progress' && payload.old?.status !== 'in_progress') {
+            console.log('=== MATCH STARTED NOTIFICATION ===');
             toast({
               title: "Match Started",
-              description: "A match is now in progress",
+              description: "A match is now ready to begin!",
             });
           }
         }
@@ -232,7 +247,8 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
           table: 'match_players'
         },
         (payload) => {
-          console.log('Global match players update received:', payload);
+          console.log('=== REAL-TIME PLAYER UPDATE ===');
+          console.log('Player update payload:', payload);
           fetchMatches();
           
           // Show notification when someone joins a match

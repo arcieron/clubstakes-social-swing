@@ -23,6 +23,8 @@ interface TeamScorecardTableProps {
   getDisplayScore: (playerId: string, hole: HoleScore) => number;
   showTotal?: boolean;
   calculateTotal?: (playerId: string) => number;
+  isNineHoles?: boolean;
+  selectedNine?: 'front' | 'back';
 }
 
 export const TeamScorecardTable = ({
@@ -35,14 +37,24 @@ export const TeamScorecardTable = ({
   handleScoreChange,
   getDisplayScore,
   showTotal = false,
-  calculateTotal
+  calculateTotal,
+  isNineHoles = false,
+  selectedNine = 'front'
 }: TeamScorecardTableProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedHole, setSelectedHole] = useState<HoleScore | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
 
-  const holeRange = title === 'Front 9' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
-  const startHole = title === 'Front 9' ? 1 : 10;
+  // Filter holes based on whether it's 9 holes and which nine is selected
+  const getHoleRange = () => {
+    if (isNineHoles) {
+      return selectedNine === 'front' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
+    }
+    return title === 'Front 9' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
+  };
+
+  const holeRange = getHoleRange();
+  const startHole = isNineHoles ? (selectedNine === 'front' ? 1 : 10) : (title === 'Front 9' ? 1 : 10);
 
   // Group players by team
   const teams = players.reduce((acc, player) => {
@@ -105,7 +117,8 @@ export const TeamScorecardTable = ({
 
   const calculateTeamTotal = (teamNumber: number) => {
     const teamScoreId = getTeamScoreId(teamNumber);
-    return holeScores.reduce((total, hole) => total + (hole.scores[teamScoreId] || 0), 0);
+    const relevantHoles = isNineHoles ? getHoleRange() : holeScores;
+    return relevantHoles.reduce((total, hole) => total + (hole.scores[teamScoreId] || 0), 0);
   };
 
   return (
@@ -119,15 +132,15 @@ export const TeamScorecardTable = ({
             <thead>
               <tr className="border-b">
                 <th className="p-2 text-left">Hole</th>
-                {Array.from({ length: 9 }, (_, i) => (
+                {Array.from({ length: holeRange.length }, (_, i) => (
                   <th key={startHole + i} className="p-1 text-center min-w-[50px]">
                     {startHole + i}
                   </th>
                 ))}
                 <th className="p-2 text-center font-bold">
-                  {title === 'Front 9' ? 'OUT' : 'IN'}
+                  {isNineHoles ? 'TOT' : (title === 'Front 9' ? 'OUT' : 'IN')}
                 </th>
-                {showTotal && (
+                {showTotal && !isNineHoles && (
                   <th className="p-2 text-center font-bold">TOT</th>
                 )}
               </tr>
@@ -139,7 +152,7 @@ export const TeamScorecardTable = ({
                 <td className="p-2 text-center font-bold">
                   {holeRange.reduce((sum, h) => sum + h.par, 0)}
                 </td>
-                {showTotal && (
+                {showTotal && !isNineHoles && (
                   <td className="p-2 text-center font-bold">
                     {holeScores.reduce((sum, h) => sum + h.par, 0)}
                   </td>
@@ -151,7 +164,7 @@ export const TeamScorecardTable = ({
                   <td key={hole.hole} className="p-1 text-center text-xs">{hole.handicap_rating}</td>
                 ))}
                 <td className="p-2 text-center"></td>
-                {showTotal && <td className="p-2 text-center"></td>}
+                {showTotal && !isNineHoles && <td className="p-2 text-center"></td>}
               </tr>
             </thead>
             <tbody>
@@ -175,7 +188,7 @@ export const TeamScorecardTable = ({
                   <td className="p-2 text-center font-bold">
                     {holeRange.reduce((sum, h) => sum + getTeamScore(h, teamNumber), 0) || '-'}
                   </td>
-                  {showTotal && (
+                  {showTotal && !isNineHoles && (
                     <td className="p-2 text-center font-bold text-primary">
                       {calculateTeamTotal(teamNumber) || '-'}
                     </td>

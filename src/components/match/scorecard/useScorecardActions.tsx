@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,7 +17,8 @@ export const useScorecardActions = (
   fetchConfirmations: () => void,
   players: any[],
   confirmations: Record<string, boolean>,
-  match: any
+  match: any,
+  selectedNine?: 'front' | 'back'
 ) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -70,6 +70,14 @@ export const useScorecardActions = (
     return grossScore - strokes;
   };
 
+  // Get relevant holes based on match holes and selected nine
+  const getRelevantHoles = (): HoleScore[] => {
+    if (match.holes === 9 && selectedNine) {
+      return selectedNine === 'front' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
+    }
+    return holeScores;
+  };
+
   const updateScore = async (hole: number, playerId: string, score: number) => {
     try {
       console.log('Updating score:', { hole, playerId, score, matchId });
@@ -117,14 +125,16 @@ export const useScorecardActions = (
   };
 
   const calculateGrossTotal = (playerId: string) => {
-    return holeScores.reduce((total, hole) => total + (hole.scores[playerId] || 0), 0);
+    const relevantHoles = getRelevantHoles();
+    return relevantHoles.reduce((total, hole) => total + (hole.scores[playerId] || 0), 0);
   };
 
   const calculateNetTotal = (playerId: string) => {
     const player = players.find(p => p.profiles.id === playerId);
     if (!player) return 0;
 
-    return holeScores.reduce((total, hole) => {
+    const relevantHoles = getRelevantHoles();
+    return relevantHoles.reduce((total, hole) => {
       const grossScore = hole.scores[playerId] || 0;
       if (grossScore === 0) return total;
       
@@ -139,7 +149,8 @@ export const useScorecardActions = (
 
   const calculateToPar = (playerId: string) => {
     const total = calculateTotal(playerId);
-    const totalPar = holeScores.reduce((sum, hole) => sum + hole.par, 0);
+    const relevantHoles = getRelevantHoles();
+    const totalPar = relevantHoles.reduce((sum, hole) => sum + hole.par, 0);
     const toPar = total - totalPar;
     return toPar === 0 ? 'E' : toPar > 0 ? `+${toPar}` : toPar.toString();
   };
@@ -162,10 +173,11 @@ export const useScorecardActions = (
     }
 
     const [player1, player2] = players;
+    const relevantHoles = getRelevantHoles();
     let player1Holes = 0;
     let player2Holes = 0;
 
-    holeScores.forEach(hole => {
+    relevantHoles.forEach(hole => {
       let score1 = hole.scores[player1.profiles.id] || 0;
       let score2 = hole.scores[player2.profiles.id] || 0;
 
@@ -219,7 +231,7 @@ export const useScorecardActions = (
         playerId: player.profiles.id,
         playerName: player.profiles.full_name,
         totalScore: scoreToUse,
-        toPar: scoreToUse - holeScores.reduce((sum, hole) => sum + hole.par, 0)
+        toPar: scoreToUse - getRelevantHoles().reduce((sum, hole) => sum + hole.par, 0)
       };
     });
 
@@ -238,9 +250,10 @@ export const useScorecardActions = (
 
     const teamScores = Object.entries(teams).map(([teamNumber, teamPlayers]) => {
       let teamTotal = 0;
+      const relevantHoles = getRelevantHoles();
       
-      if (Array.isArray(holeScores)) {
-        holeScores.forEach(hole => {
+      if (Array.isArray(relevantHoles)) {
+        relevantHoles.forEach(hole => {
           const teamHoleScores: number[] = [];
           
           if (Array.isArray(teamPlayers)) {
@@ -266,7 +279,7 @@ export const useScorecardActions = (
         teamName,
         players: teamPlayers,
         totalScore: teamTotal,
-        toPar: Array.isArray(holeScores) ? teamTotal - holeScores.reduce((sum, hole) => sum + hole.par, 0) : 0
+        toPar: Array.isArray(relevantHoles) ? teamTotal - relevantHoles.reduce((sum, hole) => sum + hole.par, 0) : 0
       };
     });
 
@@ -307,9 +320,10 @@ export const useScorecardActions = (
     const teamScores = Object.entries(teams).map(([teamNumber, teamPlayers]) => {
       const teamScoreId = `team_${teamNumber}`;
       let teamTotal = 0;
+      const relevantHoles = getRelevantHoles();
       
-      if (Array.isArray(holeScores)) {
-        holeScores.forEach(hole => {
+      if (Array.isArray(relevantHoles)) {
+        relevantHoles.forEach(hole => {
           const grossScore = hole.scores[teamScoreId] || 0;
           if (grossScore > 0) {
             let score = grossScore;
@@ -345,7 +359,7 @@ export const useScorecardActions = (
         teamName,
         players: teamPlayers,
         totalScore: teamTotal,
-        toPar: teamTotal - (Array.isArray(holeScores) ? holeScores.reduce((sum, hole) => sum + hole.par, 0) : 0)
+        toPar: teamTotal - (Array.isArray(relevantHoles) ? relevantHoles.reduce((sum, hole) => sum + hole.par, 0) : 0)
       };
     });
 
@@ -375,8 +389,17 @@ export const useScorecardActions = (
 
   // Fixed Nassau calculation - simplified and standardized
   const calculateNassauWinner = (match: any) => {
-    const front9 = holeScores.slice(0, 9);
-    const back9 = holeScores.slice(9, 18);
+    const relevantHoles = getRelevantHoles();
+    let front9, back9;
+    
+    if (match.holes === 9) {
+      // For 9-hole matches, treat the selected 9 as both front and back
+      front9 = relevantHoles;
+      back9 = relevantHoles;
+    } else {
+      front9 = relevantHoles.slice(0, 9);
+      back9 = relevantHoles.slice(9, 18);
+    }
     
     const calculateNineScore = (holes: HoleScore[], playerId: string) => {
       const player = players.find(p => p.profiles.id === playerId);
@@ -423,12 +446,13 @@ export const useScorecardActions = (
   const calculateSkinsWinner = (match: any) => {
     const playerSkins: Record<string, { count: number; holes: number[] }> = {};
     let carryoverSkins = 0; // Track skins that carry over from tied holes
+    const relevantHoles = getRelevantHoles();
     
     players.forEach(player => {
       playerSkins[player.profiles.id] = { count: 0, holes: [] };
     });
 
-    holeScores.forEach(hole => {
+    relevantHoles.forEach(hole => {
       const holeScores: { playerId: string; score: number }[] = [];
       
       players.forEach(player => {

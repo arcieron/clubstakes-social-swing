@@ -21,6 +21,8 @@ interface ScorecardTableProps {
   getDisplayScore: (playerId: string, hole: HoleScore) => number;
   showTotal?: boolean;
   calculateTotal?: (playerId: string) => number;
+  isNineHoles?: boolean;
+  selectedNine?: 'front' | 'back';
 }
 
 // Helper function to calculate relative handicap
@@ -60,14 +62,24 @@ export const ScorecardTable = ({
   handleScoreChange,
   getDisplayScore,
   showTotal = false,
-  calculateTotal
+  calculateTotal,
+  isNineHoles = false,
+  selectedNine = 'front'
 }: ScorecardTableProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedHole, setSelectedHole] = useState<HoleScore | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
 
-  const holeRange = title === 'Front 9' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
-  const startHole = title === 'Front 9' ? 1 : 10;
+  // Filter holes based on whether it's 9 holes and which nine is selected
+  const getHoleRange = () => {
+    if (isNineHoles) {
+      return selectedNine === 'front' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
+    }
+    return title === 'Front 9' ? holeScores.slice(0, 9) : holeScores.slice(9, 18);
+  };
+
+  const holeRange = getHoleRange();
+  const startHole = isNineHoles ? (selectedNine === 'front' ? 1 : 10) : (title === 'Front 9' ? 1 : 10);
 
   // Calculate the lowest handicap among all players for relative handicapping
   const lowestHandicap = Math.min(...players.map(player => player.profiles.handicap || 0));
@@ -104,15 +116,15 @@ export const ScorecardTable = ({
             <thead>
               <tr className="border-b">
                 <th className="p-2 text-left">Hole</th>
-                {Array.from({ length: 9 }, (_, i) => (
+                {Array.from({ length: holeRange.length }, (_, i) => (
                   <th key={startHole + i} className="p-1 text-center min-w-[50px]">
                     {startHole + i}
                   </th>
                 ))}
                 <th className="p-2 text-center font-bold">
-                  {title === 'Front 9' ? 'OUT' : 'IN'}
+                  {isNineHoles ? 'TOT' : (title === 'Front 9' ? 'OUT' : 'IN')}
                 </th>
-                {showTotal && (
+                {showTotal && !isNineHoles && (
                   <th className="p-2 text-center font-bold">TOT</th>
                 )}
               </tr>
@@ -124,7 +136,7 @@ export const ScorecardTable = ({
                 <td className="p-2 text-center font-bold">
                   {holeRange.reduce((sum, h) => sum + h.par, 0)}
                 </td>
-                {showTotal && (
+                {showTotal && !isNineHoles && (
                   <td className="p-2 text-center font-bold">
                     {holeScores.reduce((sum, h) => sum + h.par, 0)}
                   </td>
@@ -136,7 +148,7 @@ export const ScorecardTable = ({
                   <td key={hole.hole} className="p-1 text-center text-xs">{hole.handicap_rating}</td>
                 ))}
                 <td className="p-2 text-center"></td>
-                {showTotal && <td className="p-2 text-center"></td>}
+                {showTotal && !isNineHoles && <td className="p-2 text-center"></td>}
               </tr>
             </thead>
             <tbody>
@@ -167,7 +179,7 @@ export const ScorecardTable = ({
                   <td className="p-2 text-center font-bold">
                     {holeRange.reduce((sum, h) => sum + (h.scores[player.profiles.id] || 0), 0) || '-'}
                   </td>
-                  {showTotal && calculateTotal && (
+                  {showTotal && calculateTotal && !isNineHoles && (
                     <td className="p-2 text-center font-bold text-primary">
                       {calculateTotal(player.profiles.id) || '-'}
                     </td>

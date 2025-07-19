@@ -6,6 +6,7 @@ import { ScorecardTable } from './scorecard/ScorecardTable';
 import { TeamScorecardTable } from './scorecard/TeamScorecardTable';
 import { ActionButtons } from './scorecard/ActionButtons';
 import { OnlinePlayersIndicator } from './scorecard/OnlinePlayersIndicator';
+import { NineHoleSelector } from './scorecard/NineHoleSelector';
 import { useScorecardData } from './scorecard/useScorecardData';
 import { useScorecardActions } from './scorecard/useScorecardActions';
 import { useState } from 'react';
@@ -20,6 +21,7 @@ interface ScorecardProps {
 export const Scorecard = ({ matchId, match, players, onSubmitScores }: ScorecardProps) => {
   const { user } = useAuth();
   const [editingHole, setEditingHole] = useState<{ hole: number; playerId: string } | null>(null);
+  const [selectedNine, setSelectedNine] = useState<'front' | 'back'>('front');
   
   const {
     holeScores,
@@ -35,7 +37,7 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
     calculateToPar,
     getDisplayScore,
     confirmScores
-  } = useScorecardActions(matchId, holeScores, setHoleScores, fetchConfirmations, players, confirmations, match);
+  } = useScorecardActions(matchId, holeScores, setHoleScores, fetchConfirmations, players, confirmations, match, selectedNine);
 
   const isTeamFormat = match.team_format === 'teams';
   const isScramble = match.format === 'scramble';
@@ -43,6 +45,7 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
   const confirmedCount = Object.keys(confirmations).length;
   const totalNeeded = players.length;
   const allConfirmed = confirmedCount === totalNeeded;
+  const isNineHoles = match.holes === 9;
 
   // For scramble, show team-based scorecard
   if (isTeamFormat && isScramble) {
@@ -52,29 +55,55 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
         
         <OnlinePlayersIndicator matchId={matchId} players={players} />
 
-        <TeamScorecardTable
-          title="Front 9"
-          holeScores={holeScores}
-          players={players}
-          match={match}
-          editingHole={editingHole}
-          setEditingHole={setEditingHole}
-          handleScoreChange={handleScoreChange}
-          getDisplayScore={getDisplayScore}
-        />
+        {isNineHoles && (
+          <NineHoleSelector 
+            selectedNine={selectedNine} 
+            onNineChange={setSelectedNine} 
+          />
+        )}
 
-        <TeamScorecardTable
-          title="Back 9"
-          holeScores={holeScores}
-          players={players}
-          match={match}
-          editingHole={editingHole}
-          setEditingHole={setEditingHole}
-          handleScoreChange={handleScoreChange}
-          getDisplayScore={getDisplayScore}
-          showTotal={true}
-          calculateTotal={calculateTotal}
-        />
+        {!isNineHoles ? (
+          <>
+            <TeamScorecardTable
+              title="Front 9"
+              holeScores={holeScores}
+              players={players}
+              match={match}
+              editingHole={editingHole}
+              setEditingHole={setEditingHole}
+              handleScoreChange={handleScoreChange}
+              getDisplayScore={getDisplayScore}
+            />
+
+            <TeamScorecardTable
+              title="Back 9"
+              holeScores={holeScores}
+              players={players}
+              match={match}
+              editingHole={editingHole}
+              setEditingHole={setEditingHole}
+              handleScoreChange={handleScoreChange}
+              getDisplayScore={getDisplayScore}
+              showTotal={true}
+              calculateTotal={calculateTotal}
+            />
+          </>
+        ) : (
+          <TeamScorecardTable
+            title={selectedNine === 'front' ? 'Front 9' : 'Back 9'}
+            holeScores={holeScores}
+            players={players}
+            match={match}
+            editingHole={editingHole}
+            setEditingHole={setEditingHole}
+            handleScoreChange={handleScoreChange}
+            getDisplayScore={getDisplayScore}
+            showTotal={true}
+            calculateTotal={calculateTotal}
+            isNineHoles={true}
+            selectedNine={selectedNine}
+          />
+        )}
 
         <ActionButtons
           userConfirmed={userConfirmed}
@@ -95,6 +124,13 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
       
       <OnlinePlayersIndicator matchId={matchId} players={players} />
 
+      {isNineHoles && (
+        <NineHoleSelector 
+          selectedNine={selectedNine} 
+          onNineChange={setSelectedNine} 
+        />
+      )}
+
       <PlayersHeader 
         players={players}
         confirmations={confirmations}
@@ -102,27 +138,45 @@ export const Scorecard = ({ matchId, match, players, onSubmitScores }: Scorecard
         calculateToPar={calculateToPar}
       />
 
-      <ScorecardTable
-        title="Front 9"
-        holeScores={holeScores}
-        players={players}
-        editingHole={editingHole}
-        setEditingHole={setEditingHole}
-        handleScoreChange={handleScoreChange}
-        getDisplayScore={getDisplayScore}
-      />
+      {!isNineHoles ? (
+        <>
+          <ScorecardTable
+            title="Front 9"
+            holeScores={holeScores}
+            players={players}
+            editingHole={editingHole}
+            setEditingHole={setEditingHole}
+            handleScoreChange={handleScoreChange}
+            getDisplayScore={getDisplayScore}
+          />
 
-      <ScorecardTable
-        title="Back 9"
-        holeScores={holeScores}
-        players={players}
-        editingHole={editingHole}
-        setEditingHole={setEditingHole}
-        handleScoreChange={handleScoreChange}
-        getDisplayScore={getDisplayScore}
-        showTotal={true}
-        calculateTotal={calculateTotal}
-      />
+          <ScorecardTable
+            title="Back 9"
+            holeScores={holeScores}
+            players={players}
+            editingHole={editingHole}
+            setEditingHole={setEditingHole}
+            handleScoreChange={handleScoreChange}
+            getDisplayScore={getDisplayScore}
+            showTotal={true}
+            calculateTotal={calculateTotal}
+          />
+        </>
+      ) : (
+        <ScorecardTable
+          title={selectedNine === 'front' ? 'Front 9' : 'Back 9'}
+          holeScores={holeScores}
+          players={players}
+          editingHole={editingHole}
+          setEditingHole={setEditingHole}
+          handleScoreChange={handleScoreChange}
+          getDisplayScore={getDisplayScore}
+          showTotal={true}
+          calculateTotal={calculateTotal}
+          isNineHoles={true}
+          selectedNine={selectedNine}
+        />
+      )}
 
       <ActionButtons
         userConfirmed={userConfirmed}

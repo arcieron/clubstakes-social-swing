@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,23 +24,47 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [currentTab, setCurrentTab] = useState('overview');
 
-  // Filter matches by status with better logging
+  // Filter matches by status with comprehensive logging
   const activeMatches = matches.filter(m => {
     const isActive = m.status === 'in_progress';
-    if (isActive) {
-      console.log('Found active match:', m.id, 'with status:', m.status);
-    }
     return isActive;
   });
 
-  // Add logging for all matches
+  // Add comprehensive logging for all matches
   useEffect(() => {
-    console.log('=== DASHBOARD MATCHES DEBUG ===');
-    console.log('All matches:', matches.length);
-    console.log('Active matches:', activeMatches.length);
-    matches.forEach(match => {
-      console.log(`Match ${match.id}: status=${match.status}, players=${match.match_players?.length || 0}/${match.max_players || 8}`);
+    console.log('=== DASHBOARD MATCHES ANALYSIS ===');
+    console.log('Total matches loaded:', matches.length);
+    console.log('Active matches (in_progress):', activeMatches.length);
+    
+    // Analyze each match type
+    const matchesByStatus = matches.reduce((acc, match) => {
+      const status = match.status || 'unknown';
+      if (!acc[status]) acc[status] = [];
+      acc[status].push({
+        id: match.id,
+        players: match.match_players?.length || 0,
+        maxPlayers: match.max_players || 8,
+        format: match.format
+      });
+      return acc;
+    }, {} as Record<string, any[]>);
+    
+    console.log('Matches by status:', matchesByStatus);
+    
+    // Check for matches that should be active but aren't
+    const shouldBeActive = matches.filter(match => {
+      const playerCount = match.match_players?.length || 0;
+      const maxPlayers = match.max_players || 8;
+      return playerCount >= maxPlayers && match.status !== 'in_progress' && match.status !== 'completed';
     });
+    
+    if (shouldBeActive.length > 0) {
+      console.warn('=== MATCHES THAT SHOULD BE ACTIVE ===');
+      shouldBeActive.forEach(match => {
+        console.warn(`Match ${match.id}: ${match.match_players?.length}/${match.max_players} players but status is ${match.status}`);
+      });
+    }
+    
   }, [matches, activeMatches.length]);
 
   const fetchMatchHistory = async () => {
@@ -135,6 +158,7 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   useEffect(() => {
     console.log('Tab changed to:', currentTab);
     if (currentTab === 'active') {
+      console.log('Refreshing data for Active tab');
       refreshData();
     } else if (currentTab === 'history') {
       fetchMatchHistory();

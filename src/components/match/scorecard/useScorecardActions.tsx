@@ -719,11 +719,16 @@ export const useScorecardActions = (
       
       const winner = calculateWinner(match);
       
-      const winnerId = match.format === 'nassau' && winner.overallWinners 
-        ? winner.overallWinners[0]?.playerId 
-        : Array.isArray(winner) 
-          ? winner[0]?.playerId 
-          : winner.playerId;
+      // Determine winner ID - use null for ties to indicate "TIE"
+      let winnerId = null;
+      
+      if (match.format === 'nassau' && winner.overallWinners) {
+        winnerId = winner.overallWinners.length === 1 ? winner.overallWinners[0]?.playerId : null;
+      } else if (Array.isArray(winner)) {
+        winnerId = winner.length === 1 ? winner[0]?.playerId : null;
+      } else {
+        winnerId = winner.playerId;
+      }
 
       const { error: updateError } = await supabase
         .from('matches')

@@ -116,6 +116,11 @@ export const CompletedScorecard = ({ match, players, holeScores }: CompletedScor
                             Winner
                           </Badge>
                         )}
+                        {!match.winner_id && (
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-800 text-xs">
+                            TIE
+                          </Badge>
+                        )}
                       </div>
                     </td>
                     {Array.from({ length: holeCount }, (_, i) => {

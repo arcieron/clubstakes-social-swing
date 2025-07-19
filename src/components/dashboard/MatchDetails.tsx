@@ -123,14 +123,21 @@ export const MatchDetails = ({ match, onBack }: MatchDetailsProps) => {
             </div>
           </div>
 
-          {match.winner_profile && (
+          {match.winner_profile ? (
             <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
               <Crown className="w-5 h-5 text-yellow-600" />
               <span className="font-medium text-yellow-800">
                 Winner: {match.winner_profile.full_name}
               </span>
             </div>
-          )}
+          ) : match.status === 'completed' ? (
+            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <Crown className="w-5 h-5 text-gray-600" />
+              <span className="font-medium text-gray-800">
+                Result: TIE
+              </span>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

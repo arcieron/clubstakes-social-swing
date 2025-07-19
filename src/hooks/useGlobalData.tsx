@@ -108,7 +108,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
   const joinMatch = async (matchId: string, teamNumber?: number) => {
     try {
       console.log('=== JOINING MATCH DEBUG ===');
-      console.log('Match ID:', matchId, 'Team:', teamNumber);
+      console.log('Match ID:', matchId, 'Team:', teamNumber, 'User ID:', user.id);
       
       // First, get the current match details and FRESH player count from database
       const { data: matchData, error: matchError } = await supabase
@@ -131,6 +131,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
       console.log(`=== PRE-JOIN STATUS ===`);
       console.log(`Match ${matchId} status: ${matchData.status}`);
       console.log(`Current players: ${currentPlayers}/${maxPlayers}`);
+      console.log('Match data:', matchData);
       
       if (currentPlayers >= maxPlayers) {
         console.error('Match is full');
@@ -156,18 +157,21 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
 
       // Add the player to the match
       console.log('=== ADDING PLAYER TO MATCH ===');
-      const { error: insertError } = await supabase
+      const { data: insertData, error: insertError } = await supabase
         .from('match_players')
         .insert({
           match_id: matchId,
           player_id: user.id,
           team_number: teamNumber || null
-        });
+        })
+        .select();
 
       if (insertError) {
         console.error('Error joining match:', insertError);
         return false;
       }
+
+      console.log('Player added successfully:', insertData);
 
       const newPlayerCount = currentPlayers + 1;
       console.log(`=== POST-JOIN STATUS ===`);
@@ -176,20 +180,44 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
       // Update status to 'in_progress' if match is now full
       if (newPlayerCount >= maxPlayers) {
         console.log('=== MATCH IS NOW FULL - UPDATING STATUS ===');
+        console.log(`Attempting to update match ${matchId} from ${matchData.status} to in_progress`);
         
+        // Use a more explicit update query
         const { data: updateData, error: updateError } = await supabase
           .from('matches')
-          .update({ status: 'in_progress' })
+          .update({ 
+            status: 'in_progress',
+            updated_at: new Date().toISOString()
+          })
           .eq('id', matchId)
+          .eq('status', 'pending') // Only update if currently pending
           .select()
           .single();
 
         if (updateError) {
           console.error('=== STATUS UPDATE FAILED ===');
-          console.error('Error updating match status:', updateError);
+          console.error('Update error:', updateError);
+          console.error('Error details:', {
+            code: updateError.code,
+            message: updateError.message,
+            details: updateError.details
+          });
+        } else if (!updateData) {
+          console.warn('=== NO ROWS UPDATED ===');
+          console.warn('This might mean the match was not in pending status');
+          
+          // Let's check the current status
+          const { data: currentMatch } = await supabase
+            .from('matches')
+            .select('status')
+            .eq('id', matchId)
+            .single();
+          
+          console.log('Current match status after failed update:', currentMatch?.status);
         } else {
           console.log('=== STATUS UPDATE SUCCESS ===');
           console.log('Match status successfully updated to:', updateData.status);
+          console.log('Updated match data:', updateData);
         }
       }
 

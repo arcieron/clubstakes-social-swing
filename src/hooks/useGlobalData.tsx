@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -127,7 +126,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const currentPlayers = matchData.match_players?.length || 0;
-      const maxPlayers = matchData.max_players || 2; // Default to 2 for testing
+      const maxPlayers = matchData.max_players || 2;
       
       console.log(`=== PRE-JOIN STATUS ===`);
       console.log(`Match ${matchId} status: ${matchData.status}`);
@@ -174,10 +173,9 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
       console.log(`=== POST-JOIN STATUS ===`);
       console.log(`Match ${matchId} now has ${newPlayerCount}/${maxPlayers} players`);
       
-      // ALWAYS update status if match is now full, regardless of current status
+      // Update status to 'in_progress' if match is now full
       if (newPlayerCount >= maxPlayers) {
         console.log('=== MATCH IS NOW FULL - UPDATING STATUS ===');
-        console.log(`Forcing status update from ${matchData.status} to in_progress`);
         
         const { data: updateData, error: updateError } = await supabase
           .from('matches')
@@ -195,11 +193,9 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // Force a data refresh with a small delay to ensure DB has updated
+      // Refresh data immediately
       console.log('=== REFRESHING DATA AFTER JOIN ===');
-      setTimeout(async () => {
-        await fetchMatches();
-      }, 500);
+      await fetchMatches();
       
       toast({
         title: "Joined Successfully!",

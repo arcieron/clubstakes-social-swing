@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -107,10 +108,31 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
 
   const joinMatch = async (matchId: string, teamNumber?: number) => {
     try {
-      console.log('=== JOINING MATCH DEBUG ===');
-      console.log('Match ID:', matchId, 'Team:', teamNumber, 'User ID:', user.id);
+      console.log('=== JOINING MATCH ===');
+      console.log('Match ID:', matchId, 'User ID:', user.id);
       
-      // First, get the current match details and FRESH player count from database
+      // Step 1: Add player to match
+      const { error: insertError } = await supabase
+        .from('match_players')
+        .insert({
+          match_id: matchId,
+          player_id: user.id,
+          team_number: teamNumber || null
+        });
+
+      if (insertError) {
+        console.error('Error adding player to match:', insertError);
+        toast({
+          title: "Error",
+          description: "Failed to join match. You may already be in this match.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      console.log('Player added to match successfully');
+
+      // Step 2: Get fresh match data to check if it's now full
       const { data: matchData, error: matchError } = await supabase
         .from('matches')
         .select(`
@@ -121,120 +143,56 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (matchError || !matchData) {
-        console.error('Error fetching match data:', matchError);
+        console.error('Error fetching updated match data:', matchError);
         return false;
       }
 
-      const currentPlayers = matchData.match_players?.length || 0;
-      const maxPlayers = matchData.max_players || 2;
+      const currentPlayerCount = matchData.match_players?.length || 0;
+      const maxPlayers = matchData.max_players || 8;
       
-      console.log(`=== PRE-JOIN STATUS ===`);
-      console.log(`Match ${matchId} status: ${matchData.status}`);
-      console.log(`Current players: ${currentPlayers}/${maxPlayers}`);
-      console.log('Match data:', matchData);
-      
-      if (currentPlayers >= maxPlayers) {
-        console.error('Match is full');
-        toast({
-          title: "Match Full",
-          description: "This match is already full",
-          variant: "destructive"
-        });
-        return false;
-      }
+      console.log(`Match now has ${currentPlayerCount}/${maxPlayers} players`);
+      console.log(`Current status: ${matchData.status}`);
 
-      // Check if user is already in the match
-      const isAlreadyJoined = matchData.match_players?.some(mp => mp.player_id === user.id);
-      if (isAlreadyJoined) {
-        console.error('User already joined this match');
-        toast({
-          title: "Already Joined",
-          description: "You are already in this match",
-          variant: "destructive"
-        });
-        return false;
-      }
-
-      // Add the player to the match
-      console.log('=== ADDING PLAYER TO MATCH ===');
-      const { data: insertData, error: insertError } = await supabase
-        .from('match_players')
-        .insert({
-          match_id: matchId,
-          player_id: user.id,
-          team_number: teamNumber || null
-        })
-        .select();
-
-      if (insertError) {
-        console.error('Error joining match:', insertError);
-        return false;
-      }
-
-      console.log('Player added successfully:', insertData);
-
-      const newPlayerCount = currentPlayers + 1;
-      console.log(`=== POST-JOIN STATUS ===`);
-      console.log(`Match ${matchId} now has ${newPlayerCount}/${maxPlayers} players`);
-      
-      // Update status to 'in_progress' if match is now full
-      if (newPlayerCount >= maxPlayers) {
-        console.log('=== MATCH IS NOW FULL - UPDATING STATUS ===');
-        console.log(`Attempting to update match ${matchId} from ${matchData.status} to in_progress`);
+      // Step 3: If match is full and status is 'open', change to 'in_progress'
+      if (currentPlayerCount >= maxPlayers && matchData.status === 'open') {
+        console.log('=== MATCH IS FULL - UPDATING TO IN_PROGRESS ===');
         
-        // Update status for both 'open' and 'pending' matches
-        const { data: updateData, error: updateError } = await supabase
+        const { error: updateError } = await supabase
           .from('matches')
           .update({ 
             status: 'in_progress',
             updated_at: new Date().toISOString()
           })
-          .eq('id', matchId)
-          .in('status', ['pending', 'open']) // Allow update from both statuses
-          .select()
-          .single();
+          .eq('id', matchId);
 
         if (updateError) {
-          console.error('=== STATUS UPDATE FAILED ===');
-          console.error('Update error:', updateError);
-          console.error('Error details:', {
-            code: updateError.code,
-            message: updateError.message,
-            details: updateError.details
-          });
-        } else if (!updateData) {
-          console.warn('=== NO ROWS UPDATED ===');
-          console.warn('This might mean the match was not in pending or open status');
-          
-          // Let's check the current status
-          const { data: currentMatch } = await supabase
-            .from('matches')
-            .select('status')
-            .eq('id', matchId)
-            .single();
-          
-          console.log('Current match status after failed update:', currentMatch?.status);
+          console.error('Error updating match status:', updateError);
         } else {
-          console.log('=== STATUS UPDATE SUCCESS ===');
-          console.log('Match status successfully updated to:', updateData.status);
-          console.log('Updated match data:', updateData);
+          console.log('Match status updated to in_progress successfully');
+          
+          toast({
+            title: "Match Started!",
+            description: "The match is now full and ready to begin! Check your Active Matches tab.",
+          });
         }
+      } else {
+        toast({
+          title: "Joined Successfully!",
+          description: "You've joined the match successfully."
+        });
       }
 
-      // Refresh data immediately
-      console.log('=== REFRESHING DATA AFTER JOIN ===');
+      // Step 4: Refresh data to show updated state
       await fetchMatches();
-      
-      toast({
-        title: "Joined Successfully!",
-        description: newPlayerCount >= maxPlayers 
-          ? "Match is now ready to begin! Check your Active Matches tab."
-          : "You've joined the match successfully."
-      });
       
       return true;
     } catch (error) {
       console.error('Error in joinMatch:', error);
+      toast({
+        title: "Error",
+        description: "Failed to join match. Please try again.",
+        variant: "destructive"
+      });
       return false;
     }
   };

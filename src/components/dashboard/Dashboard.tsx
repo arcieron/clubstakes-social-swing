@@ -27,35 +27,34 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
   // Filter matches by status with comprehensive logging
   const activeMatches = matches.filter(m => {
     const isActive = m.status === 'in_progress';
+    console.log(`Match ${m.id}: status=${m.status}, isActive=${isActive}, players=${m.match_players?.length}/${m.max_players}`);
     return isActive;
   });
+
+  const pendingMatches = matches.filter(m => m.status === 'pending');
+  const completedMatches = matches.filter(m => m.status === 'completed');
 
   // Add comprehensive logging for all matches
   useEffect(() => {
     console.log('=== DASHBOARD MATCHES ANALYSIS ===');
     console.log('Total matches loaded:', matches.length);
     console.log('Active matches (in_progress):', activeMatches.length);
+    console.log('Pending matches:', pendingMatches.length);
+    console.log('Completed matches:', completedMatches.length);
     
-    // Analyze each match type
-    const matchesByStatus = matches.reduce((acc, match) => {
-      const status = match.status || 'unknown';
-      if (!acc[status]) acc[status] = [];
-      acc[status].push({
-        id: match.id,
-        players: match.match_players?.length || 0,
-        maxPlayers: match.max_players || 8,
-        format: match.format
-      });
-      return acc;
-    }, {} as Record<string, any[]>);
-    
-    console.log('Matches by status:', matchesByStatus);
+    // Log details for each active match
+    activeMatches.forEach(match => {
+      console.log(`Active Match ${match.id}:`);
+      console.log(`  Status: ${match.status}`);
+      console.log(`  Players: ${match.match_players?.length}/${match.max_players}`);
+      console.log(`  Format: ${match.format}`);
+    });
     
     // Check for matches that should be active but aren't
-    const shouldBeActive = matches.filter(match => {
+    const shouldBeActive = pendingMatches.filter(match => {
       const playerCount = match.match_players?.length || 0;
       const maxPlayers = match.max_players || 8;
-      return playerCount >= maxPlayers && match.status !== 'in_progress' && match.status !== 'completed';
+      return playerCount >= maxPlayers;
     });
     
     if (shouldBeActive.length > 0) {
@@ -65,7 +64,7 @@ export const Dashboard = ({ user, onChallenge }: DashboardProps) => {
       });
     }
     
-  }, [matches, activeMatches.length]);
+  }, [matches, activeMatches.length, pendingMatches.length]);
 
   const fetchMatchHistory = async () => {
     if (!authUser || !user?.club_id) return;

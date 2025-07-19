@@ -102,6 +102,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshData = async () => {
+    console.log('=== REFRESHING DATA ===');
     await fetchMatches();
   };
 
@@ -126,7 +127,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const currentPlayers = matchData.match_players?.length || 0;
-      const maxPlayers = matchData.max_players || 8;
+      const maxPlayers = matchData.max_players || 2; // Default to 2 for testing
       
       console.log(`=== PRE-JOIN STATUS ===`);
       console.log(`Match ${matchId} status: ${matchData.status}`);
@@ -173,10 +174,10 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
       console.log(`=== POST-JOIN STATUS ===`);
       console.log(`Match ${matchId} now has ${newPlayerCount}/${maxPlayers} players`);
       
-      // Check if match is now full and update status if needed
-      if (newPlayerCount >= maxPlayers && matchData.status !== 'in_progress') {
-        console.log('=== UPDATING MATCH STATUS TO IN_PROGRESS ===');
-        console.log(`Updating match ${matchId} from ${matchData.status} to in_progress`);
+      // ALWAYS update status if match is now full, regardless of current status
+      if (newPlayerCount >= maxPlayers) {
+        console.log('=== MATCH IS NOW FULL - UPDATING STATUS ===');
+        console.log(`Forcing status update from ${matchData.status} to in_progress`);
         
         const { data: updateData, error: updateError } = await supabase
           .from('matches')
@@ -191,21 +192,14 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
         } else {
           console.log('=== STATUS UPDATE SUCCESS ===');
           console.log('Match status successfully updated to:', updateData.status);
-          
-          // Manually trigger a notification since real-time might be delayed
-          toast({
-            title: "Match Ready!",
-            description: "The match is now full and ready to begin. Check your Active Matches tab!",
-          });
         }
-      } else {
-        console.log('=== NO STATUS UPDATE NEEDED ===');
-        console.log(`Match not full yet (${newPlayerCount}/${maxPlayers}) or already in correct status (${matchData.status})`);
       }
 
-      console.log('=== REFRESHING DATA ===');
-      // Refresh data to get the latest state
-      await fetchMatches();
+      // Force a data refresh with a small delay to ensure DB has updated
+      console.log('=== REFRESHING DATA AFTER JOIN ===');
+      setTimeout(async () => {
+        await fetchMatches();
+      }, 500);
       
       toast({
         title: "Joined Successfully!",
@@ -258,15 +252,10 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
             }
           }
           
-          fetchMatches();
-          
-          // Show notification for new matches
-          if (payload.eventType === 'INSERT' && payload.new?.creator_id !== user.id) {
-            toast({
-              title: "New Match Created",
-              description: `A new ${payload.new.format} match has been created`,
-            });
-          }
+          // Always refresh data on any match change
+          setTimeout(() => {
+            fetchMatches();
+          }, 100);
         }
       )
       .subscribe();
@@ -284,15 +273,11 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
         (payload) => {
           console.log('=== REAL-TIME PLAYER UPDATE ===');
           console.log('Player update payload:', payload);
-          fetchMatches();
           
-          // Show notification when someone joins a match
-          if (payload.eventType === 'INSERT' && payload.new?.player_id !== user.id) {
-            toast({
-              title: "Player Joined Match",
-              description: "Someone joined a match in your club",
-            });
-          }
+          // Refresh data immediately when players change
+          setTimeout(() => {
+            fetchMatches();
+          }, 100);
         }
       )
       .subscribe();

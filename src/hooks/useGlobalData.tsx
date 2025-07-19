@@ -182,7 +182,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
         console.log('=== MATCH IS NOW FULL - UPDATING STATUS ===');
         console.log(`Attempting to update match ${matchId} from ${matchData.status} to in_progress`);
         
-        // Use a more explicit update query
+        // Update status for both 'open' and 'pending' matches
         const { data: updateData, error: updateError } = await supabase
           .from('matches')
           .update({ 
@@ -190,7 +190,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
             updated_at: new Date().toISOString()
           })
           .eq('id', matchId)
-          .eq('status', 'pending') // Only update if currently pending
+          .in('status', ['pending', 'open']) // Allow update from both statuses
           .select()
           .single();
 
@@ -204,7 +204,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
           });
         } else if (!updateData) {
           console.warn('=== NO ROWS UPDATED ===');
-          console.warn('This might mean the match was not in pending status');
+          console.warn('This might mean the match was not in pending or open status');
           
           // Let's check the current status
           const { data: currentMatch } = await supabase

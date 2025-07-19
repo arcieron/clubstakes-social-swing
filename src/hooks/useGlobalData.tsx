@@ -79,19 +79,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         console.error('Error fetching matches:', error);
       } else {
-        console.log('=== FETCH MATCHES RESULT ===');
-        console.log('Total matches fetched:', data?.length || 0);
-        
-        // Log each match with detailed status info
-        data?.forEach(match => {
-          const playerCount = match.match_players?.length || 0;
-          const maxPlayers = match.max_players || 8;
-          console.log(`Match ${match.id}:`);
-          console.log(`  Status: ${match.status}`);
-          console.log(`  Players: ${playerCount}/${maxPlayers}`);
-          console.log(`  Should be in_progress: ${playerCount >= maxPlayers && match.status !== 'completed'}`);
-        });
-        
+        console.log('Fetched matches:', data?.length || 0);
         setMatches(data || []);
       }
     } catch (error) {
@@ -102,17 +90,23 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshData = async () => {
-    console.log('=== REFRESHING DATA ===');
+    console.log('Refreshing data...');
     await fetchMatches();
   };
 
   const joinMatch = async (matchId: string, teamNumber?: number) => {
+    if (!user?.id) {
+      console.error('No user ID available');
+      return false;
+    }
+
+    console.log('=== JOINING MATCH ===');
+    console.log('Match ID:', matchId);
+    console.log('User ID:', user.id);
+
     try {
-      console.log('=== JOINING MATCH ===');
-      console.log('Match ID:', matchId, 'User ID:', user.id);
-      
-      // Step 1: Add player to match
-      const { error: insertError } = await supabase
+      // Step 1: Add the player to the match
+      const { error: joinError } = await supabase
         .from('match_players')
         .insert({
           match_id: matchId,
@@ -120,8 +114,8 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
           team_number: teamNumber || null
         });
 
-      if (insertError) {
-        console.error('Error adding player to match:', insertError);
+      if (joinError) {
+        console.error('Failed to join match:', joinError);
         toast({
           title: "Error",
           description: "Failed to join match. You may already be in this match.",
@@ -130,10 +124,10 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      console.log('Player added to match successfully');
+      console.log('Successfully joined match');
 
-      // Step 2: Get fresh match data to check if it's now full
-      const { data: matchData, error: matchError } = await supabase
+      // Step 2: Get the current match details including player count
+      const { data: matchData, error: fetchError } = await supabase
         .from('matches')
         .select(`
           *,
@@ -142,20 +136,23 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', matchId)
         .single();
 
-      if (matchError || !matchData) {
-        console.error('Error fetching updated match data:', matchError);
-        return false;
+      if (fetchError || !matchData) {
+        console.error('Failed to fetch match data:', fetchError);
+        await refreshData(); // Still refresh to show the user joined
+        return true;
       }
 
-      const currentPlayerCount = matchData.match_players?.length || 0;
+      const currentPlayers = matchData.match_players?.length || 0;
       const maxPlayers = matchData.max_players || 8;
       
-      console.log(`Match now has ${currentPlayerCount}/${maxPlayers} players`);
-      console.log(`Current status: ${matchData.status}`);
+      console.log(`Match ${matchId}:`);
+      console.log(`- Current status: ${matchData.status}`);
+      console.log(`- Players: ${currentPlayers}/${maxPlayers}`);
+      console.log(`- Should activate: ${currentPlayers >= maxPlayers && matchData.status === 'open'}`);
 
-      // Step 3: If match is full and status is 'open', change to 'in_progress'
-      if (currentPlayerCount >= maxPlayers && matchData.status === 'open') {
-        console.log('=== MATCH IS FULL - UPDATING TO IN_PROGRESS ===');
+      // Step 3: If match is full AND status is 'open', change to 'in_progress'
+      if (currentPlayers >= maxPlayers && matchData.status === 'open') {
+        console.log('Match is full! Updating status to in_progress...');
         
         const { error: updateError } = await supabase
           .from('matches')
@@ -166,10 +163,9 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
           .eq('id', matchId);
 
         if (updateError) {
-          console.error('Error updating match status:', updateError);
+          console.error('Failed to update match status:', updateError);
         } else {
-          console.log('Match status updated to in_progress successfully');
-          
+          console.log('Successfully updated match status to in_progress');
           toast({
             title: "Match Started!",
             description: "The match is now full and ready to begin! Check your Active Matches tab.",
@@ -183,14 +179,14 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Step 4: Refresh data to show updated state
-      await fetchMatches();
-      
+      await refreshData();
       return true;
+
     } catch (error) {
-      console.error('Error in joinMatch:', error);
+      console.error('Unexpected error joining match:', error);
       toast({
         title: "Error",
-        description: "Failed to join match. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
       return false;
@@ -201,11 +197,11 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!user?.id || !profile?.club_id) return;
 
-    console.log('Setting up global real-time subscriptions');
+    console.log('Setting up real-time subscriptions');
     
     // Subscribe to match changes
     const matchChannel = supabase
-      .channel('global-match-updates')
+      .channel('match-updates')
       .on(
         'postgres_changes',
         {
@@ -215,36 +211,15 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
           filter: `club_id=eq.${profile.club_id}`
         },
         (payload) => {
-          console.log('=== REAL-TIME MATCH UPDATE ===');
-          console.log('Event type:', payload.eventType);
-          console.log('Payload:', payload);
-          
-          if (payload.eventType === 'UPDATE') {
-            console.log(`Match ${payload.new?.id} status changed:`);
-            console.log(`  From: ${payload.old?.status}`);
-            console.log(`  To: ${payload.new?.status}`);
-            
-            // Show notification for status changes to in_progress
-            if (payload.new?.status === 'in_progress' && payload.old?.status !== 'in_progress') {
-              console.log('=== MATCH ACTIVATED NOTIFICATION ===');
-              toast({
-                title: "Match Started!",
-                description: "A match is now ready to begin! Check your Active Matches tab.",
-              });
-            }
-          }
-          
-          // Always refresh data on any match change
-          setTimeout(() => {
-            fetchMatches();
-          }, 100);
+          console.log('Match update:', payload);
+          setTimeout(() => fetchMatches(), 100);
         }
       )
       .subscribe();
 
     // Subscribe to match player changes
     const playerChannel = supabase
-      .channel('global-player-updates')
+      .channel('player-updates')
       .on(
         'postgres_changes',
         {
@@ -253,13 +228,8 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
           table: 'match_players'
         },
         (payload) => {
-          console.log('=== REAL-TIME PLAYER UPDATE ===');
-          console.log('Player update payload:', payload);
-          
-          // Refresh data immediately when players change
-          setTimeout(() => {
-            fetchMatches();
-          }, 100);
+          console.log('Player update:', payload);
+          setTimeout(() => fetchMatches(), 100);
         }
       )
       .subscribe();
@@ -268,7 +238,7 @@ export const GlobalDataProvider = ({ children }: { children: ReactNode }) => {
     fetchMatches();
 
     return () => {
-      console.log('Cleaning up global real-time subscriptions');
+      console.log('Cleaning up subscriptions');
       supabase.removeChannel(matchChannel);
       supabase.removeChannel(playerChannel);
     };
